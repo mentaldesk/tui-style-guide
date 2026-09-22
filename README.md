@@ -157,6 +157,38 @@ ones that mean something invisible.
 - A container `View` that hosts focusable children needs `CanFocus = true`; `SetFocus()` silently
   returns false when any ancestor has it off.
 
+### Showing focus
+
+**The view that has focus says so in its own painting.** A user who cannot tell which view takes
+their keys is stuck before they type anything. A field draws a box — `LineStyle.Heavy` while it has
+focus, `LineStyle.Single` while it hasn't:
+
+```
+┌─ Comment on src/TuiCode.Editor/DiffTab.cs:35 ──────────┐
+│ ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ │   focused
+│ ┃ Rename this?                                       ┃ │
+│ ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛ │
+│ [ Add ]  [ Cancel ]                                    │
+└────────────────────────────────────────────────────────┘
+```
+
+Don't leave it to colour: in a light theme a field's background can match the dialog's, and the
+field then has no edge to look at either. And don't read the framework's own painting as the answer — it
+draws the first `Button` in the `Focus` attribute whether or not that button has focus, so the one
+thing that looks focused is often the wrong one.
+
+**Paint the caret yourself. The terminal cursor is not an affordance you control.** Setting its
+colour from the theme with OSC 12 is worth doing, but a terminal profile, a multiplexer or a pale
+theme can still leave it invisible, and nothing app-side tells you it happened — the driver reports
+the cursor on exactly the right cell while the screen shows nothing. Hide it while the view has
+focus and draw the cell instead: the grapheme at the insertion point in the field's colours swapped,
+a blank past the end of the line. That reads the same in every theme and terminal, and unlike the
+terminal cursor it can be asserted on.
+
+TuiCode's [`InputView`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Workbench/Controls/InputView.cs)
+is the reference implementation — a `TextView` subclass that does both, shared by every dialog with
+a multi-line field.
+
 ## 6. Writing requirements
 
 A requirement that describes UI is not done until a reader can build it without guessing.
@@ -168,17 +200,16 @@ carries the layout; the control names carry the behaviour.
 ┌─ Submit review on #187 ────────────────────────────────┐
 │ (•) Comment  ( ) Approve  ( ) Request changes          │   OptionSelector<T>, horizontal
 │                                                        │
-│ ┌────────────────────────────────────────────────────┐ │
-│ │ Summary…                                           │ │   TextView, word wrap
-│ └────────────────────────────────────────────────────┘ │
+│ ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ │   TextView, word wrap
+│ ┃ Summary…                                           ┃ │   heavy: focus starts here
+│ ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛ │
 │ Ctrl+Enter submit · Esc cancel                         │   clickable hints, ` · ` separated
-└────────────────────────────────────────────────────────┘ │
-│ Ctrl+Enter submit · Esc cancel                         │   clickable hints
 └────────────────────────────────────────────────────────┘
 ```
 
 Sketch conventions: `[x]` / `[ ]` checkbox, `(•)` / `( )` option, `[ 2 ▲▼]` numeric up/down,
-`[ Button ]` button, `▸` collapsed tree node, `…` placeholder text.
+`[ Button ]` button, `▸` collapsed tree node, `…` placeholder text, `┏━┓` a box drawn heavy because
+it has focus.
 
 Then say, in prose:
 
