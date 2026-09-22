@@ -159,35 +159,56 @@ ones that mean something invisible.
 
 ### Showing focus
 
-**The view that has focus says so in its own painting.** A user who cannot tell which view takes
-their keys is stuck before they type anything. A field draws a box — `LineStyle.Heavy` while it has
-focus, `LineStyle.Single` while it hasn't:
+**Focus has one owner, and that owner is not the framework's `HasFocus`.** Keep the focused
+*region* in one place and re-read it from the view the framework reports as focused, on every
+iteration and before every key — a mouse click moves focus between iterations. TG leaves `HasFocus`
+set on a view that focus has moved on from, so reading it view by view gives you two views that
+both claim the keyboard. `Navigation.GetFocused()` can also return an *ancestor* of the view
+actually holding keys, so walk down to the innermost with `View.MostFocused`.
 
-```
-┌─ Comment on src/TuiCode.Editor/DiffTab.cs:35 ──────────┐
-│ ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ │   focused
-│ ┃ Rename this?                                       ┃ │
-│ ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛ │
-│ [ Add ]  [ Cancel ]                                    │
-└────────────────────────────────────────────────────────┘
-```
+**Put it on screen twice: in colour and in a word.** The focused pane draws its border in the
+theme's focus colour, and a word naming the region sits at the far left of the status bar, always
+present. The colour is what you notice; the word is what still works when the theme is pale, the
+terminal profile overrides, or the user can't tell the two colours apart. Without either, a focus
+move that went somewhere unintended is invisible until the user types.
 
-Don't leave it to colour: in a light theme a field's background can match the dialog's, and the
-field then has no edge to look at either. And don't read the framework's own painting as the answer — it
-draws the first `Button` in the `Focus` attribute whether or not that button has focus, so the one
-thing that looks focused is often the wrong one.
+- Framework mechanic: TG draws border lines in `VisualRole.Normal` whatever has focus. Swap the
+  role as the attribute is resolved — a `GettingAttributeForRole` hook mapping `Normal`→`Focus` and
+  `HotNormal`→`HotFocus` — rather than overriding the pane's scheme, which has to be reapplied on
+  every theme change.
+- Don't read the framework's button painting as the answer either: TG draws the first `Button` in
+  the `Focus` attribute whether or not it has focus, so the thing that looks focused is often the
+  wrong one.
 
-**Paint the caret yourself. The terminal cursor is not an affordance you control.** Setting its
-colour from the theme with OSC 12 is worth doing, but a terminal profile, a multiplexer or a pale
-theme can still leave it invisible, and nothing app-side tells you it happened — the driver reports
-the cursor on exactly the right cell while the screen shows nothing. Hide it while the view has
-focus and draw the cell instead: the grapheme at the insertion point in the field's colours swapped,
-a blank past the end of the line. That reads the same in every theme and terminal, and unlike the
-terminal cursor it can be asserted on.
+TuiCode's [`FocusService`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Workbench/Focus/FocusService.cs)
+and [`FocusBorder`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Workbench/Focus/FocusBorder.cs)
+are the reference implementation. `FocusService` is framework-free and unit-tested directly: the
+host registers each region with a move and an ownership test and supplies the focused view.
 
-TuiCode's [`InputView`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Workbench/Controls/InputView.cs)
-is the reference implementation — a `TextView` subclass that does both, shared by every dialog with
-a multi-line field.
+### The caret
+
+**The caret is the terminal's own cursor.** Colour it from the theme with `OSC 12` on startup
+(`editorCursor.foreground`; no TG scheme covers it) and restore the terminal's own with `OSC 112`
+on exit. Terminals that don't support it ignore the sequence.
+
+**Paint a caret only where the terminal cannot draw one** — a second caret, say, in a terminal
+without [kitty's multiple cursors protocol](https://sw.kovidgoyal.net/kitty/multiple-cursors-protocol/).
+Then three rules, all of them things that have come back in review:
+
+- **Paint every caret and hide the terminal cursor.** One painted caret beside one real one is two
+  different-looking things on screen claiming to be the same thing.
+- **Underline the character the caret sits before** — the view's own attribute with
+  `TextStyle.Underline` added. Don't swap foreground and background: a reversed cell reads as a
+  selection, and it isn't the shape the rest of the app uses.
+- **Invalidate the view whenever a caret moves.** A painted caret only moves when the view redraws.
+  A caret that snaps into place only once the user types is a missing `SetNeedsDraw()`, not a
+  drawing bug — the terminal cursor hid this, because the framework moves that one without a
+  repaint.
+
+TuiCode's [`EditorTextView.Carets.cs`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Editor/EditorTextView.Carets.cs)
+and [`TerminalCursors`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Editor/TerminalCursors.cs)
+are the reference implementation. A dialog's field gets this by reusing them, not by writing a
+second caret.
 
 ## 6. Writing requirements
 
@@ -200,16 +221,15 @@ carries the layout; the control names carry the behaviour.
 ┌─ Submit review on #187 ────────────────────────────────┐
 │ (•) Comment  ( ) Approve  ( ) Request changes          │   OptionSelector<T>, horizontal
 │                                                        │
-│ ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ │   TextView, word wrap
-│ ┃ Summary…                                           ┃ │   heavy: focus starts here
-│ ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛ │
+│ ┌────────────────────────────────────────────────────┐ │
+│ │ Summary…                                           │ │   TextView, word wrap; focus starts here
+│ └────────────────────────────────────────────────────┘ │
 │ Ctrl+Enter submit · Esc cancel                         │   clickable hints, ` · ` separated
 └────────────────────────────────────────────────────────┘
 ```
 
 Sketch conventions: `[x]` / `[ ]` checkbox, `(•)` / `( )` option, `[ 2 ▲▼]` numeric up/down,
-`[ Button ]` button, `▸` collapsed tree node, `…` placeholder text, `┏━┓` a box drawn heavy because
-it has focus.
+`[ Button ]` button, `▸` collapsed tree node, `…` placeholder text.
 
 Then say, in prose:
 
