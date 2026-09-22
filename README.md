@@ -197,9 +197,10 @@ Then three rules, all of them things that have come back in review:
 
 - **Paint every caret and hide the terminal cursor.** One painted caret beside one real one is two
   different-looking things on screen claiming to be the same thing.
-- **Underline the character the caret sits before** — the view's own attribute with
-  `TextStyle.Underline` added. Don't swap foreground and background: a reversed cell reads as a
-  selection, and it isn't the shape the rest of the app uses.
+- **A caret is a bar before the insertion point, everywhere.** The terminal cursor is a bar, so a
+  painted one is a bar too — the shape a user sees must not depend on which terminal they have, on
+  how many carets are on screen, or on whether they are in the editor or a dialog. An underline
+  vanishes under an underscore; a reversed cell reads as a selection.
 - **Invalidate the view whenever a caret moves.** A painted caret only moves when the view redraws.
   A caret that snaps into place only once the user types is a missing `SetNeedsDraw()`, not a
   drawing bug — the terminal cursor hid this, because the framework moves that one without a
@@ -208,7 +209,7 @@ Then three rules, all of them things that have come back in review:
 TuiCode's [`EditorTextView.Carets.cs`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Editor/EditorTextView.Carets.cs)
 and [`TerminalCursors`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Editor/TerminalCursors.cs)
 are the reference implementation. A dialog's field gets this by reusing them, not by writing a
-second caret.
+second caret — which is also how it stays one shape.
 
 ## 6. Writing requirements
 
