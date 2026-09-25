@@ -205,16 +205,20 @@ host registers each region with a move and an ownership test and supplies the fo
 (`editorCursor.foreground`; no TG scheme covers it) and restore the terminal's own with `OSC 112`
 on exit. Terminals that don't support it ignore the sequence.
 
+**A text field in a dialog uses the terminal cursor too, and paints nothing.** A focused
+`TextField` or `TextView` already puts the cursor on the insertion point; that is the same caret
+the editor shows, in the same shape and colour. If it seems to be missing, find out why before
+drawing a replacement — a painted stand-in hides the real problem and brings its own.
+
 **Paint a caret only where the terminal cannot draw one** — a second caret, say, in a terminal
 without [kitty's multiple cursors protocol](https://sw.kovidgoyal.net/kitty/multiple-cursors-protocol/).
-Then three rules, all of them things that have come back in review:
+A painted caret is a fallback, not an equal: it has to fill a whole cell, so it covers the
+character it sits on, where the terminal cursor sits between two. When you do paint:
 
 - **Paint every caret and hide the terminal cursor.** One painted caret beside one real one is two
   different-looking things on screen claiming to be the same thing.
-- **A caret is a bar before the insertion point, everywhere.** The terminal cursor is a bar, so a
-  painted one is a bar too — the shape a user sees must not depend on which terminal they have, on
-  how many carets are on screen, or on whether they are in the editor or a dialog. An underline
-  vanishes under an underscore; a reversed cell reads as a selection.
+- **Paint a bar.** The terminal cursor is a bar, so a painted one is too. An underline vanishes
+  under an underscore; a reversed cell reads as a selection.
 - **Invalidate the view whenever a caret moves.** A painted caret only moves when the view redraws.
   A caret that snaps into place only once the user types is a missing `SetNeedsDraw()`, not a
   drawing bug — the terminal cursor hid this, because the framework moves that one without a
@@ -222,8 +226,8 @@ Then three rules, all of them things that have come back in review:
 
 TuiCode's [`EditorTextView.Carets.cs`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Editor/EditorTextView.Carets.cs)
 and [`TerminalCursors`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Editor/TerminalCursors.cs)
-are the reference implementation. A dialog's field gets this by reusing them, not by writing a
-second caret — which is also how it stays one shape.
+are the reference implementation for secondary carets. They are not a way to give a dialog's field
+a caret — it has one already.
 
 ## 6. Writing requirements
 
