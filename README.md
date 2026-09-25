@@ -79,6 +79,20 @@ that has no sensible shortcut.
 Hints belong on the **last row of the view**, anchored with `Pos.AnchorEnd(1)`, separated by
 ` · ` (space, U+00B7, space).
 
+**For the app's main screen, that row is the status bar**: the full width of the screen's last row,
+never the window title or the foot of one pane. **Give it its own colour**, a `StatusBar` scheme
+whose background differs from every region above it, in every theme. In the content's colours it
+reads as one more line of content. The same row carries the focus word (section 5) and errors
+outside a dialog (section 3).
+
+- Framework mechanic: TG's built-in `StatusBar` anchors itself to the bottom but paints in the
+  `Menu` scheme. Set its `SchemeName` to `StatusBar`.
+
+TuiCode's [`StatusBarPart`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Workbench/Parts/StatusBarPart.cs)
+and the `StatusBar` scheme in each of its
+[themes](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Workbench/Themes/themes.json)
+are the reference implementation.
+
 Write each hint as **key first, then a lower-case verb phrase**: the key is what the user is
 scanning for.
 
