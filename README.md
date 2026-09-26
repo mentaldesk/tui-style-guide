@@ -17,7 +17,8 @@ that are really framework mechanics say so; the rest are design rules that would
 3. [Errors and status](#3-errors-and-status)
 4. [Icons and glyphs](#4-icons-and-glyphs)
 5. [Keys and focus](#5-keys-and-focus)
-6. [Writing requirements](#6-writing-requirements)
+6. [Scrolling](#6-scrolling)
+7. [Writing requirements](#7-writing-requirements)
 
 ---
 
@@ -225,7 +226,34 @@ and [`TerminalCursors`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiC
 are the reference implementation. A dialog's field gets this by reusing them, not by writing a
 second caret — which is also how it stays one shape.
 
-## 6. Writing requirements
+## 6. Scrolling
+
+**Anything that scrolls shows a scroll bar while its content doesn't fit.** It is the one cue that
+says, at a glance, where you are and how much is left. Without it, a pane that scrolls on
+`PgUp`/`PgDn` looks like it ends at its last visible row.
+
+- **Auto: never always, never off.** The bar appears when the content outgrows the view and goes
+  when it fits again, so content that fits keeps every column. No setting to hide it.
+- **Horizontal too, where lines don't wrap.** A line running past the right edge gets a bar along
+  the bottom on the same terms. A view that wraps never needs one.
+- **Focus doesn't matter.** A pane that never takes focus, scrolled by its parent's keys, still
+  shows its bar.
+- **One bar for panes that scroll together**, such as the two sides of a diff.
+
+Framework mechanics:
+
+- Every `View` has a `VerticalScrollBar` and a `HorizontalScrollBar`, hidden until you set
+  `ViewportSettingsFlags.HasVerticalScrollBar` / `HasHorizontalScrollBar` (or
+  `VisibilityMode = ScrollBarVisibilityMode.Auto`). `TreeView<T>` and `Markdown` turn theirs on;
+  `TextView` ships with them off, so set `ScrollBars = true`.
+- These bars track the view's content size and `Viewport`, and the mouse can drag them. A custom
+  view that keeps its own scroll offset gets a bar that never moves: scroll it with
+  `SetContentSize` and `Viewport` instead.
+
+a-team's [`WorkView`](https://github.com/mentaldesk/a-team/blob/main/dashboard/WorkView.cs) is the
+reference implementation of a custom view scrolled that way.
+
+## 7. Writing requirements
 
 A requirement that describes UI is not done until a reader can build it without guessing.
 
@@ -244,7 +272,8 @@ carries the layout; the control names carry the behaviour.
 ```
 
 Sketch conventions: `[x]` / `[ ]` checkbox, `(•)` / `( )` option, `[ 2 ▲▼]` numeric up/down,
-`[ Button ]` button, `▸` collapsed tree node, `…` placeholder text.
+`[ Button ]` button, `▸` collapsed tree node, `…` placeholder text, `▲` `█` `▼` down the right edge
+a vertical scroll bar.
 
 Then say, in prose:
 
