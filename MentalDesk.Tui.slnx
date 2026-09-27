@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MentalDesk.Tui/MentalDesk.Tui.csproj" />
+    <Project Path="src/Swatch/Swatch.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MentalDesk.Tui.Tests/MentalDesk.Tui.Tests.csproj" />
+  </Folder>
+</Solution>

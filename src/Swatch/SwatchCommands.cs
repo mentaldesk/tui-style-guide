@@ -1,0 +1,9 @@
+namespace Swatch;
+
+internal static class SwatchCommands
+{
+    public const string GoToThemes = "swatch.goToThemes";
+    public const string GoToRoles = "swatch.goToRoles";
+    public const string GoToPreview = "swatch.goToPreview";
+    public const string UseTheme = "swatch.useTheme";
+}

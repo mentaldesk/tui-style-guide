@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>swatch</AssemblyName>
+    <RootNamespace>Swatch</RootNamespace>
+    <PublishAot>true</PublishAot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="MentalDesk.Tui.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../MentalDesk.Tui/MentalDesk.Tui.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -10,6 +10,15 @@ do. It grows by pull request as new ones come back (see *Extending this guide*).
 The framework is [Terminal.Gui](https://tui-cs.github.io/Terminal.Gui/docs/index.html) v2. Rules
 that are really framework mechanics say so; the rest are design rules that would hold in any TUI.
 
+**Using this guide.** The rules are here. Each one is also built, once, in
+[`MentalDesk.Tui`](https://github.com/mentaldesk/tui-style-guide/tree/main/src/MentalDesk.Tui), the shared library, and shown working in
+[Swatch](https://github.com/mentaldesk/tui-style-guide/tree/main/src/Swatch), a theme editor that exists to exercise them
+(`dotnet run --project src/Swatch`). **When you build something a rule covers, start from the
+library type its section names**, not from TuiCode's or a-team's own version: those are the older
+copies the library was taken from. Where a section still names TuiCode or a-team code, the library
+doesn't have that piece yet. The library isn't published yet either, so for now starting from it
+means copying from it.
+
 **Contents**
 
 1. [Build from the framework's widgets](#1-build-from-the-frameworks-widgets)
@@ -78,7 +87,7 @@ that has no sensible shortcut.
 ### The hint bar
 
 Hints belong on the **last row of the view**, anchored with `Pos.AnchorEnd(1)`, separated by
-` · ` (space, U+00B7, space).
+`  •  ` (two spaces, U+2022, two spaces).
 
 **For the app's main screen, that row is the status bar**: the full width of the screen's last row,
 never the window title or the foot of one pane. **Give it its own colour**, a `StatusBar` scheme
@@ -86,29 +95,25 @@ whose background differs from every region above it, in every theme. In the cont
 reads as one more line of content. The same row carries the focus word (section 5) and errors
 outside a dialog (section 3).
 
-- Framework mechanic: TG's built-in `StatusBar` anchors itself to the bottom but paints in the
-  `Menu` scheme. Set its `SchemeName` to `StatusBar`.
+- Framework mechanic: TG's built-in `StatusBar` paints in the `Menu` scheme and draws a border
+  between its items, so the status bar is a plain one-row `View` in the `StatusBar` scheme instead.
 
-TuiCode's [`StatusBarPart`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Workbench/Parts/StatusBarPart.cs)
-and the `StatusBar` scheme in each of its
-[themes](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Workbench/Themes/themes.json)
-are the reference implementation.
+The library's [`AppStatusBar`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/AppStatusBar.cs), with its hints laid out by
+[`HintRow`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/HintRow.cs), and the `StatusBar` scheme in each of its
+[themes](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Theming/themes.json) are the reference implementation.
 
 Write each hint as **key first, then a lower-case verb phrase**: the key is what the user is
 scanning for.
 
 ```
-Type to filter · Up/Down/PgUp/PgDn · Enter compare · Esc cancel
-Ctrl+Enter submit · Esc cancel
+Type to filter  •  Up/Down/PgUp/PgDn  •  Enter compare  •  Esc cancel
+Ctrl+Enter submit  •  Esc cancel
 ```
 
 - Order by how often the hint is used, with **cancel last**.
 - Name keys as the terminal reports them: `Ctrl+Enter`, `Esc`, `Up/Down`, `PgUp/PgDn`.
 - Leave out keys that every view has (`Tab` to move focus). Name the ones specific to this view.
 - Keep it to one row. If the hints don't fit, the view is doing too much.
-
-> Known divergence to converge on: TuiCode's status bar currently separates its items with
-> `  •  `. New work uses ` · `.
 
 ## 3. Errors and status
 
@@ -119,10 +124,10 @@ whatever sits below, and an error that lands between the buttons reads as part o
 occupying zero rows while there is nothing to say. When a message arrives, **the dialog grows** and
 the content above it shrinks — the message never steals the hint row.
 
-TuiCode's [`AlertView`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Workbench/Controls/AlertView.cs)
-is the reference implementation: it word-wraps to as many rows as the message needs, reports that
-count as `Lines` so the dialog can re-lay itself out, and picks its colours from the theme by
-severity rather than hard-coding them.
+The library's [`AlertView`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Dialogs/AlertView.cs) is the reference implementation: it
+word-wraps to as many rows as the message needs, reports that count as `Lines` so the dialog can
+re-lay itself out ([`AppDialog`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Dialogs/AppDialog.cs) grows by it), and picks its colours from
+the theme by severity rather than hard-coding them.
 
 | Severity | Scheme | For |
 | --- | --- | --- |
@@ -195,16 +200,16 @@ move that went somewhere unintended is invisible until the user types.
   the `Focus` attribute whether or not it has focus, so the thing that looks focused is often the
   wrong one.
 
-TuiCode's [`FocusService`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Workbench/Focus/FocusService.cs)
-and [`FocusBorder`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Workbench/Focus/FocusBorder.cs)
-are the reference implementation. `FocusService` is framework-free and unit-tested directly: the
-host registers each region with a move and an ownership test and supplies the focused view.
+The library's [`FocusTracker`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Focus/FocusTracker.cs) and
+[`FocusBorder`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Focus/FocusBorder.cs), wired up in [`AppShell`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Shell/AppShell.cs), are the
+reference implementation. `FocusTracker` is framework-free and unit-tested directly: the host
+registers each region with a move and an ownership test and supplies the focused view.
 
 ### The caret
 
-**The caret is the terminal's own cursor.** Colour it from the theme with `OSC 12` on startup
-(`editorCursor.foreground`; no TG scheme covers it) and restore the terminal's own with `OSC 112`
-on exit. Terminals that don't support it ignore the sequence.
+**The caret is the terminal's own cursor.** Colour it from the theme with `OSC 12` whenever the
+theme is applied (the theme's `Cursor` scheme, which nothing draws with) and restore the terminal's
+own with `OSC 112` on exit. Terminals that don't support it ignore the sequence.
 
 **Paint a caret only where the terminal cannot draw one** — a second caret, say, in a terminal
 without [kitty's multiple cursors protocol](https://sw.kovidgoyal.net/kitty/multiple-cursors-protocol/).
@@ -221,7 +226,10 @@ Then three rules, all of them things that have come back in review:
   drawing bug — the terminal cursor hid this, because the framework moves that one without a
   repaint.
 
-TuiCode's [`EditorTextView.Carets.cs`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Editor/EditorTextView.Carets.cs)
+The library's [`TerminalCursor`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Theming/TerminalCursor.cs) sets, restores and reads back the
+cursor colour, and the Diagnostics dialog shows what was asked for beside what the terminal reports.
+Painted carets aren't in the library: TuiCode's
+[`EditorTextView.Carets.cs`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Editor/EditorTextView.Carets.cs)
 and [`TerminalCursors`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Editor/TerminalCursors.cs)
 are the reference implementation. A dialog's field gets this by reusing them, not by writing a
 second caret — which is also how it stays one shape.
@@ -267,7 +275,7 @@ carries the layout; the control names carry the behaviour.
 │ ┌────────────────────────────────────────────────────┐ │
 │ │ Summary…                                           │ │   TextView, word wrap; focus starts here
 │ └────────────────────────────────────────────────────┘ │
-│ Ctrl+Enter submit · Esc cancel                         │   clickable hints, ` · ` separated
+│ Ctrl+Enter submit  •  Esc cancel                       │   clickable hints, `  •  ` separated
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -292,7 +300,8 @@ Add a rule when a review comment has had to make the same point twice. A rule he
 it does not need writing down.
 
 Open a pull request. Include the review comment that prompted it in the PR description, not in the
-guide: the guide says what to do, the PR says why.
+guide: the guide says what to do, the PR says why. Change the library and Swatch in the same pull
+request, so a rule and its reference implementation never disagree.
 
 Repos that follow this guide link to it from their `AGENTS.md`:
 [mentaldesk/TuiCode](https://github.com/mentaldesk/TuiCode),
