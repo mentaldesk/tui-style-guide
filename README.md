@@ -10,6 +10,10 @@ do. It grows by pull request as new ones come back (see *Extending this guide*).
 The framework is [Terminal.Gui](https://tui-cs.github.io/Terminal.Gui/docs/index.html) v2. Rules
 that are really framework mechanics say so; the rest are design rules that would hold in any TUI.
 
+[Swatch](src/Swatch), a theme editor, is the reference app: the conventions here, working, on the
+shared library in [`src/MentalDesk.Tui`](src/MentalDesk.Tui) that TuiCode and a-team are moving onto.
+Try it with `dotnet run --project src/Swatch`.
+
 **Contents**
 
 1. [Build from the framework's widgets](#1-build-from-the-frameworks-widgets)
@@ -78,7 +82,7 @@ that has no sensible shortcut.
 ### The hint bar
 
 Hints belong on the **last row of the view**, anchored with `Pos.AnchorEnd(1)`, separated by
-` · ` (space, U+00B7, space).
+`  •  ` (two spaces, U+2022, two spaces).
 
 **For the app's main screen, that row is the status bar**: the full width of the screen's last row,
 never the window title or the foot of one pane. **Give it its own colour**, a `StatusBar` scheme
@@ -98,17 +102,14 @@ Write each hint as **key first, then a lower-case verb phrase**: the key is what
 scanning for.
 
 ```
-Type to filter · Up/Down/PgUp/PgDn · Enter compare · Esc cancel
-Ctrl+Enter submit · Esc cancel
+Type to filter  •  Up/Down/PgUp/PgDn  •  Enter compare  •  Esc cancel
+Ctrl+Enter submit  •  Esc cancel
 ```
 
 - Order by how often the hint is used, with **cancel last**.
 - Name keys as the terminal reports them: `Ctrl+Enter`, `Esc`, `Up/Down`, `PgUp/PgDn`.
 - Leave out keys that every view has (`Tab` to move focus). Name the ones specific to this view.
 - Keep it to one row. If the hints don't fit, the view is doing too much.
-
-> Known divergence to converge on: TuiCode's status bar currently separates its items with
-> `  •  `. New work uses ` · `.
 
 ## 3. Errors and status
 
@@ -267,7 +268,7 @@ carries the layout; the control names carry the behaviour.
 │ ┌────────────────────────────────────────────────────┐ │
 │ │ Summary…                                           │ │   TextView, word wrap; focus starts here
 │ └────────────────────────────────────────────────────┘ │
-│ Ctrl+Enter submit · Esc cancel                         │   clickable hints, ` · ` separated
+│ Ctrl+Enter submit  •  Esc cancel                       │   clickable hints, `  •  ` separated
 └────────────────────────────────────────────────────────┘
 ```
 
