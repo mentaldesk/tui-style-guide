@@ -7,6 +7,8 @@ namespace MentalDesk.Tui.Tests;
 
 public class SwatchHostTests : StaticConfigurationTest
 {
+    private static readonly Key[] DownToDaylight = [.. Enumerable.Repeat(Key.CursorDown, 10)];
+
     // Built after the base class has loaded the themes, as an app does.
     private readonly Host _host;
 
@@ -120,6 +122,8 @@ public class SwatchHostTests : StaticConfigurationTest
 
         _host.Run(window,
             () => FocusWord == "Themes",
+            () => Press(DownToDaylight),
+            () => window.Showing.Theme == Themes.Daylight,
             () => Press(Key.T.WithCtrl, Key.U),
             () => _host.Shell.StatusBar.Message is not null,
             () => Press(Key.Esc),
@@ -161,8 +165,7 @@ public class SwatchHostTests : StaticConfigurationTest
 
         _host.Run(window,
             () => FocusWord == "Themes",
-            () => Press(Key.CursorDown, Key.CursorDown, Key.CursorDown, Key.CursorDown, Key.CursorDown,
-                Key.CursorDown, Key.CursorDown, Key.CursorDown, Key.CursorDown, Key.CursorDown),
+            () => Press(DownToDaylight),
             () => window.Showing.Theme == Themes.Daylight,
             () => Press(Key.T.WithCtrl, Key.U),
             () => Themes.Current == Themes.Daylight,
@@ -171,6 +174,34 @@ public class SwatchHostTests : StaticConfigurationTest
             () => _host.Shell.StatusBar.Message is null);
 
         Assert.Equal(["\x1b]12;#1F2328\x07", "\x1b]112\x07"], _host.Written[^2..]);
+    }
+
+    [Fact]
+    public void The_menu_acts_on_the_selected_theme_while_it_has_focus()
+    {
+        using var window = new SwatchWindow(_host.Shell);
+        var menu = _host.Shell.Menu!;
+        var themeMenu = menu.Menus.Single(item => item.Title == "_Theme");
+        var useTheme = menu.Items.Single(entry => entry.Id == SwatchCommands.UseTheme).Item;
+        var enabledWhileOpen = false;
+
+        _host.Run(window,
+            () => FocusWord == "Themes",
+            () => Press(DownToDaylight),
+            () => window.Showing.Theme == Themes.Daylight,
+            () => Press(Key.F10, Key.CursorRight, Key.CursorRight),
+            () => themeMenu.PopoverMenuOpen,
+            () =>
+            {
+                menu.Refresh();
+                enabledWhileOpen = useTheme.Enabled;
+            },
+            () => Press(Key.U),
+            () => Themes.Current == Themes.Daylight,
+            () => menu.Refresh());
+
+        Assert.True(enabledWhileOpen);
+        Assert.False(useTheme.Enabled);
     }
 
     [Fact]

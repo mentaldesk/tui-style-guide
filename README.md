@@ -205,6 +205,26 @@ The library's [`FocusTracker`](https://github.com/mentaldesk/tui-style-guide/blo
 reference implementation. `FocusTracker` is framework-free and unit-tested directly: the host
 registers each region with a move and an ownership test and supplies the focused view.
 
+### What a command acts on
+
+**A command acts on the selection, and the selection stays put while the menu or the palette has
+focus.** Opening either one takes focus from the content. A command that finds its target by asking
+what has focus finds nothing there, so its menu item greys out a moment after the menu opens, just as
+the user reaches for it.
+
+- **Read the target, and `isEnabled`, from state the content keeps**: the list's selected row, the
+  pane last selected. Never from `HasFocus` or `Navigation.GetFocused()`.
+- **Where selecting a thing is focusing it**, as in a grid of panes, remember the last one focus was
+  in, and keep answering with it while focus is outside them.
+- **Test it with the menu open.** Select something, open the menu, refresh it, and check the item is
+  still enabled. Refreshing matters: an app that refreshes its menu on a timer greys the item on the
+  first tick, not when the menu opens.
+
+`FocusTracker` already does this for regions: while focus is in a view no region owns, such as the
+open menu, it keeps the region it had. Swatch's *Theme › Use for Swatch* is the reference for a
+selection. It acts on the theme selected in the tree, and is enabled only while that isn't the theme
+already in use.
+
 ### The caret
 
 **The caret is the terminal's own cursor.** Colour it from the theme with `OSC 12` whenever the
