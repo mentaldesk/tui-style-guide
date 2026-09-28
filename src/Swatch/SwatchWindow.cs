@@ -60,7 +60,8 @@ internal sealed class SwatchWindow : AppWindow
             .Register(SwatchCommands.GoToThemes, "Go to themes", () => shell.Focus.Focus(ThemesRegion))
             .Register(SwatchCommands.GoToRoles, "Go to roles", () => shell.Focus.Focus(RolesRegion))
             .Register(SwatchCommands.GoToPreview, "Go to preview", () => shell.Focus.Focus(PreviewRegion))
-            .Register(SwatchCommands.UseTheme, "Use this theme for Swatch", () => UseTheme(shell));
+            .Register(SwatchCommands.UseTheme, "Use this theme for Swatch", () => UseTheme(shell),
+                isEnabled: () => shell.App.TopRunnableView is SwatchWindow window && window.Showing.Theme != Themes.Current);
         shell.Keys
             .Bind("Ctrl+G T", SwatchCommands.GoToThemes)
             .Bind("Ctrl+G R", SwatchCommands.GoToRoles)
