@@ -26,6 +26,9 @@ jobs:
       - name: Test
         run: dotnet test MentalDesk.Tui.slnx --no-build
 
+      - name: Pack
+        run: dotnet pack src/MentalDesk.Tui -warnaserror -o artifacts
+
   aot:
     runs-on: ubuntu-latest
     timeout-minutes: 15

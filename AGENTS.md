@@ -20,6 +20,18 @@ dotnet run --project src/Swatch
 CI builds with `-warnaserror` on Linux, macOS and Windows, and publishes Swatch with native AOT, as
 TuiCode and a-team ship.
 
+## Releasing
+
+Run the **Release** workflow from the Actions tab. It publishes `src/MentalDesk.Tui` to nuget.org as
+`MentalDesk.Tui`, then tags the commit and creates a GitHub release with generated notes. The tag is the
+version: nothing in the repo holds a version number. Leave *bump* on `auto` to pick it from the labels of
+PRs merged since the last release: `enhancement` for minor, otherwise patch. Before 1.0, label a breaking
+change `enhancement` too, rather than `breaking`, which would bump the major version to 1.0.0.
+
+It pushes to nuget.org with [trusted publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing),
+so there's no API key to store or rotate. The job runs in the `release` environment, which only `main` can
+deploy to, and the nuget.org policy only trusts that environment.
+
 ## Conventions
 
 - Terminal.Gui 2.1.0, the version TuiCode and a-team pin. Move all three together.
