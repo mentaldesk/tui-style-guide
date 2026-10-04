@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'auto reads the labels of PRs merged since the last release: enhancement = minor, otherwise patch.'
+        type: choice
+        options: [auto, patch, minor, major]
+        default: auto
+
+jobs:
+  version:
+    uses: mentaldesk/a-team/.github/workflows/release-version.yml@v0.1.12
+    permissions: { contents: read, pull-requests: read }
+    with: { bump: "${{ inputs.bump }}" }
+
+  publish:
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Pack
+        run: >-
+          dotnet pack src/MentalDesk.Tui -warnaserror -o artifacts
+          -p:Version=${{ needs.version.outputs.version }} -p:ContinuousIntegrationBuild=true
+
+      - uses: NuGet/login@v1
+        id: login
+        with:
+          user: james.crosswell
+
+      - name: Push to NuGet
+        run: >-
+          dotnet nuget push "artifacts/*.nupkg" --skip-duplicate
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json
+
+      - name: Tag and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ needs.version.outputs.tag }}" --target "$GITHUB_SHA" --generate-notes

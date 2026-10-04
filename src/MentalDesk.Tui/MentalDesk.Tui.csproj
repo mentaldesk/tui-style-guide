@@ -2,8 +2,20 @@
 
   <PropertyGroup>
     <RootNamespace>MentalDesk.Tui</RootNamespace>
-    <IsPackable>false</IsPackable>
+    <Authors>James Crosswell</Authors>
+    <Description>Shared Terminal.Gui building blocks for MentalDesk TUI apps: themes, commands and chord key bindings, focus, menu and status bars, dialogs, the command palette and diagnostics.</Description>
+    <PackageTags>terminal.gui;tui;terminal;console</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/mentaldesk/tui-style-guide</PackageProjectUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Theming/themes.json" LogicalName="MentalDesk.Tui.themes.json" />

@@ -16,8 +16,8 @@ that are really framework mechanics say so; the rest are design rules that would
 (`dotnet run --project src/Swatch`). **When you build something a rule covers, start from the
 library type its section names**, not from TuiCode's or a-team's own version: those are the older
 copies the library was taken from. Where a section still names TuiCode or a-team code, the library
-doesn't have that piece yet. The library isn't published yet either, so for now starting from it
-means copying from it.
+doesn't have that piece yet. Apps reference the library as the
+[`MentalDesk.Tui`](https://www.nuget.org/packages/MentalDesk.Tui) package rather than copying from it.
 
 **Contents**
 
