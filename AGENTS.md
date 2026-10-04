@@ -34,10 +34,12 @@ deploy to, and the nuget.org policy only trusts that environment.
 
 ## Conventions
 
-- Terminal.Gui 2.1.0, the version TuiCode and a-team pin. Move all three together.
+- Terminal.Gui 2.5.0. When it moves, the library moves first and releases; TuiCode and a-team then move
+  Terminal.Gui and `MentalDesk.Tui` together, since the package requires at least the version it was built on.
 - A test that boots an `Application` or touches `ThemeManager` derives from `StaticConfigurationTest`:
   those are process-wide statics. Drive the app with `Host`, which runs the real main loop on the headless
   ANSI driver and injects keys.
-- `ConfigurationManager.Apply()` puts Terminal.Gui's Quit key back on `Esc`, so anything that applies
-  configuration goes through `AppShell.ApplyTheme`, which moves it off again.
+- `themes.json` uses Terminal.Gui 2.5's nested shape: `Themes` and `Schemes` are objects keyed by name, and
+  settings are nested (`"Dialog": { "DefaultShadow": … }`). Terminal.Gui skips a file in the old array or
+  dotted-key shape with only a log warning.
 - Every theme defines every scheme in `SchemeNames.All`; `ThemesTests` holds them to it.

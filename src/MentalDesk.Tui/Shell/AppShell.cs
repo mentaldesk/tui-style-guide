@@ -63,8 +63,6 @@ public sealed class AppShell : IDisposable
     public string ApplyTheme(string theme)
     {
         var applied = Themes.Apply(theme);
-        // Applying configuration puts Terminal.Gui's Quit key back on Esc.
-        MoveQuitOffEsc();
         if (Themes.CursorColour(applied) is { } colour)
             Cursor.Colour(colour);
         App.TopRunnableView?.SetNeedsDraw();

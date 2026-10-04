@@ -1,4 +1,5 @@
 using MentalDesk.Tui.Theming;
+using Terminal.Gui.Configuration;
 
 namespace MentalDesk.Tui.Tests;
 
@@ -38,6 +39,15 @@ public class ThemesTests : StaticConfigurationTest
         var cursor = Themes.CursorColour(theme);
         Assert.NotNull(cursor);
         Assert.NotEqual(Themes.SchemesOf(theme)[SchemeNames.Base].Editable.Background, cursor);
+    }
+
+    [Theory]
+    [MemberData(nameof(Bundled))]
+    public void Applying_a_theme_draws_with_its_schemes(string theme)
+    {
+        Themes.Apply(theme);
+        foreach (var (name, scheme) in Themes.SchemesOf(theme))
+            Assert.Equal(scheme, SchemeManager.GetScheme(name));
     }
 
     [Fact]
