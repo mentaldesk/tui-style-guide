@@ -8,6 +8,9 @@ internal sealed class PreviewView : View
 {
     private const string Caret = "▏";
 
+    private static readonly (string Label, string Scheme)[] Buttons =
+        [("Save", SchemeNames.ButtonPrimary), ("Delete", SchemeNames.ButtonDanger), ("Cancel", SchemeNames.ButtonSecondary)];
+
     private IReadOnlyDictionary<string, Scheme> _schemes = new Dictionary<string, Scheme>();
 
     public PreviewView()
@@ -70,6 +73,13 @@ internal sealed class PreviewView : View
         Put(left + 1, 12, " Couldn't write themes.json".PadRight(Math.Max(0, dialogWidth - 2)), Get(SchemeNames.Error).Normal);
 
         Put(left, 15, " Saving…".PadRight(Math.Max(0, dialogWidth)), Get(SchemeNames.Accent).Normal);
+
+        x = left;
+        foreach (var (label, scheme) in Buttons)
+        {
+            Put(x, 17, $" {label} ", Get(scheme).Normal);
+            x += label.Length + 5;
+        }
         return true;
     }
 
