@@ -54,7 +54,7 @@ internal sealed class SwatchWindow : AppWindow
 
     public Selection Showing { get; private set; } = new(Themes.Default, SchemeNames.Base);
 
-    public IEnumerable<string> ThemeNames => _themes.Objects.Select(node => node.Text);
+    public IEnumerable<string> ThemeNames => _themes.Objects?.Select(node => node.Text) ?? [];
 
     private static AppShell Register(AppShell shell)
     {
