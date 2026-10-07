@@ -81,8 +81,26 @@ private static Button Hint(string text, Pos x) => new()
 };
 ```
 
-Use a real, decorated `Button` only where there is no key to name — a toolbar action, or a choice
-that has no sensible shortcut.
+Use a real `Button` only where there is no key to name — a toolbar action, or a choice that has no
+sensible shortcut.
+
+### Buttons
+
+- **A button is a filled block, not bracketed text.** No `[ ]`, one space of padding either side.
+- **One Primary per view, at most.** It's the action `Enter` triggers.
+- **Danger is for destructive actions only**: delete, discard, overwrite. If the destructive action
+  is the only one besides Cancel, it's still Danger, not Primary, and it's never the default.
+- **Everything else is Secondary**, including Cancel.
+- **Focus is shown by colour and in bold**, separately from emphasis, so a focused Secondary button
+  is still obviously focused. **Hover** lightens the button without moving focus.
+
+- Framework mechanic: with `NoDecorations` the stock `Button` drops its padding too, and padding the
+  view instead leaves the padding in the unfocused colour. Pad the text.
+
+The library's [`AppButton`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Dialogs/AppButton.cs)
+(`AppButton.Primary("Save")`, `.Danger("Delete")`, `.Secondary("Cancel")`) and the `ButtonPrimary`,
+`ButtonDanger` and `ButtonSecondary` schemes in each of its
+[themes](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Theming/themes.json) are the reference implementation.
 
 ### The hint bar
 
@@ -300,7 +318,7 @@ carries the layout; the control names carry the behaviour.
 ```
 
 Sketch conventions: `[x]` / `[ ]` checkbox, `(•)` / `( )` option, `[ 2 ▲▼]` numeric up/down,
-`[ Button ]` button, `▸` collapsed tree node, `…` placeholder text, `▲` `█` `▼` down the right edge
+`▓ Button ▓` button (say which: Primary, Danger or Secondary), `▸` collapsed tree node, `…` placeholder text, `▲` `█` `▼` down the right edge
 a vertical scroll bar.
 
 Then say, in prose:

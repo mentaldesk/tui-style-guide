@@ -7,7 +7,7 @@ namespace MentalDesk.Tui.Tests;
 
 public class SwatchHostTests : StaticConfigurationTest
 {
-    private static readonly Key[] DownToDaylight = [.. Enumerable.Repeat(Key.CursorDown, 10)];
+    private static readonly Key[] DownToDaylight = [.. Enumerable.Repeat(Key.CursorDown, SchemeNames.All.Count + 1)];
 
     // Built after the base class has loaded the themes, as an app does.
     private readonly Host _host;
