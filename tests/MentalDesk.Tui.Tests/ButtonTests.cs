@@ -57,6 +57,7 @@ public class ButtonTests : StaticConfigurationTest
     {
         using var app = Application.Create();
         app.Init(driverName: DriverRegistry.Names.ANSI);
+        app.Driver!.SetScreenSize(80, 25);
         using var window = new Window { BorderStyle = LineStyle.None };
         Button[] buttons = [AppButton.Primary("Save"), AppButton.Danger("Delete"), AppButton.Secondary("Cancel")];
         buttons[1].X = 10;
