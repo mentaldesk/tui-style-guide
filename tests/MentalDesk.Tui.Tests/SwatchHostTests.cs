@@ -2,6 +2,9 @@ using MentalDesk.Tui.Diagnostics;
 using MentalDesk.Tui.Palette;
 using MentalDesk.Tui.Theming;
 using Swatch;
+using Point = System.Drawing.Point;
+using Size = System.Drawing.Size;
+using Terminal.Gui.Input;
 
 namespace MentalDesk.Tui.Tests;
 
@@ -220,4 +223,140 @@ public class SwatchHostTests : StaticConfigurationTest
             () => Press(Key.Esc),
             () => _host.App.TopRunnableView is SwatchWindow);
     }
+
+    [Fact]
+    public void Delete_opens_on_the_selected_theme_with_focus_on_cancel()
+    {
+        using var window = new SwatchWindow(_host.Shell);
+        DeleteThemeDialog? dialog = null;
+
+        _host.Run(window,
+            () => FocusWord == "Themes",
+            () => Press(DownToDaylight),
+            () => window.Showing.Theme == Themes.Daylight,
+            () => Press(Key.T.WithCtrl, Key.D),
+            () => (dialog = _host.App.TopRunnableView as DeleteThemeDialog) is not null,
+            () => dialog!.CancelButton.HasFocus,
+            () => Press(Key.Esc),
+            () => _host.App.TopRunnableView is SwatchWindow);
+
+        Assert.Equal("Delete theme", dialog!.Title);
+        Assert.Equal("Delete \"Daylight\"? This can't be undone.", dialog.Message);
+    }
+
+    [Fact]
+    public void Delete_is_in_the_palette()
+    {
+        using var window = new SwatchWindow(_host.Shell);
+
+        _host.Run(window,
+            () => FocusWord == "Themes",
+            () => Press(Key.E.WithCtrl),
+            () => _host.App.TopRunnableView is CommandPalette,
+            () => Press([.. "delete".Select(c => new Key(c))]),
+            () => ((CommandPalette)_host.App.TopRunnableView!).Labels.SequenceEqual(["Delete this theme"]),
+            () => Press(Key.Enter),
+            () => _host.App.TopRunnableView is DeleteThemeDialog,
+            () => Press(Key.Esc),
+            () => _host.App.TopRunnableView is SwatchWindow);
+    }
+
+    [Theory]
+    [MemberData(nameof(CancelKeys))]
+    public void Enter_on_open_and_Esc_both_cancel_without_deleting(Key key)
+    {
+        using var window = new SwatchWindow(_host.Shell);
+        DeleteThemeDialog? dialog = null;
+        var ticks = 0;
+
+        _host.Run(window,
+            () => FocusWord == "Themes",
+            () => Press(Key.T.WithCtrl, Key.D),
+            () => (dialog = _host.App.TopRunnableView as DeleteThemeDialog) is not null,
+            () => dialog!.CancelButton.HasFocus,
+            () => Press(key),
+            () => _host.App.TopRunnableView is SwatchWindow,
+            () => ++ticks > 5);
+
+        Assert.False(dialog!.Confirmed);
+        Assert.Null(_host.Shell.StatusBar.Message);
+    }
+
+    public static TheoryData<Key> CancelKeys => [Key.Enter, Key.Esc];
+
+    [Fact]
+    public void Delete_closes_and_says_the_themes_are_built_in()
+    {
+        using var window = new SwatchWindow(_host.Shell);
+        DeleteThemeDialog? dialog = null;
+
+        _host.Run(window,
+            () => FocusWord == "Themes",
+            () => Press(Key.T.WithCtrl, Key.D),
+            () => (dialog = _host.App.TopRunnableView as DeleteThemeDialog) is not null,
+            () => dialog!.CancelButton.HasFocus,
+            () => Press(Key.Tab),
+            () => dialog!.DeleteButton.HasFocus,
+            () => Press(Key.Enter),
+            () => _host.App.TopRunnableView is SwatchWindow,
+            () => _host.Shell.StatusBar.Message == "Swatch's themes are built in, so nothing was deleted");
+
+        Assert.Equal(Themes.Names, window.ThemeNames);
+    }
+
+    [Fact]
+    public void Hovering_a_button_lightens_it_without_moving_focus()
+    {
+        using var window = new SwatchWindow(_host.Shell);
+        var danger = Themes.SchemesOf(Themes.Current)[SchemeNames.ButtonDanger];
+        DeleteThemeDialog? dialog = null;
+        var over = Point.Empty;
+
+        _host.Run(window,
+            () => FocusWord == "Themes",
+            () => Press(Key.T.WithCtrl, Key.D),
+            () => (dialog = _host.App.TopRunnableView as DeleteThemeDialog) is not null,
+            () => dialog!.CancelButton.HasFocus,
+            () =>
+            {
+                over = dialog!.DeleteButton.FrameToScreen().Location;
+                Move(over);
+            },
+            () => Background(over) == danger.Highlight.Background,
+            () => dialog!.CancelButton.HasFocus,
+            () => Move(dialog!.FrameToScreen().Location + new Size(2, 1)),
+            () => Background(over) == danger.Normal.Background,
+            () => Press(Key.Esc),
+            () => _host.App.TopRunnableView is SwatchWindow);
+
+        Color Background(Point at) => _host.App.Driver!.Contents![at.Y, at.X].Attribute!.Value.Background;
+    }
+
+    [Fact]
+    public void The_dialog_takes_the_colours_of_the_theme_in_use()
+    {
+        using var window = new SwatchWindow(_host.Shell);
+        var cancel = Themes.SchemesOf(Themes.Daylight)[SchemeNames.ButtonSecondary];
+        DeleteThemeDialog? dialog = null;
+
+        _host.Run(window,
+            () => FocusWord == "Themes",
+            () => Press(DownToDaylight),
+            () => window.Showing.Theme == Themes.Daylight,
+            () => Press(Key.T.WithCtrl, Key.U),
+            () => Themes.Current == Themes.Daylight,
+            () => Press(Key.T.WithCtrl, Key.D),
+            () => (dialog = _host.App.TopRunnableView as DeleteThemeDialog) is not null,
+            () => dialog!.CancelButton.HasFocus,
+            () =>
+            {
+                var at = dialog!.CancelButton.FrameToScreen().Location;
+                return _host.App.Driver!.Contents![at.Y, at.X].Attribute!.Value.Background == cancel.Focus.Background;
+            },
+            () => Press(Key.Esc),
+            () => _host.App.TopRunnableView is SwatchWindow);
+    }
+
+    private void Move(Point to) =>
+        _host.App.InjectMouse(new Mouse { ScreenPosition = to, Flags = MouseFlags.PositionReport });
 }

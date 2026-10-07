@@ -54,6 +54,8 @@ internal sealed class SwatchWindow : AppWindow
 
     public Selection Showing { get; private set; } = new(Themes.Default, SchemeNames.Base);
 
+    public IEnumerable<string> ThemeNames => _themes.Objects.Select(node => node.Text);
+
     private static AppShell Register(AppShell shell)
     {
         shell.Commands
@@ -61,12 +63,14 @@ internal sealed class SwatchWindow : AppWindow
             .Register(SwatchCommands.GoToRoles, "Go to roles", () => shell.Focus.Focus(RolesRegion))
             .Register(SwatchCommands.GoToPreview, "Go to preview", () => shell.Focus.Focus(PreviewRegion))
             .Register(SwatchCommands.UseTheme, "Use this theme for Swatch", () => UseTheme(shell),
-                isEnabled: () => shell.App.TopRunnableView is SwatchWindow window && window.Showing.Theme != Themes.Current);
+                isEnabled: () => shell.App.TopRunnableView is SwatchWindow window && window.Showing.Theme != Themes.Current)
+            .Register(SwatchCommands.DeleteTheme, "Delete this theme", () => DeleteTheme(shell));
         shell.Keys
             .Bind("Ctrl+G T", SwatchCommands.GoToThemes)
             .Bind("Ctrl+G R", SwatchCommands.GoToRoles)
             .Bind("Ctrl+G P", SwatchCommands.GoToPreview)
-            .Bind("Ctrl+T U", SwatchCommands.UseTheme);
+            .Bind("Ctrl+T U", SwatchCommands.UseTheme)
+            .Bind("Ctrl+T D", SwatchCommands.DeleteTheme);
         shell.UseMenu(
             new MenuSpec("_File", [ShellCommands.Quit]),
             new MenuSpec("_Go", [
@@ -74,7 +78,10 @@ internal sealed class SwatchWindow : AppWindow
                 new MenuEntry(SwatchCommands.GoToRoles, "_Roles"),
                 new MenuEntry(SwatchCommands.GoToPreview, "_Preview"),
             ]),
-            new MenuSpec("_Theme", [new MenuEntry(SwatchCommands.UseTheme, "_Use for Swatch")]),
+            new MenuSpec("_Theme", [
+                new MenuEntry(SwatchCommands.UseTheme, "_Use for Swatch"),
+                new MenuEntry(SwatchCommands.DeleteTheme, "_Delete…"),
+            ]),
             new MenuSpec("_Help", [
                 new MenuEntry(ShellCommands.ShowCommands, "Show all _commands"),
                 new MenuEntry(ShellCommands.ShowMenu, "Open the _menu"),
@@ -90,6 +97,15 @@ internal sealed class SwatchWindow : AppWindow
         var applied = shell.ApplyTheme(window.Showing.Theme);
         shell.StatusBar.State = applied;
         shell.ShowMessage($"Swatch is now in {applied}");
+    }
+
+    private static void DeleteTheme(AppShell shell)
+    {
+        if (shell.App.TopRunnableView is not SwatchWindow window) return;
+        using var dialog = new DeleteThemeDialog(window.Showing.Theme);
+        dialog.Run(shell);
+        if (dialog.Confirmed)
+            shell.ShowMessage("Swatch's themes are built in, so nothing was deleted");
     }
 
     private static IEnumerable<Hint> Hints(FocusRegion? region)
