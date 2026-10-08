@@ -101,6 +101,7 @@ The library's [`AppButton`](https://github.com/mentaldesk/tui-style-guide/blob/m
 (`AppButton.Primary("Save")`, `.Danger("Delete")`, `.Secondary("Cancel")`) and the `ButtonPrimary`,
 `ButtonDanger` and `ButtonSecondary` schemes in each of its
 [themes](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Theming/themes.json) are the reference implementation.
+Swatch's *Theme › Delete…* is a live dialog to tab through and hover over.
 
 ### The hint bar
 
