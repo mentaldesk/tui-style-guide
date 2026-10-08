@@ -139,4 +139,27 @@ public class KeymapTests
 
         Assert.Equal(["Ctrl+E", "Ctrl+K P"], _keys.For("palette").Select(binding => binding.Display));
     }
+
+    [Fact]
+    public void A_key_bound_in_a_narrower_scope_runs_the_command_only_there()
+    {
+        Register("try");
+        _keys.Bind("Ctrl+T T", "try").Bind("Enter", "try", Editor);
+
+        Assert.Equal(KeyResult.Pass, _keys.Handle(Key.Enter));
+        _keys.FocusedScope = () => Editor;
+        Assert.Equal(KeyResult.Consumed, _keys.Handle(Key.Enter));
+        Assert.Equal(["try"], _ran);
+    }
+
+    [Fact]
+    public void A_scopes_own_bindings_come_first_and_other_scopes_are_left_out()
+    {
+        Register("try");
+        _keys.Bind("Ctrl+T T", "try").Bind("Enter", "try", Editor);
+
+        Assert.Equal(["Enter", "Ctrl+T T"], _keys.For("try", Editor).Select(binding => binding.Display));
+        Assert.Equal(["Ctrl+T T"], _keys.For("try", CommandScope.Global).Select(binding => binding.Display));
+        Assert.Equal(["Ctrl+T T", "Enter"], _keys.For("try").Select(binding => binding.Display));
+    }
 }

@@ -20,7 +20,7 @@ public sealed class CommandPalette : AppDialog
     {
         _all = [.. commands.All
             .Where(command => (command.Scope == CommandScope.Global || command.Scope == scope) && commands.IsEnabled(command.Id))
-            .Select(command => new Row(command.Id, command.Label, string.Join(", ", keys.For(command.Id).Select(b => b.Display))))
+            .Select(command => new Row(command.Id, command.Label, string.Join(", ", keys.For(command.Id, scope).Select(b => b.Display))))
             .OrderBy(row => row.Label, StringComparer.OrdinalIgnoreCase)];
         _shown = _all;
 

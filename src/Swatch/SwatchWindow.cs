@@ -13,7 +13,6 @@ internal sealed class SwatchWindow : AppWindow
     public static readonly FocusRegion RolesRegion = new("Roles", new CommandScope("Roles"));
     public static readonly FocusRegion PreviewRegion = new("Preview", new CommandScope("Preview"));
 
-    private readonly AppShell _shell;
     private readonly FrameView _themesPane;
     private readonly FrameView _rolesPane;
     private readonly FrameView _previewPane;
@@ -23,11 +22,10 @@ internal sealed class SwatchWindow : AppWindow
 
     public SwatchWindow(AppShell shell) : base(Register(shell))
     {
-        _shell = shell;
-        _themesPane = Pane("Themes", _themes, x: 0, width: 24);
+        _themesPane = Panes.Create("Themes", _themes, x: 0, width: 24);
         _themesPane.SchemeName = SchemeNames.Sidebar;
-        _rolesPane = Pane("Roles", _roles, x: Pos.Right(_themesPane), width: 50);
-        _previewPane = Pane("Preview", _preview, x: Pos.Right(_rolesPane), width: Dim.Fill());
+        _rolesPane = Panes.Create("Roles", _roles, x: Pos.Right(_themesPane), width: 50);
+        _previewPane = Panes.Create("Preview", _preview, x: Pos.Right(_rolesPane), width: Dim.Fill());
         Body.Add(_themesPane, _rolesPane, _previewPane);
 
         foreach (var theme in Themes.Names)
@@ -44,14 +42,22 @@ internal sealed class SwatchWindow : AppWindow
         _themes.SelectedObject = _themes.Objects?.FirstOrDefault();
         _themes.Expand();
 
-        Track(ThemesRegion, _themesPane, _themes);
-        Track(RolesRegion, _rolesPane, _roles);
-        Track(PreviewRegion, _previewPane, _preview);
+        Panes.Track(shell, ThemesRegion, _themesPane, _themes);
+        Panes.Track(shell, RolesRegion, _rolesPane, _roles);
+        Panes.Track(shell, PreviewRegion, _previewPane, _preview);
+        _preview.MouseEvent += (_, mouse) =>
+        {
+            if (!mouse.Flags.HasFlag(MouseFlags.LeftButtonClicked)) return;
+            mouse.Handled = true;
+            shell.Commands.Execute(SwatchCommands.TryTheme);
+        };
         shell.HintsFor = Hints;
         shell.StatusBar.State = Themes.Current;
         Show(new Selection(Themes.Current, SchemeNames.Base));
         Initialized += (_, _) => shell.Focus.Focus(ThemesRegion);
     }
+
+    public View Preview => _preview;
 
     public Selection Showing { get; private set; } = new(Themes.Default, SchemeNames.Base);
 
@@ -65,6 +71,7 @@ internal sealed class SwatchWindow : AppWindow
             .Register(SwatchCommands.GoToPreview, "Go to preview", () => shell.Focus.Focus(PreviewRegion))
             .Register(SwatchCommands.UseTheme, "Use this theme for Swatch", () => UseTheme(shell),
                 isEnabled: () => shell.App.TopRunnableView is SwatchWindow window && window.Showing.Theme != Themes.Current)
+            .Register(SwatchCommands.TryTheme, "Try this theme", () => TryTheme(shell))
             .Register(SwatchCommands.DeleteTheme, "Delete this theme", () => DeleteTheme(shell))
             .Register(SwatchCommands.RemoveTheme, "Remove this theme", () => RemoveTheme(shell))
             .Register(SwatchCommands.CloseTheme, "Close this theme", () => CloseTheme(shell));
@@ -73,6 +80,8 @@ internal sealed class SwatchWindow : AppWindow
             .Bind("Ctrl+G R", SwatchCommands.GoToRoles)
             .Bind("Ctrl+G P", SwatchCommands.GoToPreview)
             .Bind("Ctrl+T U", SwatchCommands.UseTheme)
+            .Bind("Ctrl+T T", SwatchCommands.TryTheme)
+            .Bind("Enter", SwatchCommands.TryTheme, PreviewRegion.Scope)
             .Bind("Ctrl+T D", SwatchCommands.DeleteTheme)
             .Bind("Ctrl+T R", SwatchCommands.RemoveTheme)
             .Bind("Ctrl+T C", SwatchCommands.CloseTheme);
@@ -84,6 +93,7 @@ internal sealed class SwatchWindow : AppWindow
                 new MenuEntry(SwatchCommands.GoToPreview, "_Preview"),
             ]),
             new MenuSpec("_Theme", [
+                new MenuEntry(SwatchCommands.TryTheme, "_Try it"),
                 new MenuEntry(SwatchCommands.UseTheme, "_Use for Swatch"),
                 new MenuEntry(SwatchCommands.DeleteTheme, "_Delete…"),
                 new MenuEntry(SwatchCommands.RemoveTheme, "_Remove…"),
@@ -104,6 +114,14 @@ internal sealed class SwatchWindow : AppWindow
         var applied = shell.ApplyTheme(window.Showing.Theme);
         shell.StatusBar.State = applied;
         shell.ShowMessage($"Swatch is now in {applied}");
+    }
+
+    private static void TryTheme(AppShell shell)
+    {
+        if (shell.App.TopRunnableView is not SwatchWindow window) return;
+        using var sampleShell = new AppShell(shell.App, shell.Cursor);
+        using var sample = new SampleWindow(sampleShell, window.Showing.Theme);
+        shell.RunNested(sampleShell, sample, window.Showing.Theme);
     }
 
     private static void DeleteTheme(AppShell shell) =>
@@ -130,6 +148,8 @@ internal sealed class SwatchWindow : AppWindow
     {
         if (region == ThemesRegion)
             yield return new Hint(SwatchCommands.UseTheme, "use theme");
+        if (region == PreviewRegion)
+            yield return new Hint(SwatchCommands.TryTheme, "try it");
         yield return new Hint(ShellCommands.ShowCommands, "commands");
         yield return new Hint(ShellCommands.ShowMenu, "menu");
         yield return new Hint(ShellCommands.Quit, "quit");
@@ -147,31 +167,6 @@ internal sealed class SwatchWindow : AppWindow
         _rolesPane.Title = $"{selection.Theme} › {selection.Scheme}";
         _previewPane.Title = $"Preview › {selection.Theme}";
         _preview.Show(selection.Theme);
-    }
-
-    private void Track(FocusRegion region, FrameView pane, View content)
-    {
-        var border = new FocusBorder(pane);
-        _shell.Focus.Register(region, () => content.SetFocus(), view => Within(view as View, pane));
-        _shell.Focus.RegionChanged += (_, focused) => border.Show(focused == region);
-    }
-
-    private static bool Within(View? view, View pane)
-    {
-        for (; view is not null; view = view.SuperView)
-            if (view == pane) return true;
-        return false;
-    }
-
-    private static FrameView Pane(string title, View content, Pos x, Dim width)
-    {
-        var pane = new FrameView
-        {
-            Title = title, X = x, Width = width, Height = Dim.Fill(), CanFocus = true, BorderStyle = LineStyle.Single,
-            TabStop = TabBehavior.TabStop,
-        };
-        pane.Add(content);
-        return pane;
     }
 
     internal sealed record Selection(string Theme, string Scheme);

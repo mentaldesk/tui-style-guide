@@ -13,7 +13,9 @@ that are really framework mechanics say so; the rest are design rules that would
 **Using this guide.** The rules are here. Each one is also built, once, in
 [`MentalDesk.Tui`](https://github.com/mentaldesk/tui-style-guide/tree/main/src/MentalDesk.Tui), the shared library, and shown working in
 [Swatch](https://github.com/mentaldesk/tui-style-guide/tree/main/src/Swatch), a theme editor that exists to exercise them
-(`dotnet run --project src/Swatch`). **When you build something a rule covers, start from the
+(`dotnet run --project src/Swatch`). To try a theme for real, select it and use *Theme › Try it*
+(`Ctrl+T T`, or `Enter` on the preview): a small sample app opens in that theme, with live menus,
+dialogs and buttons, and `Esc` brings you back. **When you build something a rule covers, start from the
 library type its section names**, not from TuiCode's or a-team's own version: those are the older
 copies the library was taken from. Where a section still names TuiCode or a-team code, the library
 doesn't have that piece yet. Apps reference the library as the
@@ -64,9 +66,15 @@ cursor; that sentence is the whole bar to clear.
 *and* a hint reading `Ctrl+Enter submit` is telling the user the same thing twice and asking them to
 work out whether it is one thing or two.
 
-**Prefer the hint, and make it clickable.** Hint text is more compact than a button, it teaches the
-keyboard shortcut, and it can still be clicked. A Terminal.Gui `Button` with its decorations turned
-off *is* a clickable hint:
+**Each view picks one place for its keys: on its buttons, or in its hint bar.** Never both, and
+never a mix: if one action shows its key, every action does, Cancel included. Wherever the key is
+shown, **it comes first**: `Del delete` in a hint, `▓ Del Delete ▓` on a button.
+
+- **In a dialog of buttons, prefer the buttons**, with no hint bar: hints would only repeat each
+  button's label.
+- **Use the hint bar where there are no buttons**, or where a key on every button would crowd them:
+  the main screen, a picker, a dialog with many buttons. Make the hints clickable. A Terminal.Gui `Button` with its
+  decorations turned off *is* a clickable hint:
 
 ```csharp
 private static Button Hint(string text, Pos x) => new()
@@ -81,8 +89,6 @@ private static Button Hint(string text, Pos x) => new()
 };
 ```
 
-Use a real `Button` only where there is no key to name — a toolbar action, or a choice that has no
-sensible shortcut.
 
 ### Buttons
 
@@ -202,19 +208,19 @@ A dialog of buttons, such as an "are you sure?", works the same way in every app
 
 - **`Esc` cancels.**
 - **`Left`/`Right` (and `Tab`) move between the buttons, and `Space` presses the focused one.**
-- **Every action has its own key, shown on its button**: the underlined letter (`S` save, `D` don't
-  save), or the key written on the button (`▓ Delete  Del ▓`). The letter works without `Alt`.
-- **`Enter` is optional.** Bind it only to a trivial, harmless action, never a destructive one.
-  Where it isn't bound, it does nothing, whichever button has focus.
+- **Every action has one key, shown on its button**, Cancel's `Esc` too: the underlined letter
+  (`S` save, `D` don't save), or the key written before the label (`▓ Del Delete ▓`). The letter
+  works without `Alt`. The dialog has no hint bar (section 2).
+- **`Enter` is optional.** Bind it only to a trivial, harmless action, never a destructive one, and
+  then it is that action's one key (`▓ Enter Save ▓`). Where it isn't bound, it does nothing,
+  whichever button has focus.
 
 ```
 ┌─ Delete theme ───────────────────────────────────┐
 │ Delete "Solar"?                                  │
 │ This can't be undone.                            │
 │                                                  │
-│                ▓ Delete  Del ▓   ▓ Cancel ▓      │   Button (Danger, key Del), Button (Secondary)
-│                                                  │
-│ Del delete  •  Esc cancel                        │
+│              ▓ Del Delete ▓   ▓ Esc Cancel ▓     │   Button (Danger, key Del), Button (Secondary, key Esc)
 └──────────────────────────────────────────────────┘
 ```
 
@@ -226,8 +232,8 @@ undone**.
   button sees it, so an unbound `Enter` can't press Delete just because Delete has focus.
 
 The library's [`ConfirmDialog`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Dialogs/ConfirmDialog.cs)
-is the reference implementation: give it the message, the actions with their keys, and optionally
-the one `Enter` takes. It refuses `Enter` on a Danger action. Swatch's *Theme › Delete…* (can't be
+is the reference implementation: give it the message and the actions with their keys. It refuses
+`Enter` on a Danger action, or on more than one. Swatch's *Theme › Delete…* (can't be
 undone), *Remove…* (`Enter` removes) and *Close…* (Save, Don't save, Cancel) try every key.
 
 ### Showing focus

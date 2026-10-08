@@ -1,4 +1,6 @@
 using MentalDesk.Tui.Chrome;
+using MentalDesk.Tui.Commands;
+using MentalDesk.Tui.Keys;
 using MentalDesk.Tui.Dialogs;
 
 namespace MentalDesk.Tui.Tests;
@@ -68,5 +70,31 @@ public class ChromeTests : StaticConfigurationTest
         alert.Clear();
         Assert.Equal(0, alert.Lines);
         Assert.False(alert.Visible);
+    }
+
+    [Fact]
+    public void A_checked_menu_entry_is_marked_and_follows_its_state_on_refresh()
+    {
+        var current = "a";
+        var commands = new CommandRegistry().Register("a", "A", () => { }).Register("b", "B", () => { });
+        var menu = new AppMenu(commands, new Keymap(commands),
+            [new MenuSpec("_Pick", [new MenuEntry("a", "_A", () => current == "a"), new MenuEntry("b", "_B", () => current == "b")])]);
+        var before = menu.Items.Select(entry => entry.Item.Title).ToList();
+
+        current = "b";
+        menu.Refresh();
+
+        Assert.Equal(["● _A", "  _B"], before);
+        Assert.Equal(["  _A", "● _B"], menu.Items.Select(entry => entry.Item.Title));
+    }
+
+    [Fact]
+    public void A_menu_item_shows_only_a_key_that_works_everywhere()
+    {
+        var commands = new CommandRegistry().Register("try", "Try", () => { });
+        var keys = new Keymap(commands).Bind("Ctrl+T T", "try").Bind("Enter", "try", new CommandScope("Preview"));
+        var menu = new AppMenu(commands, keys, [new MenuSpec("_Theme", ["try"])]);
+
+        Assert.Equal("Ctrl+T T", menu.Items.Single().Item.KeyView.Text);
     }
 }
