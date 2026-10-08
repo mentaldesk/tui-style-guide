@@ -196,6 +196,29 @@ ones that mean something invisible.
 - A container `View` that hosts focusable children needs `CanFocus = true`; `SetFocus()` silently
   returns false when any ancestor has it off.
 
+### Filtering a list
+
+**Every list that narrows as you type matches the same way**, so a user learns it once.
+
+- **CamelHumps, then contains. Case never matters.** Each letter continues the last match or starts
+  a new word or hump, as in JetBrains: `gtd`, `GTD` and `gotodef` all find `GoToDefinition`. A space
+  makes the next letter start a hump. A row the letters don't match that way still matches if it
+  contains them as one run: `iew` finds `GrammarPickerView.cs`. A query with `/` matches path
+  segments in order, by CamelHumps only.
+- **Best match first**: a prefix, then fewest jumps between humps, then rows that only contain the
+  letters. Ties, and an empty filter, keep the list's own order.
+- **Match only what's on screen.** A hidden id never matches, so every row shows why it's there.
+- **Say when nothing matches**, in the list: a dimmed `(no matches)`. `Enter` then does nothing, and
+  the hint bar drops it.
+- **Typing never leaves the filter.** `Up/Down/PgUp/PgDn` move the selection while the cursor stays
+  in the field, and the first row is selected after every keystroke, so `Enter` takes the best match.
+
+The library's [`PickerDialog`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Dialogs/PickerDialog.cs),
+matching with [`ListFilter`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Filtering/ListFilter.cs)
+and TuiCode's [`CamelHumps`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Filtering/CamelHumps.cs),
+is the reference implementation. The command palette is built on it, and so is Swatch's
+*Go › Scheme…*.
+
 ### Showing focus
 
 **Focus has one owner, and that owner is not the framework's `HasFocus`.** Keep the focused

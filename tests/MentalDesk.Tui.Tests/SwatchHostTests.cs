@@ -84,7 +84,7 @@ public class SwatchHostTests : StaticConfigurationTest
             () => Press(Key.E.WithCtrl),
             () => _host.App.TopRunnableView is CommandPalette,
             () => Press([.. "preview".Select(c => new Key(c))]),
-            () => ((CommandPalette)_host.App.TopRunnableView!).Labels.SequenceEqual(["Go to preview"]),
+            () => ((CommandPalette)_host.App.TopRunnableView!).Shown.Select(row => row.Label).SequenceEqual(["Go to preview"]),
             () => Press(Key.Enter),
             () => _host.App.TopRunnableView is SwatchWindow && FocusWord == "Preview");
     }
@@ -254,7 +254,7 @@ public class SwatchHostTests : StaticConfigurationTest
             () => Press(Key.E.WithCtrl),
             () => _host.App.TopRunnableView is CommandPalette,
             () => Press([.. "delete".Select(c => new Key(c))]),
-            () => ((CommandPalette)_host.App.TopRunnableView!).Labels.SequenceEqual(["Delete this theme"]),
+            () => ((CommandPalette)_host.App.TopRunnableView!).Shown.Select(row => row.Label).SequenceEqual(["Delete this theme"]),
             () => Press(Key.Enter),
             () => _host.App.TopRunnableView is DeleteThemeDialog,
             () => Press(Key.Esc),

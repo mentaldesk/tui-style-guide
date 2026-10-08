@@ -77,8 +77,8 @@ public sealed class AppShell : IDisposable
     {
         using var palette = new CommandPalette(Commands, Keys, Focus.Region?.Scope ?? CommandScope.Global);
         palette.Run(this);
-        if (palette.Chosen is { } id)
-            Commands.Execute(id);
+        if (palette.Chosen is { } row)
+            Commands.Execute(row.Id);
     }
 
     public void ShowDiagnostics()
