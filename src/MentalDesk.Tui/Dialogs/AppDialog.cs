@@ -52,7 +52,7 @@ public abstract class AppDialog : Dialog
 
     protected void ShowHints(params Hint[] hints) => Hints.Show(hints, Commands, Keys);
 
-    protected void ShowAlert(string message, Severity severity)
+    public void ShowAlert(string message, Severity severity)
     {
         Alert.Show(message, severity, Viewport.Width);
         SetNeedsLayout();
