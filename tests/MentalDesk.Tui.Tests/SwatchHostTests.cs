@@ -1,3 +1,4 @@
+using MentalDesk.Tui.Dialogs;
 using MentalDesk.Tui.Diagnostics;
 using MentalDesk.Tui.Palette;
 using MentalDesk.Tui.Theming;
@@ -228,20 +229,21 @@ public class SwatchHostTests : StaticConfigurationTest
     public void Delete_opens_on_the_selected_theme_with_focus_on_cancel()
     {
         using var window = new SwatchWindow(_host.Shell);
-        DeleteThemeDialog? dialog = null;
+        ConfirmDialog? dialog = null;
 
         _host.Run(window,
             () => FocusWord == "Themes",
             () => Press(DownToDaylight),
             () => window.Showing.Theme == Themes.Daylight,
             () => Press(Key.T.WithCtrl, Key.D),
-            () => (dialog = _host.App.TopRunnableView as DeleteThemeDialog) is not null,
+            () => (dialog = _host.App.TopRunnableView as ConfirmDialog) is not null,
             () => dialog!.CancelButton.HasFocus,
+            () => dialog!.HintText == "Del delete  •  Esc cancel",
             () => Press(Key.Esc),
             () => _host.App.TopRunnableView is SwatchWindow);
 
         Assert.Equal("Delete theme", dialog!.Title);
-        Assert.Equal("Delete \"Daylight\"? This can't be undone.", dialog.Message);
+        Assert.Equal(["Delete \"Daylight\"?", "This can't be undone."], dialog.Lines);
     }
 
     [Fact]
@@ -256,70 +258,136 @@ public class SwatchHostTests : StaticConfigurationTest
             () => Press([.. "delete".Select(c => new Key(c))]),
             () => ((CommandPalette)_host.App.TopRunnableView!).Labels.SequenceEqual(["Delete this theme"]),
             () => Press(Key.Enter),
-            () => _host.App.TopRunnableView is DeleteThemeDialog,
+            () => _host.App.TopRunnableView is ConfirmDialog,
             () => Press(Key.Esc),
             () => _host.App.TopRunnableView is SwatchWindow);
     }
 
     [Theory]
-    [MemberData(nameof(CancelKeys))]
-    public void Enter_on_open_and_Esc_both_cancel_without_deleting(Key key)
+    [MemberData(nameof(KeysThatDoNotDelete))]
+    public void Esc_cancels_and_Enter_does_nothing_whichever_button_is_focused(Key move, Key key)
     {
         using var window = new SwatchWindow(_host.Shell);
-        DeleteThemeDialog? dialog = null;
+        ConfirmDialog? dialog = null;
         var ticks = 0;
 
         _host.Run(window,
             () => FocusWord == "Themes",
             () => Press(Key.T.WithCtrl, Key.D),
-            () => (dialog = _host.App.TopRunnableView as DeleteThemeDialog) is not null,
+            () => (dialog = _host.App.TopRunnableView as ConfirmDialog) is not null,
             () => dialog!.CancelButton.HasFocus,
-            () => Press(key),
-            () => _host.App.TopRunnableView is SwatchWindow,
-            () => ++ticks > 5);
+            () => Press(move, key),
+            () => ++ticks > 5,
+            () => _host.App.TopRunnableView is SwatchWindow == (key == Key.Esc),
+            () => Press(Key.Esc),
+            () => _host.App.TopRunnableView is SwatchWindow);
 
-        Assert.False(dialog!.Confirmed);
+        Assert.Null(dialog!.Chosen);
         Assert.Null(_host.Shell.StatusBar.Message);
     }
 
-    public static TheoryData<Key> CancelKeys => [Key.Enter, Key.Esc];
+    public static TheoryData<Key, Key> KeysThatDoNotDelete => new()
+    {
+        { Key.CursorRight, Key.Enter },
+        { Key.CursorLeft, Key.Enter },
+        { Key.CursorRight, Key.Esc },
+        { Key.CursorLeft, Key.Esc },
+    };
 
-    [Fact]
-    public void Delete_closes_and_says_the_themes_are_built_in()
+    [Theory]
+    [MemberData(nameof(WaysToDelete))]
+    public void Del_or_arrowing_to_Delete_and_Space_deletes_and_says_the_themes_are_built_in(Key[] keys)
     {
         using var window = new SwatchWindow(_host.Shell);
-        DeleteThemeDialog? dialog = null;
+        ConfirmDialog? dialog = null;
 
         _host.Run(window,
             () => FocusWord == "Themes",
             () => Press(Key.T.WithCtrl, Key.D),
-            () => (dialog = _host.App.TopRunnableView as DeleteThemeDialog) is not null,
+            () => (dialog = _host.App.TopRunnableView as ConfirmDialog) is not null,
             () => dialog!.CancelButton.HasFocus,
-            () => Press(Key.Tab),
-            () => dialog!.DeleteButton.HasFocus,
-            () => Press(Key.Enter),
+            () => Press(keys),
             () => _host.App.TopRunnableView is SwatchWindow,
             () => _host.Shell.StatusBar.Message == "Swatch's themes are built in, so nothing was deleted");
 
+        Assert.Equal(ThemeConfirms.Delete, dialog!.Chosen);
         Assert.Equal(Themes.Names, window.ThemeNames);
     }
+
+    public static TheoryData<Key[]> WaysToDelete => new() { new[] { Key.Delete }, new[] { Key.CursorLeft, Key.Space }, new[] { Key.Tab, Key.Space } };
+
+    [Theory]
+    [MemberData(nameof(WaysToRemove))]
+    public void Remove_takes_Enter_R_or_Space_on_its_button(Key[] keys)
+    {
+        using var window = new SwatchWindow(_host.Shell);
+        ConfirmDialog? dialog = null;
+
+        _host.Run(window,
+            () => FocusWord == "Themes",
+            () => Press(Key.T.WithCtrl, Key.R),
+            () => (dialog = _host.App.TopRunnableView as ConfirmDialog) is not null,
+            () => dialog!.CancelButton.HasFocus,
+            () => dialog!.HintText == "Enter remove  •  Esc cancel",
+            () => Press(keys),
+            () => _host.App.TopRunnableView is SwatchWindow,
+            () => _host.Shell.StatusBar.Message == "A demo: Swatch's themes are built in, so nothing was removed");
+
+        Assert.Equal(ThemeConfirms.Remove, dialog!.Chosen);
+        Assert.Equal($"Remove {Themes.Names[0]}?", dialog.Title);
+    }
+
+    public static TheoryData<Key[]> WaysToRemove => new() { new[] { Key.Enter }, new[] { Key.R }, new[] { Key.R.WithShift }, new[] { Key.CursorLeft, Key.Space } };
+
+    [Theory]
+    [MemberData(nameof(WaysToClose))]
+    public void Close_takes_S_D_or_Space_and_Enter_does_nothing(Key[] keys, string? said)
+    {
+        using var window = new SwatchWindow(_host.Shell);
+        ConfirmDialog? dialog = null;
+        var ticks = 0;
+
+        _host.Run(window,
+            () => FocusWord == "Themes",
+            () => Press(Key.T.WithCtrl, Key.C),
+            () => (dialog = _host.App.TopRunnableView as ConfirmDialog) is not null,
+            () => dialog!.CancelButton.HasFocus,
+            () => dialog!.HintText == "S save  •  D don't save  •  Esc cancel",
+            () => Press(keys),
+            () => ++ticks > 5,
+            () => _host.App.TopRunnableView is SwatchWindow == (said is not null),
+            () => _host.Shell.StatusBar.Message == said,
+            () => Press(Key.Esc),
+            () => _host.App.TopRunnableView is SwatchWindow);
+
+    }
+
+    public static TheoryData<Key[], string?> WaysToClose => new()
+    {
+        { [Key.S], "A demo: Swatch has no unsaved changes, so nothing was saved" },
+        { [Key.D], "A demo: Swatch has no unsaved changes, so nothing was lost" },
+        { [Key.CursorLeft, Key.CursorLeft, Key.Space], "A demo: Swatch has no unsaved changes, so nothing was saved" },
+        { [Key.CursorLeft, Key.Space], "A demo: Swatch has no unsaved changes, so nothing was lost" },
+        { [Key.Enter], null },
+        { [Key.CursorLeft, Key.Enter], null },
+    };
 
     [Fact]
     public void Hovering_a_button_lightens_it_without_moving_focus()
     {
         using var window = new SwatchWindow(_host.Shell);
         var danger = Themes.SchemesOf(Themes.Current)[SchemeNames.ButtonDanger];
-        DeleteThemeDialog? dialog = null;
+        ConfirmDialog? dialog = null;
         var over = Point.Empty;
 
         _host.Run(window,
             () => FocusWord == "Themes",
             () => Press(Key.T.WithCtrl, Key.D),
-            () => (dialog = _host.App.TopRunnableView as DeleteThemeDialog) is not null,
+            () => (dialog = _host.App.TopRunnableView as ConfirmDialog) is not null,
             () => dialog!.CancelButton.HasFocus,
             () =>
             {
-                over = dialog!.DeleteButton.FrameToScreen().Location;
+                over = dialog!.ButtonFor(ThemeConfirms.Delete).FrameToScreen().Location;
                 Move(over);
             },
             () => Background(over) == danger.Highlight.Background,
@@ -337,7 +405,7 @@ public class SwatchHostTests : StaticConfigurationTest
     {
         using var window = new SwatchWindow(_host.Shell);
         var cancel = Themes.SchemesOf(Themes.Daylight)[SchemeNames.ButtonSecondary];
-        DeleteThemeDialog? dialog = null;
+        ConfirmDialog? dialog = null;
 
         _host.Run(window,
             () => FocusWord == "Themes",
@@ -346,7 +414,7 @@ public class SwatchHostTests : StaticConfigurationTest
             () => Press(Key.T.WithCtrl, Key.U),
             () => Themes.Current == Themes.Daylight,
             () => Press(Key.T.WithCtrl, Key.D),
-            () => (dialog = _host.App.TopRunnableView as DeleteThemeDialog) is not null,
+            () => (dialog = _host.App.TopRunnableView as ConfirmDialog) is not null,
             () => dialog!.CancelButton.HasFocus,
             () =>
             {

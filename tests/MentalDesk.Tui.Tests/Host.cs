@@ -38,19 +38,19 @@ internal sealed class Host : IDisposable
                 App.RequestStop();
                 return;
             }
-            var done = queue.Peek() switch
+            switch (queue.Peek())
             {
-                Func<bool> poll => poll(),
-                Action act => Do(act),
-                _ => throw new InvalidOperationException("A step is an Action or a Func<bool>."),
-            };
-            if (done) queue.Dequeue();
-        }
-
-        static bool Do(Action act)
-        {
-            act();
-            return true;
+                case Func<bool> poll:
+                    if (poll()) queue.Dequeue();
+                    break;
+                // Dequeued first: a key that opens a dialog runs its nested loop, and this step, before returning.
+                case Action act:
+                    queue.Dequeue();
+                    act();
+                    break;
+                default:
+                    throw new InvalidOperationException("A step is an Action or a Func<bool>.");
+            }
         }
     }
 
