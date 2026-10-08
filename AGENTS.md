@@ -10,7 +10,9 @@
   off styles: when you extend it, check what you add against the guide, and if a rule doesn't fit, change
   the guide first rather than break it in Swatch.
 
-When the guide changes, the library and Swatch change with it, in the same PR.
+When the guide changes, the library and Swatch change with it, in the same PR. Every new style or
+behaviour recommendation is demonstrated in Swatch, where possible in the sample app *Try this theme*
+opens, so a reviewer can try it rather than read about it.
 
 ## Build, test, run
 

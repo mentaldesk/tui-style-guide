@@ -69,6 +69,7 @@ internal sealed class SwatchWindow : AppWindow
             .Register(SwatchCommands.GoToThemes, "Go to themes", () => shell.Focus.Focus(ThemesRegion))
             .Register(SwatchCommands.GoToRoles, "Go to roles", () => shell.Focus.Focus(RolesRegion))
             .Register(SwatchCommands.GoToPreview, "Go to preview", () => shell.Focus.Focus(PreviewRegion))
+            .Register(SwatchCommands.GoToScheme, "Go to scheme…", () => GoToScheme(shell))
             .Register(SwatchCommands.UseTheme, "Use this theme for Swatch", () => UseTheme(shell),
                 isEnabled: () => shell.App.TopRunnableView is SwatchWindow window && window.Showing.Theme != Themes.Current)
             .Register(SwatchCommands.TryTheme, "Try this theme", () => TryTheme(shell))
@@ -79,6 +80,7 @@ internal sealed class SwatchWindow : AppWindow
             .Bind("Ctrl+G T", SwatchCommands.GoToThemes)
             .Bind("Ctrl+G R", SwatchCommands.GoToRoles)
             .Bind("Ctrl+G P", SwatchCommands.GoToPreview)
+            .Bind("Ctrl+G S", SwatchCommands.GoToScheme)
             .Bind("Ctrl+T U", SwatchCommands.UseTheme)
             .Bind("Ctrl+T T", SwatchCommands.TryTheme)
             .Bind("Enter", SwatchCommands.TryTheme, PreviewRegion.Scope)
@@ -91,6 +93,7 @@ internal sealed class SwatchWindow : AppWindow
                 new MenuEntry(SwatchCommands.GoToThemes, "_Themes"),
                 new MenuEntry(SwatchCommands.GoToRoles, "_Roles"),
                 new MenuEntry(SwatchCommands.GoToPreview, "_Preview"),
+                new MenuEntry(SwatchCommands.GoToScheme, "_Scheme…"),
             ]),
             new MenuSpec("_Theme", [
                 new MenuEntry(SwatchCommands.TryTheme, "_Try it"),
@@ -114,6 +117,21 @@ internal sealed class SwatchWindow : AppWindow
         var applied = shell.ApplyTheme(window.Showing.Theme);
         shell.StatusBar.State = applied;
         shell.ShowMessage($"Swatch is now in {applied}");
+    }
+
+    private static void GoToScheme(AppShell shell)
+    {
+        if (shell.App.TopRunnableView is not SwatchWindow window) return;
+        Selection[] pairs = [.. Themes.Names.SelectMany(theme => SchemeNames.All.Select(scheme => new Selection(theme, scheme)))];
+        using var picker = new PickerDialog<Selection>("Go to scheme", width: 76, contentRows: 18, pairs, pair => pair.Display, verb: "go");
+        picker.Run(shell);
+        if (picker.Chosen is not { } chosen) return;
+        var theme = window._themes.Objects?.FirstOrDefault(node => node.Text == chosen.Theme);
+        if (theme?.Children.FirstOrDefault(node => Equals(((TreeNode)node).Tag, chosen)) is not { } scheme) return;
+        window._themes.Expand(theme);
+        window._themes.SelectedObject = scheme;
+        window._themes.EnsureVisible(scheme);
+        shell.Focus.Focus(ThemesRegion);
     }
 
     private static void TryTheme(AppShell shell)
@@ -164,10 +182,13 @@ internal sealed class SwatchWindow : AppWindow
             _roles.Source = new RoleSource(scheme);
             _roles.SelectedItem = 0;
         }
-        _rolesPane.Title = $"{selection.Theme} › {selection.Scheme}";
+        _rolesPane.Title = selection.Display;
         _previewPane.Title = $"Preview › {selection.Theme}";
         _preview.Show(selection.Theme);
     }
 
-    internal sealed record Selection(string Theme, string Scheme);
+    internal sealed record Selection(string Theme, string Scheme)
+    {
+        public string Display => $"{Theme} › {Scheme}";
+    }
 }
