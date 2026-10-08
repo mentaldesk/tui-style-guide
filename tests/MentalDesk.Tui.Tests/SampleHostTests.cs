@@ -186,7 +186,7 @@ public class SampleHostTests : StaticConfigurationTest
             () => FocusWord == "Themes",
             () => Press(Key.T.WithCtrl, Key.T),
             () => (sample = Sample) is not null,
-            () => Press(Key.F10, Key.CursorRight, Key.CursorRight),
+            () => Press(Key.F10, Key.CursorRight, Key.CursorRight, Key.CursorRight),
             () => sample!.Shell.Menu!.Menus.Single(menu => menu.Title == "_Theme").PopoverMenuOpen,
             () => Press(Key.D),
             () => Themes.Current == Themes.Daylight,
@@ -243,7 +243,7 @@ public class SampleHostTests : StaticConfigurationTest
         using var sample = new SampleWindow(shell, Themes.Current);
 
         var menus = shell.Menu!.Menus;
-        Assert.Equal(["_File", "_Edit", "_Theme", "_Help"], menus.Select(menu => menu.Title));
+        Assert.Equal(["_File", "_Edit", "_View", "_Theme", "_Help"], menus.Select(menu => menu.Title));
         foreach (var menu in menus)
         {
             var items = menu.PopoverMenu!.Root!.SubViews.OfType<MenuItem>().ToList();

@@ -169,7 +169,41 @@ Rules that matter more than the widget:
 - **Show busy, and refuse a second go.** `Submitting…` in the message block, with the confirm
   disabled until it resolves.
 - **Outside a dialog, errors go to the status bar** — same wording rules, one line. Don't open a
-  modal to report something the user did not just ask for.
+  modal to report something the user did not just ask for. A pane that failed to load is the
+  exception: see [Loading and empty](#loading-and-empty).
+
+### Loading and empty
+
+**A region that waits for data says so in itself**, where its content goes: not on the status bar,
+in a header or in the hint row. A message away from the pane outlives the load.
+
+**It's always one of four states**: loading, empty, failed, or its content. Never blank.
+
+- **Loading:** a spinner and `Loading pull requests…`, naming what. Shown only once the load has
+  taken longer than a moment, so a fast load doesn't flicker.
+- **Empty:** say what isn't there, in the app's terms (`No open pull requests`), dimmed. If there's
+  an obvious next step, add it as a hint under it (`N new branch`).
+- **Failed:** one line in the `Error` scheme, same wording rules as above, with `R retry` under it.
+  A failed load is a state of the pane, so it stays in the pane rather than going to the status bar.
+- **Reloading keeps what's there.** The rows stay, and a spinner sits at the right of the region's
+  top border until the new rows arrive. A reload that fails keeps the old rows and says so on the
+  status bar.
+- **The content keeps focus** in every state, so `Tab` order doesn't change as a pane loads.
+
+```
+┌┤Pull requests├────────────────────────────┐   ┌┤Pull requests├─────────────────────────⠙──┐
+│                                           │   │ #27 Typing to narrow the command palette  │
+│        ⠋ Loading pull requests…           │   │ #26 Esc, Space and each action's own key  │
+│                                           │   └───────────────────────────────────────────┘
+└───────────────────────────────────────────┘
+```
+
+The library's [`LoadStateView`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Loading/LoadStateView.cs)
+is the reference implementation: it wraps any content view, and the app tells it `ShowLoading()`,
+`ShowEmpty(…)`, `ShowFailed(…)` or `ShowContent()`. It centres each state over the content with
+`SpinnerView` and the theme's `ReadOnly` role and `Error` scheme, and switches the terminal's own
+progress indicator on while loading. In Swatch, *Try it* opens a sample whose Files pane loads, and
+its *View* menu reloads it, empty or failing; *Help › Loading states…* shows the same states in a dialog.
 
 ## 4. Icons and glyphs
 

@@ -2,6 +2,7 @@ using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Commands;
 using MentalDesk.Tui.Dialogs;
 using MentalDesk.Tui.Focus;
+using MentalDesk.Tui.Loading;
 using MentalDesk.Tui.Shell;
 using MentalDesk.Tui;
 using MentalDesk.Tui.Theming;
@@ -19,6 +20,9 @@ internal sealed class SampleWindow : AppWindow
     public const string Copy = "sample.copy";
     public const string Paste = "sample.paste";
     public const string Back = "sample.back";
+    public const string ReloadFiles = "sample.reloadFiles";
+    public const string LoadNoFiles = "sample.loadNoFiles";
+    public const string LoadFailing = "sample.loadFailing";
 
     public static readonly FocusRegion FilesRegion = new("Files", new CommandScope("Files"));
     public static readonly FocusRegion EditorRegion = new("Editor", new CommandScope("Editor"));
@@ -27,20 +31,23 @@ internal sealed class SampleWindow : AppWindow
 
     private readonly TreeView _files = new() { Width = Dim.Fill(), Height = Dim.Fill() };
     private readonly SampleEditor _editor = new() { Width = Dim.Fill(), Height = Dim.Fill() };
+    private readonly TreeNode _src;
+    private object? _load;
 
-    public SampleWindow(AppShell shell, string theme) : base(Register(shell))
+    public SampleWindow(AppShell shell, string theme, TimeSpan? loadTime = null) : base(Register(shell))
     {
         Shell = shell;
-        var filesPane = Panes.Create("Files", _files, x: 0, width: 24);
+        LoadTime = loadTime ?? TimeSpan.FromSeconds(1.5);
+        Files = new LoadStateView(_files, "Loading files…");
+        Files.ReloadFailed += (_, message) =>
+            shell.ShowMessage($"{message}, so these are the files from the last load", Severity.Error);
+        var filesPane = Panes.Create("Files", Files, x: 0, width: 24);
         filesPane.SchemeName = SchemeNames.Sidebar;
         var editorPane = Panes.Create("Editor", _editor, x: Pos.Right(filesPane), width: Dim.Fill());
         Body.Add(filesPane, editorPane);
 
         var todo = new TreeNode { Text = "todo.md" };
-        var src = new TreeNode { Text = "src", Children = [new TreeNode { Text = "notes.md" }, todo] };
-        _files.AddObject(src);
-        _files.Expand(src);
-        _files.SelectedObject = src.Children[0];
+        _src = new TreeNode { Text = "src", Children = [new TreeNode { Text = "notes.md" }, todo] };
         _files.ColorGetter = node => node == todo && _files.GetScheme() is { } scheme
             ? scheme with { Normal = scheme.Disabled, Active = scheme.Disabled }
             : null;
@@ -50,13 +57,78 @@ internal sealed class SampleWindow : AppWindow
         shell.Commands
             .Register(Cut, "Cut", () => _editor.Cut())
             .Register(Copy, "Copy", () => _editor.Copy())
-            .Register(Paste, "Paste", () => _editor.Paste());
+            .Register(Paste, "Paste", () => _editor.Paste())
+            .Register(ReloadFiles, "Reload files", () => Load(Outcome.Files))
+            .Register(LoadNoFiles, "Load no files", () => Load(Outcome.Empty))
+            .Register(LoadFailing, "Load files, failing", () => Load(Outcome.Failure));
+        shell.Keys.Bind("Ctrl+R", ReloadFiles);
         shell.HintsFor = Hints;
         shell.StatusBar.State = theme;
-        Initialized += (_, _) => shell.Focus.Focus(EditorRegion);
+        Initialized += (_, _) =>
+        {
+            shell.Focus.Focus(EditorRegion);
+            Load(Outcome.Files);
+        };
+    }
+
+    private enum Outcome
+    {
+        Files,
+
+        Empty,
+
+        Failure,
     }
 
     public AppShell Shell { get; }
+
+    public LoadStateView Files { get; }
+
+    public TreeView Tree => _files;
+
+    public TimeSpan LoadTime { get; }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing && _load is not null) App?.RemoveTimeout(_load);
+        base.Dispose(disposing);
+    }
+
+    private void Load(Outcome outcome)
+    {
+        if (_load is not null) App?.RemoveTimeout(_load);
+        Files.ShowLoading();
+        _load = App?.AddTimeout(LoadTime, () =>
+        {
+            _load = null;
+            Finish(outcome);
+            return false;
+        });
+    }
+
+    private void Finish(Outcome outcome)
+    {
+        switch (outcome)
+        {
+            case Outcome.Files:
+                _files.ClearObjects();
+                _files.AddObject(_src);
+                _files.Expand(_src);
+                _files.SelectedObject ??= _src.Children[0];
+                Files.ShowContent();
+                break;
+            case Outcome.Empty:
+                _files.ClearObjects();
+                Files.ShowEmpty("No files", Step(ReloadFiles, "reload"));
+                break;
+            case Outcome.Failure:
+                Files.ShowFailed("Couldn't list files", Step(ReloadFiles, "retry")!.Value);
+                break;
+        }
+    }
+
+    private (string, Action)? Step(string id, string verb) =>
+        new Hint(id, verb).Resolve(Shell.Commands, Shell.Keys) is (var text, { } run) ? (text, run) : null;
 
     private static AppShell Register(AppShell shell)
     {
@@ -87,6 +159,11 @@ internal sealed class SampleWindow : AppWindow
                 new MenuEntry(Cut, "Cu_t"),
                 new MenuEntry(Copy, "_Copy"),
                 new MenuEntry(Paste, "_Paste"),
+            ]),
+            new MenuSpec("_View", [
+                new MenuEntry(ReloadFiles, "_Reload files"),
+                new MenuEntry(LoadNoFiles, "Load _no files"),
+                new MenuEntry(LoadFailing, "Load files, _failing"),
             ]),
             new MenuSpec("_Theme", [.. Themes.Names.Select(theme =>
                 new MenuEntry(ThemeCommand(theme), Hot(theme, hotLetters), () => Themes.Current == theme))]),
@@ -130,7 +207,10 @@ internal sealed class SampleWindow : AppWindow
     private static IEnumerable<Hint> Hints(FocusRegion? region)
     {
         if (region == FilesRegion)
+        {
             yield return new Hint(DeleteTheme, "delete");
+            yield return new Hint(ReloadFiles, "reload");
+        }
         yield return new Hint(SaveTheme, "save");
         yield return new Hint(ShellCommands.ShowMenu, "menu");
         yield return new Hint(Back, "back to Swatch");

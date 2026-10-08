@@ -11,4 +11,5 @@ internal static class SwatchCommands
     public const string DeleteTheme = "swatch.deleteTheme";
     public const string RemoveTheme = "swatch.removeTheme";
     public const string CloseTheme = "swatch.closeTheme";
+    public const string ShowLoadingStates = "swatch.loadingStates";
 }

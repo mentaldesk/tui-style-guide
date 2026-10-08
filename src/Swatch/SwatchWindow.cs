@@ -75,7 +75,8 @@ internal sealed class SwatchWindow : AppWindow
             .Register(SwatchCommands.TryTheme, "Try this theme", () => TryTheme(shell))
             .Register(SwatchCommands.DeleteTheme, "Delete this theme", () => DeleteTheme(shell))
             .Register(SwatchCommands.RemoveTheme, "Remove this theme", () => RemoveTheme(shell))
-            .Register(SwatchCommands.CloseTheme, "Close this theme", () => CloseTheme(shell));
+            .Register(SwatchCommands.CloseTheme, "Close this theme", () => CloseTheme(shell))
+            .Register(SwatchCommands.ShowLoadingStates, "Show loading states", () => ShowLoadingStates(shell));
         shell.Keys
             .Bind("Ctrl+G T", SwatchCommands.GoToThemes)
             .Bind("Ctrl+G R", SwatchCommands.GoToRoles)
@@ -106,6 +107,7 @@ internal sealed class SwatchWindow : AppWindow
                 new MenuEntry(ShellCommands.ShowCommands, "Show all _commands"),
                 new MenuEntry(ShellCommands.ShowMenu, "Open the _menu"),
                 null,
+                new MenuEntry(SwatchCommands.ShowLoadingStates, "_Loading states…"),
                 new MenuEntry(ShellCommands.ShowDiagnostics, "Show _diagnostics"),
             ]));
         return shell;
@@ -152,6 +154,12 @@ internal sealed class SwatchWindow : AppWindow
         Confirm(shell, ThemeConfirms.CloseTheme, chosen => chosen == ThemeConfirms.Save
             ? "A demo: Swatch has no unsaved changes, so nothing was saved"
             : "A demo: Swatch has no unsaved changes, so nothing was lost");
+
+    private static void ShowLoadingStates(AppShell shell)
+    {
+        using var dialog = new LoadingStatesDialog(shell);
+        dialog.Run(shell);
+    }
 
     private static void Confirm(AppShell shell, Func<string, ConfirmDialog> open, Func<ConfirmAction, string> said)
     {
