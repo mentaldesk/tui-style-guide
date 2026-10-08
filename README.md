@@ -202,8 +202,8 @@ The library's [`LoadStateView`](https://github.com/mentaldesk/tui-style-guide/bl
 is the reference implementation: it wraps any content view, and the app tells it `ShowLoading()`,
 `ShowEmpty(…)`, `ShowFailed(…)` or `ShowContent()`. It centres each state over the content with
 `SpinnerView` and the theme's `ReadOnly` role and `Error` scheme, and switches the terminal's own
-progress indicator on while loading. Swatch's *Help › Loading states…* shows every state and a
-reload.
+progress indicator on while loading. In Swatch, *Try it* opens a sample whose Files pane loads, and
+its *View* menu reloads it, empty or failing; *Help › Loading states…* shows the same states in a dialog.
 
 ## 4. Icons and glyphs
 
