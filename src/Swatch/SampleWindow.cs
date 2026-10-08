@@ -23,7 +23,7 @@ internal sealed class SampleWindow : AppWindow
     public static readonly FocusRegion FilesRegion = new("Files", new CommandScope("Files"));
     public static readonly FocusRegion EditorRegion = new("Editor", new CommandScope("Editor"));
 
-    public static readonly ConfirmAction Save = new("Save", ButtonKind.Primary, Key.S.WithCtrl);
+    public static readonly ConfirmAction Save = new("Save", ButtonKind.Primary, Key.Enter);
 
     private readonly TreeView _files = new() { Width = Dim.Fill(), Height = Dim.Fill() };
     private readonly SampleEditor _editor = new() { Width = Dim.Fill(), Height = Dim.Fill() };
@@ -111,7 +111,7 @@ internal sealed class SampleWindow : AppWindow
     private static void SaveAs(AppShell shell)
     {
         using var dialog = new ConfirmDialog(
-            "Save theme", [$"Save a copy of \"{Themes.Current}\" as"], [Save], enter: Save,
+            "Save theme", [$"Save a copy of \"{Themes.Current}\" as"], [Save],
             field: new TextField { Text = "Solar" });
         dialog.Initialized += (_, _) => dialog.ShowAlert("Couldn't write themes.json", Severity.Error);
         dialog.Run(shell);
