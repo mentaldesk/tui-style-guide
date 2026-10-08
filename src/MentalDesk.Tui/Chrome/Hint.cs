@@ -11,7 +11,7 @@ public sealed record Hint(string? CommandId, string Verb)
     {
         if (CommandId is not { } id)
             return (Verb, null);
-        if (keys.For(id).FirstOrDefault() is not { } binding)
+        if (keys.For(id, keys.FocusedScope()).FirstOrDefault() is not { } binding)
             return null;
         return ($"{binding.Display} {Verb}", () => commands.Execute(id));
     }

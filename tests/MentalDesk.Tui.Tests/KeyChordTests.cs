@@ -9,6 +9,7 @@ public class KeyChordTests
     [InlineData("Alt+CursorDown", "Alt+↓")]
     [InlineData("CursorUp", "↑")]
     [InlineData("F10", "F10")]
+    [InlineData("Delete", "Del")]
     public void Displays_the_way_a_keycap_reads(string sequence, string expected)
     {
         Assert.Equal(expected, KeyChord.Display(KeyChord.Parse(sequence)));

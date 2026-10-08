@@ -13,7 +13,9 @@ that are really framework mechanics say so; the rest are design rules that would
 **Using this guide.** The rules are here. Each one is also built, once, in
 [`MentalDesk.Tui`](https://github.com/mentaldesk/tui-style-guide/tree/main/src/MentalDesk.Tui), the shared library, and shown working in
 [Swatch](https://github.com/mentaldesk/tui-style-guide/tree/main/src/Swatch), a theme editor that exists to exercise them
-(`dotnet run --project src/Swatch`). **When you build something a rule covers, start from the
+(`dotnet run --project src/Swatch`). To try a theme for real, select it and use *Theme › Try it*
+(`Ctrl+T T`, or `Enter` on the preview): a small sample app opens in that theme, with live menus,
+dialogs and buttons, and `Esc` brings you back. **When you build something a rule covers, start from the
 library type its section names**, not from TuiCode's or a-team's own version: those are the older
 copies the library was taken from. Where a section still names TuiCode or a-team code, the library
 doesn't have that piece yet. Apps reference the library as the

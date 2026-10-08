@@ -24,8 +24,8 @@ public sealed class ConfirmDialog : AppDialog
 
     public ConfirmDialog(
         string title, IReadOnlyList<string> lines, IReadOnlyList<ConfirmAction> actions,
-        ConfirmAction? enter = null, ConfirmAction? focus = null)
-        : base(title, DialogWidth(title, lines, actions, enter), contentRows: lines.Count + 3)
+        ConfirmAction? enter = null, ConfirmAction? focus = null, TextField? field = null)
+        : base(title, DialogWidth(title, lines, actions, enter), contentRows: lines.Count + (field is null ? 3 : 4))
     {
         if (actions.Count == 0) throw new ArgumentException("A confirm needs at least one action.", nameof(actions));
         if (enter is not null && !actions.Contains(enter))
@@ -36,10 +36,20 @@ public sealed class ConfirmDialog : AppDialog
         Lines = lines;
         for (var i = 0; i < lines.Count; i++)
             Add(new Label { X = 1, Y = i, Text = lines[i] });
+        Field = field;
+        if (field is not null)
+        {
+            field.X = 1;
+            field.Y = lines.Count;
+            field.Width = Dim.Fill(1);
+            Add(field);
+        }
+        var buttonsY = lines.Count + (field is null ? 1 : 2);
 
         Commands.Register(NothingId, "Nothing", () => { });
-        Commands.Register(PreviousId, "Previous button", () => Move(-1));
-        Commands.Register(NextId, "Next button", () => Move(+1));
+        // Off while the field has focus, so the arrows move its cursor instead.
+        Commands.Register(PreviousId, "Previous button", () => Move(-1), isEnabled: OnAButton);
+        Commands.Register(NextId, "Next button", () => Move(+1), isEnabled: OnAButton);
         // A focused Button presses on Enter, so Enter is always the dialog's: unbound, it does nothing.
         Keys.Bind([Key.Enter], NothingId)
             .Bind([Key.CursorLeft], PreviousId)
@@ -69,11 +79,11 @@ public sealed class ConfirmDialog : AppDialog
         for (var i = ButtonRow.Count - 1; i >= 0; i--)
         {
             var button = ButtonRow[i];
-            button.Y = lines.Count + 1;
+            button.Y = buttonsY;
             button.X = i == ButtonRow.Count - 1 ? Pos.AnchorEnd() - 1 : Pos.Left(ButtonRow[i + 1]) - Shown(button.Text).Length - Gap.Length;
         }
         Add([.. ButtonRow]);
-        var focused = focus is null ? CancelButton : _buttons[focus];
+        View focused = focus is not null ? _buttons[focus] : (View?)field ?? CancelButton;
         Initialized += (_, _) => focused.SetFocus();
     }
 
@@ -82,6 +92,8 @@ public sealed class ConfirmDialog : AppDialog
     public IReadOnlyList<Button> ButtonRow { get; }
 
     public Button CancelButton { get; }
+
+    public TextField? Field { get; }
 
     public ConfirmAction? Chosen { get; private set; }
 
@@ -99,16 +111,14 @@ public sealed class ConfirmDialog : AppDialog
 
     private static string Caption(ConfirmAction action)
     {
-        var name = KeyName(action.Key);
+        var name = KeyChord.Display(action.Key);
         var at = name.Length == 1 && char.IsLetter(name[0])
             ? action.Label.IndexOf(name, StringComparison.OrdinalIgnoreCase)
             : -1;
         return at < 0 ? $"{action.Label}  {name}" : action.Label.Insert(at, "_");
     }
 
-    private static string HintKey(ConfirmAction action, ConfirmAction? enter) => action == enter ? "Enter" : KeyName(action.Key);
-
-    private static string KeyName(Key key) => key == Key.Delete ? "Del" : KeyChord.Display(key);
+    private static string HintKey(ConfirmAction action, ConfirmAction? enter) => action == enter ? "Enter" : KeyChord.Display(action.Key);
 
     private static string Shown(string text) => text.Replace("_", string.Empty, StringComparison.Ordinal);
 
@@ -132,6 +142,8 @@ public sealed class ConfirmDialog : AppDialog
         Chosen = action;
         Accept();
     }
+
+    private bool OnAButton() => ButtonRow.Any(button => button.HasFocus);
 
     private void Move(int by)
     {
