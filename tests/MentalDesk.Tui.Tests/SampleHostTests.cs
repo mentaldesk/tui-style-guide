@@ -115,7 +115,7 @@ public class SampleHostTests : StaticConfigurationTest
             },
             () => _host.App.TopRunnableView is SwatchWindow);
 
-        Assert.Equal("Ctrl+S save  •  F10 menu  •  Esc back to Swatch", says);
+        Assert.Equal("Ctrl+S save  •  F10 menu  •  Esc back to Swatch  •  F1 keys", says);
         Assert.Equal("Themes", FocusWord);
     }
 

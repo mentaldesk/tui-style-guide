@@ -51,6 +51,6 @@ public class NestedShellTests : StaticConfigurationTest
         Assert.Equal(0, outerRan);
         Assert.Equal(Themes.Default, Themes.Current);
         Assert.Equal(Main, outer.Focus.Region);
-        Assert.Equal("Ctrl+X run", outer.StatusBar.Says);
+        Assert.Equal($"Ctrl+X run{HintRow.Separator}F1 keys", outer.StatusBar.Says);
     }
 }

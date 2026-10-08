@@ -82,12 +82,12 @@ internal sealed class SwatchWindow : AppWindow
             .Bind("Ctrl+G R", SwatchCommands.GoToRoles)
             .Bind("Ctrl+G P", SwatchCommands.GoToPreview)
             .Bind("Ctrl+G S", SwatchCommands.GoToScheme)
-            .Bind("Ctrl+T U", SwatchCommands.UseTheme)
+            .Bind("Ctrl+T U", SwatchCommands.UseTheme, ThemesRegion.Scope)
             .Bind("Ctrl+T T", SwatchCommands.TryTheme)
             .Bind("Enter", SwatchCommands.TryTheme, PreviewRegion.Scope)
-            .Bind("Ctrl+T D", SwatchCommands.DeleteTheme)
-            .Bind("Ctrl+T R", SwatchCommands.RemoveTheme)
-            .Bind("Ctrl+T C", SwatchCommands.CloseTheme);
+            .Bind("Ctrl+T D", SwatchCommands.DeleteTheme, ThemesRegion.Scope)
+            .Bind("Ctrl+T R", SwatchCommands.RemoveTheme, ThemesRegion.Scope)
+            .Bind("Ctrl+T C", SwatchCommands.CloseTheme, ThemesRegion.Scope);
         shell.UseMenu(
             new MenuSpec("_File", [ShellCommands.Quit]),
             new MenuSpec("_Go", [
@@ -104,6 +104,7 @@ internal sealed class SwatchWindow : AppWindow
                 new MenuEntry(SwatchCommands.CloseTheme, "_Close…"),
             ]),
             new MenuSpec("_Help", [
+                new MenuEntry(ShellCommands.ShowKeys, "Show _keys"),
                 new MenuEntry(ShellCommands.ShowCommands, "Show all _commands"),
                 new MenuEntry(ShellCommands.ShowMenu, "Open the _menu"),
                 null,

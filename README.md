@@ -236,6 +236,23 @@ ones that mean something invisible.
 - A container `View` that hosts focusable children needs `CanFocus = true`; `SetFocus()` silently
   returns false when any ancestor has it off.
 
+### Finding keys
+
+**`F1` always opens the keys for here and everywhere, and never means anything else.** *Here* lists
+the keys bound to the focused region; *Everywhere* lists the global ones, grouped under the menu's
+headings. Both are read from the keymap when it opens, so they can't drift from the real bindings.
+
+- **The main screen's status bar always ends with `F1 keys`**, after the app's own hints, so it's in
+  the same place in every app.
+- **Bind a key that only works in one region to that region's scope**, so it shows under *Here*.
+  Its menu item still runs it from anywhere.
+- It's a reference, not a runner: nothing in it takes focus, `Esc close` is its only hint, and it
+  leaves out disabled commands and commands with no key. The command palette has those.
+
+The library's [`KeysDialog`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Keys/KeysDialog.cs),
+which `AppShell` binds to `F1`, is the reference implementation. Swatch binds its `Ctrl+T` theme keys
+to the Themes pane.
+
 ### Filtering a list
 
 **Every list that narrows as you type matches the same way**, so a user learns it once.

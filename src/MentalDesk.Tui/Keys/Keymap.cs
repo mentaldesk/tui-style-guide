@@ -6,7 +6,7 @@ public sealed class Keymap(CommandRegistry commands) : IInputScope
 {
     private readonly Dictionary<CommandScope, Node> _roots = [];
     private readonly List<Key> _typed = [];
-    private Node? _current;
+    private List<Node> _current = [];
 
     public Func<CommandScope> FocusedScope { get; set; } = () => CommandScope.Global;
 
@@ -79,38 +79,36 @@ public sealed class Keymap(CommandRegistry commands) : IInputScope
     public KeyResult Handle(Key key)
     {
         var normalized = Normalize(key);
-        if (_current is not null)
-            return Continue(normalized);
-        var focused = FocusedScope();
-        if (focused != CommandScope.Global && Start(focused, normalized) is { } result)
-            return result;
-        return Start(CommandScope.Global, normalized) ?? KeyResult.Pass;
-    }
-
-    private KeyResult? Start(CommandScope scope, Key key)
-    {
-        if (!_roots.TryGetValue(scope, out var root) || !root.Children.TryGetValue(key, out var next))
-            return null;
-        if (next.CommandId is null)
-            return Descend(key, next);
-        return commands.Execute(next.CommandId) ? KeyResult.Consumed : null;
-    }
-
-    private KeyResult Continue(Key key)
-    {
-        if (key == Key.Esc || !_current!.Children.TryGetValue(key, out var next))
+        if (_current.Count > 0)
         {
-            Reset();
-            return KeyResult.Consumed;
+            var result = normalized == Key.Esc ? null : Advance(normalized, _current);
+            if (result is null) Reset();
+            return result ?? KeyResult.Consumed;
         }
-        if (next.CommandId is null)
-            return Descend(key, next);
-        Reset();
-        commands.Execute(next.CommandId);
-        return KeyResult.Consumed;
+        var focused = FocusedScope();
+        CommandScope[] scopes = focused == CommandScope.Global ? [focused] : [focused, CommandScope.Global];
+        return Advance(normalized, scopes.Select(scope => _roots.GetValueOrDefault(scope)).OfType<Node>()) ?? KeyResult.Pass;
     }
 
-    private KeyResult Descend(Key key, Node next)
+    // A chord can start in the focused scope and in Global at once; the focused one wins where both bind a key.
+    private KeyResult? Advance(Key key, IEnumerable<Node> from)
+    {
+        var nodes = from.Select(node => node.Children.GetValueOrDefault(key)).OfType<Node>().ToList();
+        for (var i = 0; i < nodes.Count; i++)
+        {
+            if (nodes[i].CommandId is { } id && commands.IsEnabled(id))
+            {
+                Reset();
+                commands.Execute(id);
+                return KeyResult.Consumed;
+            }
+            if (nodes[i].Children.Count > 0)
+                return Descend(key, [.. nodes.Skip(i).Where(node => node.Children.Count > 0)]);
+        }
+        return null;
+    }
+
+    private KeyResult Descend(Key key, List<Node> next)
     {
         _typed.Add(key);
         _current = next;
@@ -120,7 +118,7 @@ public sealed class Keymap(CommandRegistry commands) : IInputScope
 
     private void Reset()
     {
-        _current = null;
+        _current = [];
         _typed.Clear();
         PendingChord = null;
     }

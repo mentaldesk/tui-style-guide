@@ -162,4 +162,19 @@ public class KeymapTests
         Assert.Equal(["Ctrl+T T"], _keys.For("try", CommandScope.Global).Select(binding => binding.Display));
         Assert.Equal(["Ctrl+T T", "Enter"], _keys.For("try").Select(binding => binding.Display));
     }
+
+    [Fact]
+    public void A_chord_the_focused_scope_shares_a_prefix_with_still_reaches_the_global_one()
+    {
+        Register("try");
+        Register("use", Editor);
+        _keys.Bind("Ctrl+T T", "try").Bind("Ctrl+T U", "use");
+        _keys.FocusedScope = () => Editor;
+
+        Assert.Equal(KeyResult.ChordInProgress, _keys.Handle(Key.T.WithCtrl));
+        Assert.Equal(KeyResult.Consumed, _keys.Handle(Key.T));
+        Assert.Equal(KeyResult.ChordInProgress, _keys.Handle(Key.T.WithCtrl));
+        Assert.Equal(KeyResult.Consumed, _keys.Handle(Key.U));
+        Assert.Equal(["try", "use"], _ran);
+    }
 }

@@ -26,11 +26,13 @@ public sealed class AppShell : IDisposable
             .Register(ShellCommands.Quit, "Quit", () => App.RequestStop())
             .Register(ShellCommands.ShowCommands, "Show all commands", ShowCommands)
             .Register(ShellCommands.ShowMenu, "Open the menu", () => Menu?.Open(), isEnabled: () => Menu is not null)
-            .Register(ShellCommands.ShowDiagnostics, "Show diagnostics", ShowDiagnostics);
+            .Register(ShellCommands.ShowDiagnostics, "Show diagnostics", ShowDiagnostics)
+            .Register(ShellCommands.ShowKeys, "Show keys", ShowKeys);
         Keys.Bind("Ctrl+Q", ShellCommands.Quit)
             .Bind("Ctrl+E", ShellCommands.ShowCommands)
             .Bind("F10", ShellCommands.ShowMenu)
-            .Bind("F12", ShellCommands.ShowDiagnostics);
+            .Bind("F12", ShellCommands.ShowDiagnostics)
+            .Bind("F1", ShellCommands.ShowKeys);
 
         Focus.RegionChanged += (_, region) =>
         {
@@ -73,7 +75,8 @@ public sealed class AppShell : IDisposable
 
     public void ShowMessage(string message, Severity severity = Severity.Info) => StatusBar.ShowMessage(message, severity);
 
-    public void ShowHints() => StatusBar.Hints.Show(HintsFor(Focus.Region), Commands, Keys);
+    public void ShowHints() =>
+        StatusBar.Hints.Show(HintsFor(Focus.Region).Append(new Hint(ShellCommands.ShowKeys, "keys")), Commands, Keys);
 
     public void ShowCommands()
     {
@@ -81,6 +84,13 @@ public sealed class AppShell : IDisposable
         palette.Run(this);
         if (palette.Chosen is { } row)
             Commands.Execute(row.Id);
+    }
+
+    public void ShowKeys()
+    {
+        var sheet = KeySheet.For(Commands, Keys, Focus.Region?.Name, Focus.Region?.Scope ?? CommandScope.Global, Menu?.Layout ?? []);
+        using var dialog = new KeysDialog(sheet, App.Screen.Size);
+        dialog.Run(this);
     }
 
     public void ShowDiagnostics()
