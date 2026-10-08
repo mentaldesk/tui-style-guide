@@ -5,7 +5,7 @@ namespace MentalDesk.Tui.Chrome;
 
 public sealed record MenuSpec(string Title, IReadOnlyList<MenuEntry?> Items);
 
-public sealed record MenuEntry(string CommandId, string? Title = null)
+public sealed record MenuEntry(string CommandId, string? Title = null, Func<bool>? IsChecked = null)
 {
     public static implicit operator MenuEntry(string commandId) => new(commandId);
 }
@@ -15,6 +15,7 @@ public sealed class AppMenu
     private readonly CommandRegistry _commands;
     private readonly Keymap _keys;
     private readonly List<(string Id, MenuItem Item)> _items = [];
+    private readonly List<(Func<bool> IsChecked, MenuItem Item, string Title)> _checks = [];
     private readonly List<MenuBarItem> _menus = [];
 
     public AppMenu(CommandRegistry commands, Keymap keys, IEnumerable<MenuSpec> layout)
@@ -41,6 +42,8 @@ public sealed class AppMenu
             item.KeyView.Text = KeysFor(id);
             item.Enabled = _commands.IsEnabled(id);
         }
+        foreach (var (isChecked, item, title) in _checks)
+            item.Title = Checked(title, isChecked());
     }
 
     // Terminal.Gui also binds a title's bare letter, app-wide, which would swallow the app's own keys.
@@ -71,21 +74,26 @@ public sealed class AppMenu
 
     private View Item(MenuEntry? entry)
     {
-        if (entry is not (var id, var title))
+        if (entry is not (var id, var title, var isChecked))
             return new Line();
+        title ??= Hot(_commands.Find(id)?.Label ?? id);
         var item = new MenuItem
         {
-            Title = title ?? Hot(_commands.Find(id)?.Label ?? id),
+            Title = isChecked is null ? title : Checked(title, isChecked()),
             // A label only: the keymap already runs this key.
             BindKeyToApplication = false,
             Action = () => _commands.Execute(id),
         };
         item.KeyView.Text = KeysFor(id);
         _items.Add((id, item));
+        if (isChecked is not null)
+            _checks.Add((isChecked, item, title));
         return item;
     }
 
-    private string KeysFor(string id) => _keys.For(id).FirstOrDefault()?.Display ?? string.Empty;
+    private static string Checked(string title, bool isChecked) => $"{(isChecked ? '●' : ' ')} {title}";
+
+    private string KeysFor(string id) => _keys.For(id, CommandScope.Global).FirstOrDefault()?.Display ?? string.Empty;
 
     private static string Hot(string label) => $"_{label}";
 }

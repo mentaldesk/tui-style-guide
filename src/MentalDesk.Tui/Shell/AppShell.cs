@@ -11,6 +11,8 @@ namespace MentalDesk.Tui.Shell;
 
 public sealed class AppShell : IDisposable
 {
+    private bool _nested;
+
     public AppShell(IApplication app, TerminalCursor cursor)
     {
         App = app;
@@ -101,6 +103,28 @@ public sealed class AppShell : IDisposable
         }
     }
 
+    // Keys go to inner until it closes; then this shell's theme, focus and hints come back.
+    public void RunNested(AppShell inner, IRunnable window, string? theme = null)
+    {
+        var outerTheme = Themes.Current;
+        var region = Focus.Region;
+        _nested = true;
+        try
+        {
+            if (theme is not null)
+                Themes.Apply(theme);
+            inner.Run(window);
+        }
+        finally
+        {
+            _nested = false;
+            ApplyTheme(outerTheme);
+            if (region is not null)
+                Focus.Focus(region);
+            ShowHints();
+        }
+    }
+
     public void Dispose()
     {
         App.Keyboard.KeyDown -= OnKeyDown;
@@ -110,14 +134,18 @@ public sealed class AppShell : IDisposable
     private void OnKeyDown(object? sender, Key key)
     {
         // An open menu owns the keyboard; its own letters would otherwise run commands too.
-        if (key.Handled || App.Popovers?.GetActivePopover() is not null) return;
+        if (_nested || key.Handled || App.Popovers?.GetActivePopover() is not null) return;
         Focus.Reconcile();
         StatusBar.ClearMessage();
         if (Scopes.Handle(key) != KeyResult.Pass)
             key.Handled = true;
     }
 
-    private void OnIteration(object? sender, EventArgs e) => Focus.Reconcile();
+    private void OnIteration(object? sender, EventArgs e)
+    {
+        if (!_nested)
+            Focus.Reconcile();
+    }
 
     private object? FocusedView()
     {

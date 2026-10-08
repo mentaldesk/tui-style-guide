@@ -20,6 +20,7 @@ public static class KeyChord
 
     public static string Display(Key key)
     {
+        if (key == Key.Delete) return "Del";
         // Chord steps match either case, so show the letter as a keycap does.
         var text = key.ToString();
         if (text.Length == 1 && char.IsLetter(text[0]))

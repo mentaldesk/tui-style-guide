@@ -15,16 +15,22 @@ public sealed class Keymap(CommandRegistry commands) : IInputScope
     public IEnumerable<KeyBinding> Bindings =>
         _roots.SelectMany(root => Walk(root.Key, root.Value, []));
 
-    public IEnumerable<KeyBinding> For(string commandId) =>
-        Bindings.Where(binding => binding.CommandId == commandId).OrderBy(binding => binding.Chord.Count);
+    // Given a scope, only the bindings that work there, its own first; otherwise all of them, Global first.
+    public IEnumerable<KeyBinding> For(string commandId, CommandScope? scope = null) =>
+        Bindings
+            .Where(binding => binding.CommandId == commandId)
+            .Where(binding => scope is null || binding.Scope == scope || binding.Scope == CommandScope.Global)
+            .OrderBy(binding => binding.Scope != (scope ?? CommandScope.Global))
+            .ThenBy(binding => binding.Chord.Count);
 
-    public Keymap Bind(string sequence, string commandId) => Bind(KeyChord.Parse(sequence), commandId);
+    public Keymap Bind(string sequence, string commandId, CommandScope? scope = null) =>
+        Bind(KeyChord.Parse(sequence), commandId, scope);
 
-    public Keymap Bind(IReadOnlyList<Key> chord, string commandId)
+    public Keymap Bind(IReadOnlyList<Key> chord, string commandId, CommandScope? scope = null)
     {
         if (chord.Count == 0) throw new ArgumentException("A chord needs at least one key.", nameof(chord));
         ArgumentException.ThrowIfNullOrEmpty(commandId);
-        var node = Root(commands.ScopeOf(commandId));
+        var node = Root(scope ?? commands.ScopeOf(commandId));
         foreach (var key in chord.Select(Normalize))
         {
             if (!node.Children.TryGetValue(key, out var child))

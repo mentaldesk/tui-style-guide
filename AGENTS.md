@@ -5,7 +5,10 @@
 - `src/MentalDesk.Tui` is the shared library: themes, commands and chord key bindings, focus, the menu and
   status bars, dialogs, the command palette and diagnostics. Apps are meant to use it rather than copy from it.
 - `src/Swatch` is the reference app, a theme editor. It exists to exercise every convention in the guide,
-  not because apps should edit themes.
+  not because apps should edit themes. **Every screen and dialog in it, the sample app and the painted
+  preview included, follows every rule in the guide.** It's there to demonstrate good design, not to show
+  off styles: when you extend it, check what you add against the guide, and if a rule doesn't fit, change
+  the guide first rather than break it in Swatch.
 
 When the guide changes, the library and Swatch change with it, in the same PR.
 

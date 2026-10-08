@@ -238,7 +238,7 @@ public class SwatchHostTests : StaticConfigurationTest
             () => Press(Key.T.WithCtrl, Key.D),
             () => (dialog = _host.App.TopRunnableView as ConfirmDialog) is not null,
             () => dialog!.CancelButton.HasFocus,
-            () => dialog!.HintText == "Del delete  •  Esc cancel",
+            () => dialog!.ButtonRow.Select(button => button.Text).SequenceEqual([" Del Delete ", " Esc Cancel "]),
             () => Press(Key.Esc),
             () => _host.App.TopRunnableView is SwatchWindow);
 
@@ -318,7 +318,7 @@ public class SwatchHostTests : StaticConfigurationTest
 
     [Theory]
     [MemberData(nameof(WaysToRemove))]
-    public void Remove_takes_Enter_R_or_Space_on_its_button(Key[] keys)
+    public void Remove_takes_Enter_or_Space_on_its_button(Key[] keys)
     {
         using var window = new SwatchWindow(_host.Shell);
         ConfirmDialog? dialog = null;
@@ -328,7 +328,7 @@ public class SwatchHostTests : StaticConfigurationTest
             () => Press(Key.T.WithCtrl, Key.R),
             () => (dialog = _host.App.TopRunnableView as ConfirmDialog) is not null,
             () => dialog!.CancelButton.HasFocus,
-            () => dialog!.HintText == "Enter remove  •  Esc cancel",
+            () => dialog!.ButtonRow.Select(button => button.Text).SequenceEqual([" Enter Remove ", " Esc Cancel "]),
             () => Press(keys),
             () => _host.App.TopRunnableView is SwatchWindow,
             () => _host.Shell.StatusBar.Message == "A demo: Swatch's themes are built in, so nothing was removed");
@@ -337,7 +337,7 @@ public class SwatchHostTests : StaticConfigurationTest
         Assert.Equal($"Remove {Themes.Names[0]}?", dialog.Title);
     }
 
-    public static TheoryData<Key[]> WaysToRemove => new() { new[] { Key.Enter }, new[] { Key.R }, new[] { Key.R.WithShift }, new[] { Key.CursorLeft, Key.Space } };
+    public static TheoryData<Key[]> WaysToRemove => new() { new[] { Key.Enter }, new[] { Key.CursorLeft, Key.Space } };
 
     [Theory]
     [MemberData(nameof(WaysToClose))]
@@ -352,7 +352,7 @@ public class SwatchHostTests : StaticConfigurationTest
             () => Press(Key.T.WithCtrl, Key.C),
             () => (dialog = _host.App.TopRunnableView as ConfirmDialog) is not null,
             () => dialog!.CancelButton.HasFocus,
-            () => dialog!.HintText == "S save  •  D don't save  •  Esc cancel",
+            () => dialog!.ButtonRow.Select(button => button.Text).SequenceEqual([" _Save ", " _Don't save ", " Esc Cancel "]),
             () => Press(keys),
             () => ++ticks > 5,
             () => _host.App.TopRunnableView is SwatchWindow == (said is not null),
