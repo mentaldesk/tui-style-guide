@@ -87,7 +87,7 @@ sensible shortcut.
 ### Buttons
 
 - **A button is a filled block, not bracketed text.** No `[ ]`, one space of padding either side.
-- **One Primary per view, at most.** It's the action `Enter` triggers.
+- **One Primary per view, at most.** If `Enter` does anything, it's the Primary.
 - **Danger is for destructive actions only**: delete, discard, overwrite. If the destructive action
   is the only one besides Cancel, it's still Danger, not Primary, and it's never the default.
 - **Everything else is Secondary**, including Cancel.
@@ -101,7 +101,7 @@ The library's [`AppButton`](https://github.com/mentaldesk/tui-style-guide/blob/m
 (`AppButton.Primary("Save")`, `.Danger("Delete")`, `.Secondary("Cancel")`) and the `ButtonPrimary`,
 `ButtonDanger` and `ButtonSecondary` schemes in each of its
 [themes](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Theming/themes.json) are the reference implementation.
-Swatch's *Theme › Delete…* is a live dialog to tab through and hover over.
+Swatch's *Theme › Delete…*, *Remove…* and *Close…* are live dialogs to tab through and hover over.
 
 ### The hint bar
 
@@ -188,7 +188,7 @@ ones that mean something invisible.
 
 - **`Esc` cancels. Always.** It never does anything else.
 - **`Enter` confirms a single-line dialog; `Ctrl+Enter` confirms one with a multi-line field**, where
-  plain `Enter` has to insert a newline.
+  plain `Enter` has to insert a newline. A dialog's `Enter` is always harmless (see *Dialog buttons*).
 - **Every action is reachable from the keyboard.** The mouse is a convenience, never the only way.
 - **Tab moves focus, everywhere.** In a `TextView` inside a dialog, set `TabKeyAddsTab = false` so
   Tab leaves the field instead of typing into it.
@@ -218,6 +218,40 @@ matching with [`ListFilter`](https://github.com/mentaldesk/tui-style-guide/blob/
 and TuiCode's [`CamelHumps`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Filtering/CamelHumps.cs),
 is the reference implementation. The command palette is built on it, and so is Swatch's
 *Go › Scheme…*.
+
+### Dialog buttons
+
+A dialog of buttons, such as an "are you sure?", works the same way in every app:
+
+- **`Esc` cancels.**
+- **`Left`/`Right` (and `Tab`) move between the buttons, and `Space` presses the focused one.**
+- **Every action has its own key, shown on its button**: the underlined letter (`S` save, `D` don't
+  save), or the key written on the button (`▓ Delete  Del ▓`). The letter works without `Alt`.
+- **`Enter` is optional.** Bind it only to a trivial, harmless action, never a destructive one.
+  Where it isn't bound, it does nothing, whichever button has focus.
+
+```
+┌─ Delete theme ───────────────────────────────────┐
+│ Delete "Solar"?                                  │
+│ This can't be undone.                            │
+│                                                  │
+│                ▓ Delete  Del ▓   ▓ Cancel ▓      │   Button (Danger, key Del), Button (Secondary)
+│                                                  │
+│ Del delete  •  Esc cancel                        │
+└──────────────────────────────────────────────────┘
+```
+
+Which button starts focused, the wording and the layout are up to the app. Two pieces of advice:
+**name the action on the button** (`Delete`, not `OK`), and **say in the text whether it can be
+undone**.
+
+- Framework mechanic: a focused `Button` presses on `Enter`. The dialog takes `Enter` before the
+  button sees it, so an unbound `Enter` can't press Delete just because Delete has focus.
+
+The library's [`ConfirmDialog`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Dialogs/ConfirmDialog.cs)
+is the reference implementation: give it the message, the actions with their keys, and optionally
+the one `Enter` takes. It refuses `Enter` on a Danger action. Swatch's *Theme › Delete…* (can't be
+undone), *Remove…* (`Enter` removes) and *Close…* (Save, Don't save, Cancel) try every key.
 
 ### Showing focus
 

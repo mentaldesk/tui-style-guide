@@ -38,12 +38,12 @@ internal sealed class Host : IDisposable
                 App.RequestStop();
                 return;
             }
-            // An action can run a nested loop that takes the next steps, so it leaves the queue first.
             switch (queue.Peek())
             {
                 case Func<bool> poll:
                     if (poll()) queue.Dequeue();
                     break;
+                // Dequeued first: a key that opens a dialog runs its nested loop, and this step, before returning.
                 case Action act:
                     queue.Dequeue();
                     act();

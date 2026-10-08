@@ -8,4 +8,6 @@ internal static class SwatchCommands
     public const string GoToScheme = "swatch.goToScheme";
     public const string UseTheme = "swatch.useTheme";
     public const string DeleteTheme = "swatch.deleteTheme";
+    public const string RemoveTheme = "swatch.removeTheme";
+    public const string CloseTheme = "swatch.closeTheme";
 }

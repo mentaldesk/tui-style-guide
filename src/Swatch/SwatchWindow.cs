@@ -66,14 +66,18 @@ internal sealed class SwatchWindow : AppWindow
             .Register(SwatchCommands.GoToScheme, "Go to scheme…", () => GoToScheme(shell))
             .Register(SwatchCommands.UseTheme, "Use this theme for Swatch", () => UseTheme(shell),
                 isEnabled: () => shell.App.TopRunnableView is SwatchWindow window && window.Showing.Theme != Themes.Current)
-            .Register(SwatchCommands.DeleteTheme, "Delete this theme", () => DeleteTheme(shell));
+            .Register(SwatchCommands.DeleteTheme, "Delete this theme", () => DeleteTheme(shell))
+            .Register(SwatchCommands.RemoveTheme, "Remove this theme", () => RemoveTheme(shell))
+            .Register(SwatchCommands.CloseTheme, "Close this theme", () => CloseTheme(shell));
         shell.Keys
             .Bind("Ctrl+G T", SwatchCommands.GoToThemes)
             .Bind("Ctrl+G R", SwatchCommands.GoToRoles)
             .Bind("Ctrl+G P", SwatchCommands.GoToPreview)
             .Bind("Ctrl+G S", SwatchCommands.GoToScheme)
             .Bind("Ctrl+T U", SwatchCommands.UseTheme)
-            .Bind("Ctrl+T D", SwatchCommands.DeleteTheme);
+            .Bind("Ctrl+T D", SwatchCommands.DeleteTheme)
+            .Bind("Ctrl+T R", SwatchCommands.RemoveTheme)
+            .Bind("Ctrl+T C", SwatchCommands.CloseTheme);
         shell.UseMenu(
             new MenuSpec("_File", [ShellCommands.Quit]),
             new MenuSpec("_Go", [
@@ -85,6 +89,8 @@ internal sealed class SwatchWindow : AppWindow
             new MenuSpec("_Theme", [
                 new MenuEntry(SwatchCommands.UseTheme, "_Use for Swatch"),
                 new MenuEntry(SwatchCommands.DeleteTheme, "_Delete…"),
+                new MenuEntry(SwatchCommands.RemoveTheme, "_Remove…"),
+                new MenuEntry(SwatchCommands.CloseTheme, "_Close…"),
             ]),
             new MenuSpec("_Help", [
                 new MenuEntry(ShellCommands.ShowCommands, "Show all _commands"),
@@ -118,13 +124,24 @@ internal sealed class SwatchWindow : AppWindow
         shell.Focus.Focus(ThemesRegion);
     }
 
-    private static void DeleteTheme(AppShell shell)
+    private static void DeleteTheme(AppShell shell) =>
+        Confirm(shell, ThemeConfirms.DeleteTheme, _ => "Swatch's themes are built in, so nothing was deleted");
+
+    private static void RemoveTheme(AppShell shell) =>
+        Confirm(shell, ThemeConfirms.RemoveTheme, _ => "A demo: Swatch's themes are built in, so nothing was removed");
+
+    private static void CloseTheme(AppShell shell) =>
+        Confirm(shell, ThemeConfirms.CloseTheme, chosen => chosen == ThemeConfirms.Save
+            ? "A demo: Swatch has no unsaved changes, so nothing was saved"
+            : "A demo: Swatch has no unsaved changes, so nothing was lost");
+
+    private static void Confirm(AppShell shell, Func<string, ConfirmDialog> open, Func<ConfirmAction, string> said)
     {
         if (shell.App.TopRunnableView is not SwatchWindow window) return;
-        using var dialog = new DeleteThemeDialog(window.Showing.Theme);
+        using var dialog = open(window.Showing.Theme);
         dialog.Run(shell);
-        if (dialog.Confirmed)
-            shell.ShowMessage("Swatch's themes are built in, so nothing was deleted");
+        if (dialog.Chosen is { } chosen)
+            shell.ShowMessage(said(chosen));
     }
 
     private static IEnumerable<Hint> Hints(FocusRegion? region)
