@@ -1,4 +1,3 @@
-using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Keys;
 using MentalDesk.Tui.Palette;
 using MentalDesk.Tui.Theming;
@@ -35,17 +34,16 @@ public class KeysHostTests : StaticConfigurationTest
         view.SubViews.SelectMany(sub => Descendants(sub).Prepend(sub));
 
     [Fact]
-    public void F1_is_the_last_hint_after_the_app_s_own_whichever_pane_has_focus()
+    public void F1_keys_is_the_status_bar_s_only_hint_whichever_pane_has_focus()
     {
         using var window = new SwatchWindow(_host.Shell);
 
         _host.Run(window,
             () => FocusWord == "Themes",
-            () => _host.Shell.StatusBar.Says.StartsWith("Ctrl+T U use theme", StringComparison.Ordinal),
-            () => _host.Shell.StatusBar.Says.EndsWith($"{HintRow.Separator}F1 keys", StringComparison.Ordinal),
+            () => _host.Shell.StatusBar.Says == "F1 keys",
             () => Press(Key.G.WithCtrl, Key.R),
             () => FocusWord == "Roles",
-            () => _host.Shell.StatusBar.Says.EndsWith($"Ctrl+Q quit{HintRow.Separator}F1 keys", StringComparison.Ordinal));
+            () => _host.Shell.StatusBar.Says == "F1 keys");
     }
 
     [Fact]

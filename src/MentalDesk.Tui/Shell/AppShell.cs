@@ -33,12 +33,9 @@ public sealed class AppShell : IDisposable
             .Bind("F10", ShellCommands.ShowMenu)
             .Bind("F12", ShellCommands.ShowDiagnostics)
             .Bind("F1", ShellCommands.ShowKeys);
+        StatusBar.Hints.Show([new Hint(ShellCommands.ShowKeys, "keys")], Commands, Keys);
 
-        Focus.RegionChanged += (_, region) =>
-        {
-            StatusBar.SetFocusWord(region.Name);
-            ShowHints();
-        };
+        Focus.RegionChanged += (_, region) => StatusBar.SetFocusWord(region.Name);
         Scopes.ChordChanged += (_, chord) => StatusBar.SetChord(chord);
         App.Keyboard.KeyDown += OnKeyDown;
         App.Iteration += OnIteration;
@@ -60,8 +57,6 @@ public sealed class AppShell : IDisposable
 
     public TerminalCursor Cursor { get; }
 
-    public Func<FocusRegion?, IEnumerable<Hint>> HintsFor { get; set; } = _ => [];
-
     public AppMenu UseMenu(params MenuSpec[] layout) => Menu = new AppMenu(Commands, Keys, layout);
 
     public string ApplyTheme(string theme)
@@ -74,9 +69,6 @@ public sealed class AppShell : IDisposable
     }
 
     public void ShowMessage(string message, Severity severity = Severity.Info) => StatusBar.ShowMessage(message, severity);
-
-    public void ShowHints() =>
-        StatusBar.Hints.Show(HintsFor(Focus.Region).Append(new Hint(ShellCommands.ShowKeys, "keys")), Commands, Keys);
 
     public void ShowCommands()
     {
@@ -102,7 +94,6 @@ public sealed class AppShell : IDisposable
     public void Run(IRunnable window)
     {
         ApplyTheme(Themes.Current);
-        ShowHints();
         try
         {
             App.Run(window);
@@ -113,7 +104,7 @@ public sealed class AppShell : IDisposable
         }
     }
 
-    // Keys go to inner until it closes; then this shell's theme, focus and hints come back.
+    // Keys go to inner until it closes; then this shell's theme and focus come back.
     public void RunNested(AppShell inner, IRunnable window, string? theme = null)
     {
         var outerTheme = Themes.Current;
@@ -131,7 +122,6 @@ public sealed class AppShell : IDisposable
             ApplyTheme(outerTheme);
             if (region is not null)
                 Focus.Focus(region);
-            ShowHints();
         }
     }
 

@@ -73,8 +73,8 @@ shown, **it comes first**: `Del delete` in a hint, `▓ Del Delete ▓` on a but
 - **In a dialog of buttons, prefer the buttons**, with no hint bar: hints would only repeat each
   button's label.
 - **Use the hint bar where there are no buttons**, or where a key on every button would crowd them:
-  the main screen, a picker, a dialog with many buttons. Make the hints clickable. A Terminal.Gui `Button` with its
-  decorations turned off *is* a clickable hint:
+  a picker, a dialog with many buttons. The main screen is different: see *The status bar*. Make
+  the hints clickable. A Terminal.Gui `Button` with its decorations turned off *is* a clickable hint:
 
 ```csharp
 private static Button Hint(string text, Pos x) => new()
@@ -112,20 +112,8 @@ Swatch's *Theme › Delete…*, *Remove…* and *Close…* are live dialogs to t
 ### The hint bar
 
 Hints belong on the **last row of the view**, anchored with `Pos.AnchorEnd(1)`, separated by
-`  •  ` (two spaces, U+2022, two spaces).
-
-**For the app's main screen, that row is the status bar**: the full width of the screen's last row,
-never the window title or the foot of one pane. **Give it its own colour**, a `StatusBar` scheme
-whose background differs from every region above it, in every theme. In the content's colours it
-reads as one more line of content. The same row carries the focus word (section 5) and errors
-outside a dialog (section 3).
-
-- Framework mechanic: TG's built-in `StatusBar` paints in the `Menu` scheme and draws a border
-  between its items, so the status bar is a plain one-row `View` in the `StatusBar` scheme instead.
-
-The library's [`AppStatusBar`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/AppStatusBar.cs), with its hints laid out by
-[`HintRow`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/HintRow.cs), and the `StatusBar` scheme in each of its
-[themes](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Theming/themes.json) are the reference implementation.
+`  •  ` (two spaces, U+2022, two spaces). [`HintRow`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/HintRow.cs)
+lays them out.
 
 Write each hint as **key first, then a lower-case verb phrase**: the key is what the user is
 scanning for.
@@ -139,6 +127,25 @@ Ctrl+Enter submit  •  Esc cancel
 - Name keys as the terminal reports them: `Ctrl+Enter`, `Esc`, `Up/Down`, `PgUp/PgDn`.
 - Leave out keys that every view has (`Tab` to move focus). Name the ones specific to this view.
 - Keep it to one row. If the hints don't fit, the view is doing too much.
+
+### The status bar
+
+**The main screen's last row is the status bar, and it shows status, not keys**: the focus word
+(section 5), errors outside a dialog (section 3), and whatever describes where the user is, such as
+the selected item or the caret's row and column.
+
+**Its one hint is `F1 keys`** (section 5). Every other key is in the keys dialog, or in the command
+palette, which the keys dialog shows how to open. Without that one hint, none of them can be found.
+
+- **It spans the full width of the screen's last row**, never the window title or the foot of one pane.
+- **Give it its own colour**, a `StatusBar` scheme whose background differs from every region above
+  it, in every theme. In the content's colours it reads as one more line of content.
+- Framework mechanic: TG's built-in `StatusBar` paints in the `Menu` scheme and draws a border
+  between its items, so the status bar is a plain one-row `View` in the `StatusBar` scheme instead.
+
+The library's [`AppStatusBar`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/AppStatusBar.cs),
+which `AppShell` gives `F1 keys` and nothing else, and the `StatusBar` scheme in each of its
+[themes](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Theming/themes.json) are the reference implementation.
 
 ## 3. Errors and status
 
@@ -242,8 +249,8 @@ ones that mean something invisible.
 the keys bound to the focused region; *Everywhere* lists the global ones, grouped under the menu's
 headings. Both are read from the keymap when it opens, so they can't drift from the real bindings.
 
-- **The main screen's status bar always ends with `F1 keys`**, after the app's own hints, so it's in
-  the same place in every app.
+- **The main screen's status bar always shows `F1 keys`, and no other hint** (see *The status bar*),
+  so it's in the same place in every app.
 - **Bind a key that only works in one region to that region's scope**, so it shows under *Here*.
   Its menu item still runs it from anywhere.
 - It's a reference, not a runner: nothing in it takes focus, `Esc close` is its only hint, and it

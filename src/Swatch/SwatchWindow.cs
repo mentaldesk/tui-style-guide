@@ -51,7 +51,6 @@ internal sealed class SwatchWindow : AppWindow
             mouse.Handled = true;
             shell.Commands.Execute(SwatchCommands.TryTheme);
         };
-        shell.HintsFor = Hints;
         shell.StatusBar.State = Themes.Current;
         Show(new Selection(Themes.Current, SchemeNames.Base));
         Initialized += (_, _) => shell.Focus.Focus(ThemesRegion);
@@ -169,17 +168,6 @@ internal sealed class SwatchWindow : AppWindow
         dialog.Run(shell);
         if (dialog.Chosen is { } chosen)
             shell.ShowMessage(said(chosen));
-    }
-
-    private static IEnumerable<Hint> Hints(FocusRegion? region)
-    {
-        if (region == ThemesRegion)
-            yield return new Hint(SwatchCommands.UseTheme, "use theme");
-        if (region == PreviewRegion)
-            yield return new Hint(SwatchCommands.TryTheme, "try it");
-        yield return new Hint(ShellCommands.ShowCommands, "commands");
-        yield return new Hint(ShellCommands.ShowMenu, "menu");
-        yield return new Hint(ShellCommands.Quit, "quit");
     }
 
     private void Show(Selection selection)
