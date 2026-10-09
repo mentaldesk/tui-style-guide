@@ -378,6 +378,10 @@ disagree, and none of them says why a command didn't run.
   a dimmed item; `Enter` or a click on it does nothing.
 - **A menu with nothing that can run leaves the bar**, and the titles close up behind it. Its
   `Alt+letter` does nothing until it's back.
+- **Of two actions that undo each other, the menu offers only the one you can take**, in a place
+  they share: *Collapse folders* while the folders are open, *Expand folders* while they're shut. No
+  `•` beside the current state: the screen already shows it. A choice among more than two, like the
+  sample's theme list, keeps its `●`.
 - **A command that only works in one region belongs to that region, and so do its keys**, so a menu
   item can always show its key: the key works wherever the item does. A global command can have an
   extra key in one region, as Swatch's preview has `Enter`.
@@ -388,9 +392,10 @@ disagree, and none of them says why a command didn't run.
 The library's [`AppMenu`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/AppMenu.cs)
 and [`CommandPalette`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Palette/CommandPalette.cs)
 share the test, `CommandRegistry.IsAvailable`, and `Keymap.Bind` won't give a region's command a key
-anywhere else. In Swatch, open *Theme* from the Roles pane: *Delete…*, *Remove…* and *Close…* are
-dimmed, with their `Ctrl+T` keys. In the sample app that *Try it* opens, *Edit* leaves the bar while
-the Files pane has focus.
+anywhere else. A `MenuEntry`'s `Opposite` shares its place in the menu. In Swatch, open *Theme* from
+the Roles pane: *Delete…*, *Remove…* and *Close…* are dimmed, with their `Ctrl+T` keys. In the sample
+app that *Try it* opens, *Edit* leaves the bar while the Files pane has focus, and *View* offers
+*Collapse folders* or *Expand folders*.
 
 ### The caret
 

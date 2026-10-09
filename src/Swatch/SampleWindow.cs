@@ -23,6 +23,8 @@ internal sealed class SampleWindow : AppWindow
     public const string ReloadFiles = "sample.reloadFiles";
     public const string LoadNoFiles = "sample.loadNoFiles";
     public const string LoadFailing = "sample.loadFailing";
+    public const string CollapseFolders = "sample.collapseFolders";
+    public const string ExpandFolders = "sample.expandFolders";
 
     public static readonly FocusRegion FilesRegion = new("Files", new CommandScope("Files"));
     public static readonly FocusRegion EditorRegion = new("Editor", new CommandScope("Editor"));
@@ -60,7 +62,9 @@ internal sealed class SampleWindow : AppWindow
             .Register(Paste, "Paste", () => _editor.Paste(), EditorRegion.Scope)
             .Register(ReloadFiles, "Reload files", () => Load(Outcome.Files))
             .Register(LoadNoFiles, "Load no files", () => Load(Outcome.Empty))
-            .Register(LoadFailing, "Load files, failing", () => Load(Outcome.Failure));
+            .Register(LoadFailing, "Load files, failing", () => Load(Outcome.Failure))
+            .Register(CollapseFolders, "Collapse folders", () => _files.Collapse(_src), isEnabled: () => Listed && _files.IsExpanded(_src))
+            .Register(ExpandFolders, "Expand folders", () => _files.Expand(_src), isEnabled: () => Listed && !_files.IsExpanded(_src));
         shell.Keys.Bind("Ctrl+R", ReloadFiles);
         shell.StatusBar.State = theme;
         Initialized += (_, _) =>
@@ -86,6 +90,8 @@ internal sealed class SampleWindow : AppWindow
     public TreeView Tree => _files;
 
     public TimeSpan LoadTime { get; }
+
+    private bool Listed => _files.Objects?.Contains(_src) == true;
 
     protected override void Dispose(bool disposing)
     {
@@ -159,6 +165,8 @@ internal sealed class SampleWindow : AppWindow
                 new MenuEntry(ReloadFiles, "_Reload files"),
                 new MenuEntry(LoadNoFiles, "Load _no files"),
                 new MenuEntry(LoadFailing, "Load files, _failing"),
+                null,
+                new MenuEntry(CollapseFolders, "_Collapse folders") { Opposite = new(ExpandFolders, "_Expand folders") },
             ]),
             new MenuSpec("_Theme", [.. Themes.Names.Select(theme =>
                 new MenuEntry(ThemeCommand(theme), Hot(theme, hotLetters), () => Themes.Current == theme))]),

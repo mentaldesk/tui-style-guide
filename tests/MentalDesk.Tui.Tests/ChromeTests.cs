@@ -142,6 +142,34 @@ public class ChromeTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void Of_two_opposite_actions_the_menu_shows_the_one_that_can_run_in_their_shared_place()
+    {
+        bool? expanded = true;
+        var commands = new CommandRegistry()
+            .Register("collapse", "Collapse", () => { }, isEnabled: () => expanded == true)
+            .Register("expand", "Expand", () => { }, isEnabled: () => expanded == false)
+            .Register("reload", "Reload", () => { });
+        var menu = new AppMenu(commands, new Keymap(commands),
+        [
+            new MenuSpec("_Folders", [new MenuEntry("collapse", "_Collapse") { Opposite = new("expand", "_Expand") }]),
+            new MenuSpec("_View", ["reload"]),
+        ]);
+        using var bar = menu.Bar;
+        var seen = new List<string>();
+
+        foreach (var state in new bool?[] { true, false, null })
+        {
+            expanded = state;
+            menu.Refresh();
+            menu.ShowAvailable();
+            var title = menu.Menus[0].PopoverMenu!.Root!.SubViews.OfType<MenuItem>().Single().Title;
+            seen.Add($"{string.Join(" ", menu.Shown.Select(item => item.Title))}: {title}{(menu.IsDimmed("collapse") && title == "_Collapse" ? ", dimmed" : "")}");
+        }
+
+        Assert.Equal(["_Folders _View: _Collapse", "_Folders _View: _Expand", "_View: _Collapse, dimmed"], seen);
+    }
+
+    [Fact]
     public void A_menu_with_nothing_that_can_run_here_leaves_the_bar_until_something_can()
     {
         var scope = Themes;
