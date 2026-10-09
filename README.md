@@ -50,8 +50,12 @@ Pick the control that matches the *shape of the input*, not the one that is easi
 | One of many choices | `DropDownList<T>` or `ListView` |
 | One of many, with hierarchy | `TreeView` |
 | A short free-text value | `TextField` |
-| Multi-line free text | `TextView` |
+| Multi-line free text | The library's [`MultiLineField`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Fields/MultiLineField.cs) |
 | Progress of a known-length job | `ProgressBar` |
+
+`MultiLineField` is Terminal.Gui.Editor, which replaces the obsolete `TextView`, set to this guide's
+rules: it wraps, shows a dimmed `Placeholder` while empty, undoes and selects like an editor, and
+copies through the library's clipboard. In Swatch, *Help › Writing a comment…* has one.
 
 **Style a built-in before you replace it.** Most of what looks like "we need a custom control" is a
 property: `NoDecorations`, `NoPadding`, `ShadowStyle`, `SchemeName`, `Orientation`, `TabBehavior`.
@@ -70,8 +74,8 @@ work out whether it is one thing or two.
 never a mix: if one action shows its key, every action does, Cancel included. Wherever the key is
 shown, **it comes first**: `Del delete` in a hint, `▓ Del Delete ▓` on a button.
 
-- **In a dialog of buttons, prefer the buttons**, with no hint bar: hints would only repeat each
-  button's label.
+- **A dialog that submits or cancels shows them as buttons**, keys on the labels, with no hint bar:
+  `▓ Ctrl+Enter Post ▓  ▓ Esc Cancel ▓`. That holds when the dialog is mostly a field.
 - **Use the hint bar where there are no buttons**, or where a key on every button would crowd them:
   a picker, a dialog with many buttons. The main screen is different: see *The status bar*. Make
   the hints clickable. A Terminal.Gui `Button` with its decorations turned off *is* a clickable hint:
@@ -126,6 +130,8 @@ Ctrl+Enter submit  •  Esc cancel
 - Order by how often the hint is used, with **cancel last**.
 - Name keys as the terminal reports them: `Ctrl+Enter`, `Esc`, `Up/Down`, `PgUp/PgDn`.
 - Leave out keys that every view has (`Tab` to move focus). Name the ones specific to this view.
+- **Hint the view's own actions, never a control's editing keys**: users should discover generic keyboard shortcuts like undo, select all, `Home`/`End`
+  via the context sensitive help (not the status/hint bar).
 - Keep it to one row. If the hints don't fit, the view is doing too much.
 
 ### The status bar
@@ -230,6 +236,9 @@ controls like `TextField` take that path with no app code. An app's own copy com
 | Only the terminal took it | `Copied 3 lines  •  142 characters through the terminal` | `Info` |
 | Nothing took it | `Copy failed: too large to send through the terminal (the limit is 750 KB)` | `Error` |
 
+In a dialog, `MultiLineField` puts a failed copy in the dialog's message block instead (see
+[Errors and status](#3-errors-and-status)), keeps the selection, and a failed cut leaves the text.
+
 Deleting to the end or start of a line (`Ctrl+K` and friends) puts the text on the clipboard too,
 but says what it did: `6 characters deleted`.
 
@@ -263,8 +272,8 @@ ones that mean something invisible.
 - **`Enter` confirms a single-line dialog; `Ctrl+Enter` confirms one with a multi-line field**, where
   plain `Enter` has to insert a newline. A dialog's `Enter` is always harmless (see *Dialog buttons*).
 - **Every action is reachable from the keyboard.** The mouse is a convenience, never the only way.
-- **Tab moves focus, everywhere.** In a `TextView` inside a dialog, set `TabKeyAddsTab = false` so
-  Tab leaves the field instead of typing into it.
+- **Tab moves focus, everywhere.** Terminal.Gui.Editor binds Tab to indent, so a multi-line field in
+  a dialog is the library's `MultiLineField`, which leaves Tab, Esc and `Ctrl+Enter` to the dialog.
 - **Focus lands where work starts** when a view opens — the filter field, the summary, the first row.
 - A container `View` that hosts focusable children needs `CanFocus = true`; `SetFocus()` silently
   returns false when any ancestor has it off.
@@ -470,8 +479,8 @@ Framework mechanics:
 
 - Every `View` has a `VerticalScrollBar` and a `HorizontalScrollBar`, hidden until you set
   `ViewportSettingsFlags.HasVerticalScrollBar` / `HasHorizontalScrollBar` (or
-  `VisibilityMode = ScrollBarVisibilityMode.Auto`). `TreeView<T>` and `Markdown` turn theirs on;
-  `TextView` ships with them off, so set `ScrollBars = true`.
+  `VisibilityMode = ScrollBarVisibilityMode.Auto`). `TreeView<T>`, `Markdown` and the library's
+  `MultiLineField` turn theirs on.
 - These bars track the view's content size and `Viewport`, and the mouse can drag them. A custom
   view that keeps its own scroll offset gets a bar that never moves: scroll it with
   `SetContentSize` and `Viewport` instead.
@@ -491,9 +500,9 @@ carries the layout; the control names carry the behaviour.
 │ (•) Comment  ( ) Approve  ( ) Request changes          │   OptionSelector<T>, horizontal
 │                                                        │
 │ ┌────────────────────────────────────────────────────┐ │
-│ │ Summary…                                           │ │   TextView, word wrap; focus starts here
+│ │ Summary…                                           │ │   MultiLineField; focus starts here
 │ └────────────────────────────────────────────────────┘ │
-│ Ctrl+Enter submit  •  Esc cancel                       │   clickable hints, `  •  ` separated
+│                  ▓ Ctrl+Enter Submit ▓  ▓ Esc Cancel ▓ │   Primary, Secondary
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -503,7 +512,8 @@ a vertical scroll bar.
 
 Then say, in prose:
 
-- **The hint bar**, verbatim — it is part of the design, not a detail for the implementer.
+- **Every key the view shows**, verbatim, on its buttons or in its hint bar — it is part of the
+  design, not a detail for the implementer.
 - **Where focus starts**, and what `Enter` and `Esc` do.
 - **What happens when it fails.** Which message, shown where, and what survives. A requirement that
   only describes the happy path gets an error path invented in review.

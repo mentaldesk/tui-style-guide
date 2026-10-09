@@ -76,7 +76,8 @@ internal sealed class SwatchWindow : AppWindow
             .Register(SwatchCommands.RemoveTheme, "Remove this theme", () => RemoveTheme(shell), ThemesRegion.Scope)
             .Register(SwatchCommands.CloseTheme, "Close this theme", () => CloseTheme(shell), ThemesRegion.Scope)
             .Register(SwatchCommands.CopyColours, "Copy colours", () => CopyColours(shell), RolesRegion.Scope)
-            .Register(SwatchCommands.ShowLoadingStates, "Show loading states", () => ShowLoadingStates(shell));
+            .Register(SwatchCommands.ShowLoadingStates, "Show loading states", () => ShowLoadingStates(shell))
+            .Register(SwatchCommands.WriteComment, "Write a comment", () => WriteComment(shell));
         shell.Keys
             .Bind("Ctrl+G T", SwatchCommands.GoToThemes)
             .Bind("Ctrl+G R", SwatchCommands.GoToRoles)
@@ -111,6 +112,7 @@ internal sealed class SwatchWindow : AppWindow
                 new MenuEntry(ShellCommands.ShowMenu, "Open the _menu"),
                 null,
                 new MenuEntry(SwatchCommands.ShowLoadingStates, "_Loading states…"),
+                new MenuEntry(SwatchCommands.WriteComment, "_Writing a comment…"),
                 new MenuEntry(ShellCommands.ShowDiagnostics, "Show _diagnostics"),
             ]));
         return shell;
@@ -168,6 +170,14 @@ internal sealed class SwatchWindow : AppWindow
     {
         using var dialog = new LoadingStatesDialog(shell);
         dialog.Run(shell);
+    }
+
+    private static void WriteComment(AppShell shell)
+    {
+        using var dialog = new CommentDialog();
+        dialog.Run(shell);
+        if (dialog.Confirmed)
+            shell.ShowMessage("A demo: Swatch has nowhere to post it, so the comment went nowhere");
     }
 
     private static void Confirm(AppShell shell, Func<string, ConfirmDialog> open, Func<ConfirmAction, string> said)
