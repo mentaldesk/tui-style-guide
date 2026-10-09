@@ -50,8 +50,12 @@ Pick the control that matches the *shape of the input*, not the one that is easi
 | One of many choices | `DropDownList<T>` or `ListView` |
 | One of many, with hierarchy | `TreeView` |
 | A short free-text value | `TextField` |
-| Multi-line free text | `TextView` |
+| Multi-line free text | The library's [`MultiLineField`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Fields/MultiLineField.cs) |
 | Progress of a known-length job | `ProgressBar` |
+
+`MultiLineField` is Terminal.Gui.Editor, which replaces the obsolete `TextView`, set to this guide's
+rules: it wraps, shows a dimmed `Placeholder` while empty, undoes and selects like an editor, and
+copies through the library's clipboard. In Swatch, *Help › Writing a comment…* has one.
 
 **Style a built-in before you replace it.** Most of what looks like "we need a custom control" is a
 property: `NoDecorations`, `NoPadding`, `ShadowStyle`, `SchemeName`, `Orientation`, `TabBehavior`.
@@ -230,6 +234,9 @@ controls like `TextField` take that path with no app code. An app's own copy com
 | Only the terminal took it | `Copied 3 lines  •  142 characters through the terminal` | `Info` |
 | Nothing took it | `Copy failed: too large to send through the terminal (the limit is 750 KB)` | `Error` |
 
+In a dialog, `MultiLineField` puts a failed copy in the dialog's message block instead (see
+[Errors and status](#3-errors-and-status)), keeps the selection, and a failed cut leaves the text.
+
 Deleting to the end or start of a line (`Ctrl+K` and friends) puts the text on the clipboard too,
 but says what it did: `6 characters deleted`.
 
@@ -263,8 +270,8 @@ ones that mean something invisible.
 - **`Enter` confirms a single-line dialog; `Ctrl+Enter` confirms one with a multi-line field**, where
   plain `Enter` has to insert a newline. A dialog's `Enter` is always harmless (see *Dialog buttons*).
 - **Every action is reachable from the keyboard.** The mouse is a convenience, never the only way.
-- **Tab moves focus, everywhere.** In a `TextView` inside a dialog, set `TabKeyAddsTab = false` so
-  Tab leaves the field instead of typing into it.
+- **Tab moves focus, everywhere.** Terminal.Gui.Editor binds Tab to indent, so a multi-line field in
+  a dialog is the library's `MultiLineField`, which leaves Tab, Esc and `Ctrl+Enter` to the dialog.
 - **Focus lands where work starts** when a view opens — the filter field, the summary, the first row.
 - A container `View` that hosts focusable children needs `CanFocus = true`; `SetFocus()` silently
   returns false when any ancestor has it off.
@@ -470,8 +477,8 @@ Framework mechanics:
 
 - Every `View` has a `VerticalScrollBar` and a `HorizontalScrollBar`, hidden until you set
   `ViewportSettingsFlags.HasVerticalScrollBar` / `HasHorizontalScrollBar` (or
-  `VisibilityMode = ScrollBarVisibilityMode.Auto`). `TreeView<T>` and `Markdown` turn theirs on;
-  `TextView` ships with them off, so set `ScrollBars = true`.
+  `VisibilityMode = ScrollBarVisibilityMode.Auto`). `TreeView<T>`, `Markdown` and the library's
+  `MultiLineField` turn theirs on.
 - These bars track the view's content size and `Viewport`, and the mouse can drag them. A custom
   view that keeps its own scroll offset gets a bar that never moves: scroll it with
   `SetContentSize` and `Viewport` instead.
@@ -491,7 +498,7 @@ carries the layout; the control names carry the behaviour.
 │ (•) Comment  ( ) Approve  ( ) Request changes          │   OptionSelector<T>, horizontal
 │                                                        │
 │ ┌────────────────────────────────────────────────────┐ │
-│ │ Summary…                                           │ │   TextView, word wrap; focus starts here
+│ │ Summary…                                           │ │   MultiLineField; focus starts here
 │ └────────────────────────────────────────────────────┘ │
 │ Ctrl+Enter submit  •  Esc cancel                       │   clickable hints, `  •  ` separated
 └────────────────────────────────────────────────────────┘

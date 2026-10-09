@@ -13,4 +13,5 @@ internal static class SwatchCommands
     public const string CloseTheme = "swatch.closeTheme";
     public const string CopyColours = "swatch.copyColours";
     public const string ShowLoadingStates = "swatch.loadingStates";
+    public const string WriteComment = "swatch.writeComment";
 }

@@ -27,9 +27,12 @@ public sealed class TerminalClipboard : IClipboard
 
     public bool IsSupported => true;
 
-    public CopyOutcome Copy(string text)
+    public CopyOutcome Copy(string text) => Announce(Write(text));
+
+    internal CopyOutcome Write(string text) => VerifiedClipboard.Write(this, text, _tools);
+
+    internal CopyOutcome Announce(CopyOutcome outcome)
     {
-        var outcome = VerifiedClipboard.Write(this, text, _tools);
         Copied?.Invoke(this, outcome);
         return outcome;
     }
