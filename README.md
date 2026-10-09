@@ -74,8 +74,8 @@ work out whether it is one thing or two.
 never a mix: if one action shows its key, every action does, Cancel included. Wherever the key is
 shown, **it comes first**: `Del delete` in a hint, `▓ Del Delete ▓` on a button.
 
-- **In a dialog of buttons, prefer the buttons**, with no hint bar: hints would only repeat each
-  button's label.
+- **A dialog that submits or cancels shows them as buttons**, keys on the labels, with no hint bar:
+  `▓ Ctrl+Enter Post ▓  ▓ Esc Cancel ▓`. That holds when the dialog is mostly a field.
 - **Use the hint bar where there are no buttons**, or where a key on every button would crowd them:
   a picker, a dialog with many buttons. The main screen is different: see *The status bar*. Make
   the hints clickable. A Terminal.Gui `Button` with its decorations turned off *is* a clickable hint:
@@ -130,6 +130,8 @@ Ctrl+Enter submit  •  Esc cancel
 - Order by how often the hint is used, with **cancel last**.
 - Name keys as the terminal reports them: `Ctrl+Enter`, `Esc`, `Up/Down`, `PgUp/PgDn`.
 - Leave out keys that every view has (`Tab` to move focus). Name the ones specific to this view.
+- **Hint the view's own actions, never a control's editing keys**: undo, select all, `Home`/`End`
+  and word moves work the same in every field, and the keys dialog lists them.
 - Keep it to one row. If the hints don't fit, the view is doing too much.
 
 ### The status bar
@@ -500,7 +502,7 @@ carries the layout; the control names carry the behaviour.
 │ ┌────────────────────────────────────────────────────┐ │
 │ │ Summary…                                           │ │   MultiLineField; focus starts here
 │ └────────────────────────────────────────────────────┘ │
-│ Ctrl+Enter submit  •  Esc cancel                       │   clickable hints, `  •  ` separated
+│                  ▓ Ctrl+Enter Submit ▓  ▓ Esc Cancel ▓ │   Primary, Secondary
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -510,7 +512,8 @@ a vertical scroll bar.
 
 Then say, in prose:
 
-- **The hint bar**, verbatim — it is part of the design, not a detail for the implementer.
+- **Every key the view shows**, verbatim, on its buttons or in its hint bar — it is part of the
+  design, not a detail for the implementer.
 - **Where focus starts**, and what `Enter` and `Esc` do.
 - **What happens when it fails.** Which message, shown where, and what survives. A requirement that
   only describes the happy path gets an error path invented in review.

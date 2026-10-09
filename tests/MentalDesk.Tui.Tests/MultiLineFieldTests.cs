@@ -58,16 +58,29 @@ public class MultiLineFieldTests : StaticConfigurationTest
     }
 
     [Fact]
-    public void Help_opens_it_with_the_field_focused_and_its_keys_on_the_hint_row()
+    public void Help_opens_it_with_the_field_focused_its_keys_on_the_buttons_and_no_hints()
     {
+        string[]? buttons = null;
         string? hints = null;
         Run(() =>
         {
-            hints = Dialog!.Hints.Says;
+            buttons = [Dialog!.PostButton.Text, Dialog.CancelButton.Text];
+            hints = Dialog.Hints.Says;
             Press(Key.Esc);
         }, () => Dialog is null);
 
-        Assert.Equal("Ctrl+Enter post  •  Ctrl+Z undo  •  Esc cancel", hints);
+        Assert.Equal([" Ctrl+Enter Post ", " Esc Cancel "], buttons!);
+        Assert.Equal(string.Empty, hints);
+    }
+
+    [Fact]
+    public void Clicking_Post_posts()
+    {
+        Run(
+            () => { Dialog!.PostButton.InvokeCommand(Command.Accept); },
+            () => Dialog is null);
+
+        Assert.Equal("A demo: Swatch has nowhere to post it, so the comment went nowhere", Host.Shell.StatusBar.Message);
     }
 
     [Fact]
@@ -113,6 +126,9 @@ public class MultiLineFieldTests : StaticConfigurationTest
         var focus = new List<string>();
         Run(
             () => Press(Key.Tab),
+            () => Dialog!.PostButton.HasFocus,
+            () => focus.Add("post"),
+            () => Press(Key.Tab, Key.Tab),
             () => Dialog!.TitleField.HasFocus,
             () => focus.Add("title"),
             () => Press(Key.Tab),
@@ -127,7 +143,7 @@ public class MultiLineFieldTests : StaticConfigurationTest
                 Press(Key.Esc);
             });
 
-        Assert.Equal(["title", "field", "title"], focus);
+        Assert.Equal(["post", "title", "field", "title"], focus);
     }
 
     [Fact]
@@ -186,7 +202,7 @@ public class MultiLineFieldTests : StaticConfigurationTest
         var corners = new List<bool>();
         Run(
             () => { corners.Add(BorderCorner(Field) == Field.GetAttributeForRole(VisualRole.Focus)); },
-            () => Press(Key.Tab),
+            () => Press(Key.Tab.WithShift),
             () => Dialog!.TitleField.HasFocus,
             () => { },
             () =>
