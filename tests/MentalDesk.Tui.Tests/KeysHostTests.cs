@@ -73,7 +73,7 @@ public class KeysHostTests : StaticConfigurationTest
     }
 
     [Fact]
-    public void A_pane_with_no_keys_of_its_own_shows_only_everywhere()
+    public void F1_on_the_roles_pane_shows_copy_colours_here()
     {
         using var window = new SwatchWindow(_host.Shell);
 
@@ -83,7 +83,7 @@ public class KeysHostTests : StaticConfigurationTest
             () => FocusWord == "Roles",
             () => Press(Key.F1),
             () => Keys is not null,
-            () => Keys!.Sheet.Here is null && Labels(Keys.Sheet.Everywhere).Contains("Show keys"),
+            () => Keys!.Sheet.Here?.Heading == "Here: Roles" && Labels(Keys.Sheet.Here).SequenceEqual(["Copy colours"]),
             () => Press(Key.Esc),
             () => _host.App.TopRunnableView is SwatchWindow);
     }

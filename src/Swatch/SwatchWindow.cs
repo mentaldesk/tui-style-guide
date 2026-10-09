@@ -75,6 +75,7 @@ internal sealed class SwatchWindow : AppWindow
             .Register(SwatchCommands.DeleteTheme, "Delete this theme", () => DeleteTheme(shell), ThemesRegion.Scope)
             .Register(SwatchCommands.RemoveTheme, "Remove this theme", () => RemoveTheme(shell), ThemesRegion.Scope)
             .Register(SwatchCommands.CloseTheme, "Close this theme", () => CloseTheme(shell), ThemesRegion.Scope)
+            .Register(SwatchCommands.CopyColours, "Copy colours", () => CopyColours(shell), RolesRegion.Scope)
             .Register(SwatchCommands.ShowLoadingStates, "Show loading states", () => ShowLoadingStates(shell));
         shell.Keys
             .Bind("Ctrl+G T", SwatchCommands.GoToThemes)
@@ -86,9 +87,11 @@ internal sealed class SwatchWindow : AppWindow
             .Bind("Enter", SwatchCommands.TryTheme, PreviewRegion.Scope)
             .Bind("Ctrl+T D", SwatchCommands.DeleteTheme)
             .Bind("Ctrl+T R", SwatchCommands.RemoveTheme)
-            .Bind("Ctrl+T C", SwatchCommands.CloseTheme);
+            .Bind("Ctrl+T C", SwatchCommands.CloseTheme)
+            .Bind("Ctrl+C", SwatchCommands.CopyColours);
         shell.UseMenu(
             new MenuSpec("_File", [ShellCommands.Quit]),
+            new MenuSpec("_Edit", [new MenuEntry(SwatchCommands.CopyColours, "_Copy colours")]),
             new MenuSpec("_Go", [
                 new MenuEntry(SwatchCommands.GoToThemes, "_Themes"),
                 new MenuEntry(SwatchCommands.GoToRoles, "_Roles"),
@@ -142,6 +145,12 @@ internal sealed class SwatchWindow : AppWindow
         using var sampleShell = new AppShell(shell.App, shell.Cursor);
         using var sample = new SampleWindow(sampleShell, window.Showing.Theme);
         shell.RunNested(sampleShell, sample, window.Showing.Theme);
+    }
+
+    private static void CopyColours(AppShell shell)
+    {
+        if (shell.App.TopRunnableView is not SwatchWindow window || window._roles.Source is not RoleSource roles) return;
+        shell.Copy(roles.Describe(window._roles.SelectedItem ?? 0));
     }
 
     private static void DeleteTheme(AppShell shell) =>

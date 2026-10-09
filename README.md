@@ -212,6 +212,32 @@ is the reference implementation: it wraps any content view, and the app tells it
 progress indicator on while loading. In Swatch, *Try it* opens a sample whose Files pane loads, and
 its *View* menu reloads it, empty or failing; *Help › Loading states…* shows the same states in a dialog.
 
+### Copying
+
+**Anything the user reads can be copied.** A view with a selection copies it with `Ctrl+C`. One
+without offers a *Copy* command for what's under the cursor, on a key and in the menu.
+
+**Copy through the library, so it reaches the laptop over SSH.** `AppShell` installs a clipboard that
+sends every copy through the terminal (OSC 52) as well as to the machine's own clipboard, so built-in
+controls like `TextField` take that path with no app code. An app's own copy command calls
+`shell.Copy(text)`.
+
+**Say what was copied, on the status bar:**
+
+| Outcome | Says | Severity |
+| --- | --- | --- |
+| The clipboard took it | `Copied 3 lines  •  142 characters` | `Info` |
+| Only the terminal took it | `Copied 3 lines  •  142 characters through the terminal` | `Info` |
+| Nothing took it | `Copy failed: too large to send through the terminal (the limit is 750 KB)` | `Error` |
+
+Deleting to the end or start of a line (`Ctrl+K` and friends) puts the text on the clipboard too,
+but says what it did: `6 characters deleted`.
+
+Through the terminal is the normal outcome over SSH, not a warning. For it to land, tmux needs
+`set -g set-clipboard on`, and iTerm2 needs *Applications in terminal may access clipboard*.
+
+In Swatch, `Ctrl+C` in *Roles*, or *Edit › Copy colours*, copies the selected role's colours.
+
 ## 4. Icons and glyphs
 
 **Use [Nerd Font](https://www.nerdfonts.com/cheat-sheet) glyphs where an icon does real work.** An

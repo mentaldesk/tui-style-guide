@@ -28,6 +28,8 @@ public sealed class AppStatusBar : View
 
     public string? Message => _shown?.Text;
 
+    public Severity? MessageSeverity => _shown?.Severity;
+
     public string Says => _message.Visible ? _message.Text : _hints.Says;
 
     public string State

@@ -1,5 +1,7 @@
+using System.Globalization;
 using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Commands;
+using MentalDesk.Tui.Copying;
 using MentalDesk.Tui.Diagnostics;
 using MentalDesk.Tui.Focus;
 using MentalDesk.Tui.Keys;
@@ -11,12 +13,20 @@ namespace MentalDesk.Tui.Shell;
 
 public sealed class AppShell : IDisposable
 {
-    private bool _nested;
+    private static readonly Command[] LineDeletes = [Command.CutToEndOfLine, Command.CutToStartOfLine];
 
-    public AppShell(IApplication app, TerminalCursor cursor)
+    private bool _nested;
+    private bool _deleting;
+
+    public AppShell(IApplication app, TerminalCursor cursor) : this(app, cursor, ClipboardTools.ThisMachine)
+    {
+    }
+
+    internal AppShell(IApplication app, TerminalCursor cursor, ClipboardTools clipboardTools)
     {
         App = app;
         Cursor = cursor;
+        Clipboard = InstallClipboard(app, clipboardTools);
         Focus = new FocusTracker(FocusedView);
         Keys = new Keymap(Commands) { FocusedScope = () => Focus.Region?.Scope ?? CommandScope.Global };
         Scopes.Push(Keys);
@@ -39,6 +49,7 @@ public sealed class AppShell : IDisposable
         Scopes.ChordChanged += (_, chord) => StatusBar.SetChord(chord);
         App.Keyboard.KeyDown += OnKeyDown;
         App.Iteration += OnIteration;
+        Clipboard.Copied += OnCopied;
     }
 
     public IApplication App { get; }
@@ -57,6 +68,8 @@ public sealed class AppShell : IDisposable
 
     public TerminalCursor Cursor { get; }
 
+    public TerminalClipboard Clipboard { get; }
+
     public AppMenu UseMenu(params MenuSpec[] layout) => Menu = new AppMenu(Commands, Keys, layout);
 
     public string ApplyTheme(string theme)
@@ -69,6 +82,8 @@ public sealed class AppShell : IDisposable
     }
 
     public void ShowMessage(string message, Severity severity = Severity.Info) => StatusBar.ShowMessage(message, severity);
+
+    public CopyOutcome Copy(string text) => Clipboard.Copy(text);
 
     public void ShowCommands()
     {
@@ -129,6 +144,22 @@ public sealed class AppShell : IDisposable
     {
         App.Keyboard.KeyDown -= OnKeyDown;
         App.Iteration -= OnIteration;
+        Clipboard.Copied -= OnCopied;
+    }
+
+    // A nested shell shares the clipboard its outer shell installed.
+    private static TerminalClipboard InstallClipboard(IApplication app, ClipboardTools tools)
+    {
+        if (app.Driver is not { } driver) return new TerminalClipboard(null, _ => { }, tools);
+        if (driver.Clipboard is not TerminalClipboard installed)
+            driver.Clipboard = installed = new TerminalClipboard(driver.Clipboard, driver.WriteRaw, tools);
+        return installed;
+    }
+
+    private void OnCopied(object? sender, CopyOutcome outcome)
+    {
+        if (!_nested && !_deleting)
+            ShowMessage(outcome.Message, outcome.Severity);
     }
 
     private void OnKeyDown(object? sender, Key key)
@@ -137,9 +168,36 @@ public sealed class AppShell : IDisposable
         if (_nested || key.Handled || App.Popovers?.GetActivePopover() is not null) return;
         Focus.Reconcile();
         StatusBar.ClearMessage();
-        if (Scopes.Handle(key) != KeyResult.Pass)
+        if (Scopes.Handle(key) != KeyResult.Pass || DeleteToLineEdge(key))
             key.Handled = true;
     }
+
+    // Terminal.Gui puts what these delete on the clipboard, which would otherwise report it as copied.
+    private bool DeleteToLineEdge(Key key)
+    {
+        if (FocusedView() is not View view || !view.KeyBindings.TryGet(key, out var binding)
+            || !binding.Commands.Any(LineDeletes.Contains)) return false;
+        var before = Length(view);
+        _deleting = true;
+        try
+        {
+            view.InvokeCommands(binding.Commands, binding);
+        }
+        finally
+        {
+            _deleting = false;
+        }
+        var deleted = before - Length(view);
+        if (deleted > 0)
+            ShowMessage($"{deleted:N0} character{(deleted == 1 ? "" : "s")} deleted");
+        return true;
+    }
+
+    // TextView's Text hides View.Text, which goes stale once it's edited.
+    private static int Length(View view) =>
+#pragma warning disable CS0618
+        new StringInfo(view is TextView editor ? editor.Text : view.Text).LengthInTextElements;
+#pragma warning restore CS0618
 
     private void OnIteration(object? sender, EventArgs e)
     {

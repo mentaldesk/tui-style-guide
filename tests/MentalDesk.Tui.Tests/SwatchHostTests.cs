@@ -220,7 +220,7 @@ public class SwatchHostTests : StaticConfigurationTest
             () => FocusWord == "Themes",
             () => Press(Key.G.WithCtrl, Key.R),
             () => FocusWord == "Roles",
-            () => Press(Key.F10, Key.CursorRight, Key.CursorRight),
+            () => Press(Key.F10, Key.CursorRight, Key.CursorRight, Key.CursorRight),
             () => themeMenu.PopoverMenuOpen,
             () => dimmed.AddRange(themeCommands.Where(menu.IsDimmed)),
             () => Press(Key.CursorDown, Key.CursorDown),

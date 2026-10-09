@@ -24,6 +24,8 @@ internal sealed class RoleSource(Scheme scheme) : IListDataSource
         return attribute.Style == TextStyle.None ? colours : $"{colours}  {attribute.Style.ToString().ToLowerInvariant()}";
     }
 
+    public string Describe(int item) => Describe(scheme.GetAttributeForRole(Roles[item]));
+
     public void Render(ListView listView, bool selected, int item, int col, int row, int width, int viewportX = 0)
     {
         var role = Roles[item];
