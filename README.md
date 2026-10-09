@@ -130,8 +130,8 @@ Ctrl+Enter submit  •  Esc cancel
 - Order by how often the hint is used, with **cancel last**.
 - Name keys as the terminal reports them: `Ctrl+Enter`, `Esc`, `Up/Down`, `PgUp/PgDn`.
 - Leave out keys that every view has (`Tab` to move focus). Name the ones specific to this view.
-- **Hint the view's own actions, never a control's editing keys**: undo, select all, `Home`/`End`
-  and word moves work the same in every field, and the keys dialog lists them.
+- **Hint the view's own actions, never a control's editing keys**: users should discover generic keyboard shortcuts like undo, select all, `Home`/`End`
+  via the context sensitive help (not the status/hint bar).
 - Keep it to one row. If the hints don't fit, the view is doing too much.
 
 ### The status bar
