@@ -30,7 +30,10 @@ public sealed class Keymap(CommandRegistry commands) : IInputScope
     {
         if (chord.Count == 0) throw new ArgumentException("A chord needs at least one key.", nameof(chord));
         ArgumentException.ThrowIfNullOrEmpty(commandId);
-        var node = Root(scope ?? commands.ScopeOf(commandId));
+        var home = commands.ScopeOf(commandId);
+        if (scope is { } elsewhere && home != CommandScope.Global && elsewhere != home)
+            throw new ArgumentException($"{commandId} only runs in {home}, so its keys belong there too.", nameof(scope));
+        var node = Root(scope ?? home);
         foreach (var key in chord.Select(Normalize))
         {
             if (!node.Children.TryGetValue(key, out var child))

@@ -141,6 +141,18 @@ public class KeymapTests
     }
 
     [Fact]
+    public void A_region_s_command_is_bound_in_that_region_and_nowhere_else()
+    {
+        Register("editor.move", Editor);
+
+        _keys.Bind("Ctrl+K U", "editor.move");
+
+        Assert.Equal(Editor, _keys.For("editor.move").Single().Scope);
+        Assert.Throws<ArgumentException>(() => _keys.Bind("Ctrl+K D", "editor.move", CommandScope.Global));
+        Assert.Throws<ArgumentException>(() => _keys.Bind("Ctrl+K D", "editor.move", new CommandScope("Files")));
+    }
+
+    [Fact]
     public void A_key_bound_in_a_narrower_scope_runs_the_command_only_there()
     {
         Register("try");
