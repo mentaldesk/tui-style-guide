@@ -93,7 +93,7 @@ public sealed class AppMenu
 
     private static string Checked(string title, bool isChecked) => $"{(isChecked ? '●' : ' ')} {title}";
 
-    private string KeysFor(string id) => _keys.For(id, CommandScope.Global).FirstOrDefault()?.Display ?? string.Empty;
+    private string KeysFor(string id) => _keys.For(id).FirstOrDefault()?.Display ?? string.Empty;
 
     private static string Hot(string label) => $"_{label}";
 }

@@ -193,7 +193,7 @@ public class SwatchHostTests : StaticConfigurationTest
             () => FocusWord == "Themes",
             () => Press(DownToDaylight),
             () => window.Showing.Theme == Themes.Daylight,
-            () => Press(Key.F10, Key.CursorRight, Key.CursorRight),
+            () => Press(Key.F10, Key.CursorRight, Key.CursorRight, Key.CursorRight),
             () => themeMenu.PopoverMenuOpen,
             () =>
             {

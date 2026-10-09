@@ -1,3 +1,4 @@
+using MentalDesk.Tui.Copying;
 using MentalDesk.Tui.Shell;
 using MentalDesk.Tui.Theming;
 using Terminal.Gui.Drivers;
@@ -8,11 +9,13 @@ internal sealed class Host : IDisposable
 {
     private const int MaxIterations = 1000;
 
-    public Host()
+    // Tests never reach the machine's real clipboard: the platform's is faked, and its programs are missing.
+    public Host(IClipboard? platform = null)
     {
         App = Application.Create();
         App.Init(driverName: DriverRegistry.Names.ANSI);
-        Shell = new AppShell(App, new TerminalCursor(Written.Add));
+        App.Driver!.Clipboard = platform ?? new FakeClipboard();
+        Shell = new AppShell(App, new TerminalCursor(Written.Add), ClipboardProgram.Missing);
     }
 
     public IApplication App { get; }

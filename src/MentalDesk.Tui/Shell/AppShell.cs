@@ -1,5 +1,6 @@
 using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Commands;
+using MentalDesk.Tui.Copying;
 using MentalDesk.Tui.Diagnostics;
 using MentalDesk.Tui.Focus;
 using MentalDesk.Tui.Keys;
@@ -13,10 +14,15 @@ public sealed class AppShell : IDisposable
 {
     private bool _nested;
 
-    public AppShell(IApplication app, TerminalCursor cursor)
+    public AppShell(IApplication app, TerminalCursor cursor) : this(app, cursor, ClipboardTools.ThisMachine)
+    {
+    }
+
+    internal AppShell(IApplication app, TerminalCursor cursor, ClipboardTools clipboardTools)
     {
         App = app;
         Cursor = cursor;
+        Clipboard = InstallClipboard(app, clipboardTools);
         Focus = new FocusTracker(FocusedView);
         Keys = new Keymap(Commands) { FocusedScope = () => Focus.Region?.Scope ?? CommandScope.Global };
         Scopes.Push(Keys);
@@ -40,6 +46,7 @@ public sealed class AppShell : IDisposable
         Scopes.ChordChanged += (_, chord) => StatusBar.SetChord(chord);
         App.Keyboard.KeyDown += OnKeyDown;
         App.Iteration += OnIteration;
+        Clipboard.Copied += OnCopied;
     }
 
     public IApplication App { get; }
@@ -58,6 +65,8 @@ public sealed class AppShell : IDisposable
 
     public TerminalCursor Cursor { get; }
 
+    public TerminalClipboard Clipboard { get; }
+
     public Func<FocusRegion?, IEnumerable<Hint>> HintsFor { get; set; } = _ => [];
 
     public AppMenu UseMenu(params MenuSpec[] layout) => Menu = new AppMenu(Commands, Keys, layout);
@@ -72,6 +81,8 @@ public sealed class AppShell : IDisposable
     }
 
     public void ShowMessage(string message, Severity severity = Severity.Info) => StatusBar.ShowMessage(message, severity);
+
+    public CopyOutcome Copy(string text) => Clipboard.Copy(text);
 
     public void ShowHints() => StatusBar.Hints.Show(HintsFor(Focus.Region), Commands, Keys);
 
@@ -129,6 +140,22 @@ public sealed class AppShell : IDisposable
     {
         App.Keyboard.KeyDown -= OnKeyDown;
         App.Iteration -= OnIteration;
+        Clipboard.Copied -= OnCopied;
+    }
+
+    // A nested shell shares the clipboard its outer shell installed.
+    private static TerminalClipboard InstallClipboard(IApplication app, ClipboardTools tools)
+    {
+        if (app.Driver is not { } driver) return new TerminalClipboard(null, _ => { }, tools);
+        if (driver.Clipboard is not TerminalClipboard installed)
+            driver.Clipboard = installed = new TerminalClipboard(driver.Clipboard, driver.WriteRaw, tools);
+        return installed;
+    }
+
+    private void OnCopied(object? sender, CopyOutcome outcome)
+    {
+        if (!_nested)
+            ShowMessage(outcome.Message, outcome.Severity);
     }
 
     private void OnKeyDown(object? sender, Key key)

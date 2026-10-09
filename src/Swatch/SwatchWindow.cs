@@ -76,6 +76,7 @@ internal sealed class SwatchWindow : AppWindow
             .Register(SwatchCommands.DeleteTheme, "Delete this theme", () => DeleteTheme(shell))
             .Register(SwatchCommands.RemoveTheme, "Remove this theme", () => RemoveTheme(shell))
             .Register(SwatchCommands.CloseTheme, "Close this theme", () => CloseTheme(shell))
+            .Register(SwatchCommands.CopyColours, "Copy colours", () => CopyColours(shell))
             .Register(SwatchCommands.ShowLoadingStates, "Show loading states", () => ShowLoadingStates(shell));
         shell.Keys
             .Bind("Ctrl+G T", SwatchCommands.GoToThemes)
@@ -87,9 +88,11 @@ internal sealed class SwatchWindow : AppWindow
             .Bind("Enter", SwatchCommands.TryTheme, PreviewRegion.Scope)
             .Bind("Ctrl+T D", SwatchCommands.DeleteTheme)
             .Bind("Ctrl+T R", SwatchCommands.RemoveTheme)
-            .Bind("Ctrl+T C", SwatchCommands.CloseTheme);
+            .Bind("Ctrl+T C", SwatchCommands.CloseTheme)
+            .Bind("Ctrl+C", SwatchCommands.CopyColours, RolesRegion.Scope);
         shell.UseMenu(
             new MenuSpec("_File", [ShellCommands.Quit]),
+            new MenuSpec("_Edit", [new MenuEntry(SwatchCommands.CopyColours, "_Copy colours")]),
             new MenuSpec("_Go", [
                 new MenuEntry(SwatchCommands.GoToThemes, "_Themes"),
                 new MenuEntry(SwatchCommands.GoToRoles, "_Roles"),
@@ -144,6 +147,12 @@ internal sealed class SwatchWindow : AppWindow
         shell.RunNested(sampleShell, sample, window.Showing.Theme);
     }
 
+    private static void CopyColours(AppShell shell)
+    {
+        if (shell.App.TopRunnableView is not SwatchWindow window || window._roles.Source is not RoleSource roles) return;
+        shell.Copy(roles.Describe(window._roles.SelectedItem ?? 0));
+    }
+
     private static void DeleteTheme(AppShell shell) =>
         Confirm(shell, ThemeConfirms.DeleteTheme, _ => "Swatch's themes are built in, so nothing was deleted");
 
@@ -174,6 +183,8 @@ internal sealed class SwatchWindow : AppWindow
     {
         if (region == ThemesRegion)
             yield return new Hint(SwatchCommands.UseTheme, "use theme");
+        if (region == RolesRegion)
+            yield return new Hint(SwatchCommands.CopyColours, "copy");
         if (region == PreviewRegion)
             yield return new Hint(SwatchCommands.TryTheme, "try it");
         yield return new Hint(ShellCommands.ShowCommands, "commands");

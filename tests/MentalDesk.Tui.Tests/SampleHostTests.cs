@@ -72,7 +72,7 @@ public class SampleHostTests : StaticConfigurationTest
                 Press(Key.T.WithCtrl, Key.T);
                 break;
             case "menu":
-                Press(Key.F10, Key.CursorRight, Key.CursorRight, Key.T);
+                Press(Key.F10, Key.CursorRight, Key.CursorRight, Key.CursorRight, Key.T);
                 break;
             case "enter":
                 Press(Key.Enter);
