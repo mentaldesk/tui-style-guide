@@ -2,6 +2,7 @@ using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Commands;
 using MentalDesk.Tui.Keys;
 using MentalDesk.Tui.Dialogs;
+using MentalDesk.Tui.Theming;
 
 namespace MentalDesk.Tui.Tests;
 
@@ -88,13 +89,77 @@ public class ChromeTests : StaticConfigurationTest
         Assert.Equal(["  _A", "● _B"], menu.Items.Select(entry => entry.Item.Title));
     }
 
-    [Fact]
-    public void A_menu_item_shows_only_a_key_that_works_everywhere()
-    {
-        var commands = new CommandRegistry().Register("try", "Try", () => { });
-        var keys = new Keymap(commands).Bind("Ctrl+T T", "try").Bind("Enter", "try", new CommandScope("Preview"));
-        var menu = new AppMenu(commands, keys, [new MenuSpec("_Theme", ["try"])]);
+    private static readonly CommandScope Themes = new("Themes");
+    private static readonly CommandScope Roles = new("Roles");
 
-        Assert.Equal("Ctrl+T T", menu.Items.Single().Item.KeyView.Text);
+    [Fact]
+    public void A_menu_item_shows_a_key_that_works_wherever_its_command_runs()
+    {
+        var commands = new CommandRegistry()
+            .Register("try", "Try", () => { })
+            .Register("delete", "Delete", () => { }, Themes);
+        var keys = new Keymap(commands)
+            .Bind("Ctrl+T T", "try")
+            .Bind("Enter", "try", new CommandScope("Preview"))
+            .Bind("Ctrl+T D", "delete");
+        var menu = new AppMenu(commands, keys, [new MenuSpec("_Theme", ["try", "delete"])]);
+
+        Assert.Equal(["Ctrl+T T", "Ctrl+T D"], menu.Items.Select(entry => entry.Item.KeyView.Text));
+    }
+
+    [Fact]
+    public void A_menu_dims_what_can_t_run_where_the_keys_are()
+    {
+        var scope = Roles;
+        var commands = new CommandRegistry()
+            .Register("try", "Try", () => { })
+            .Register("delete", "Delete", () => { }, Themes)
+            .Register("export", "Export", () => { }, isEnabled: () => false);
+        var keys = new Keymap(commands) { FocusedScope = () => scope };
+        var menu = new AppMenu(commands, keys, [new MenuSpec("_Theme", ["try", "delete", "export"])]);
+
+        menu.Refresh();
+        var inRoles = menu.Items.Select(entry => menu.IsDimmed(entry.Id)).ToList();
+        scope = Themes;
+        menu.Refresh();
+
+        Assert.Equal([false, true, true], inRoles);
+        Assert.Equal([false, false, true], menu.Items.Select(entry => menu.IsDimmed(entry.Id)));
+    }
+
+    [Fact]
+    public void A_dimmed_menu_item_dims_its_key_with_it()
+    {
+        using var menu = new View { SchemeName = SchemeNames.Menu };
+        var item = new CommandMenuItem { Title = "_Delete", Key = Key.F2 };
+        menu.Add(item);
+        var live = item.KeyView.GetAttributeForRole(VisualRole.Normal);
+
+        item.Dimmed = true;
+
+        Assert.Equal(menu.GetAttributeForRole(VisualRole.HotNormal), live);
+        Assert.Equal(item.GetAttributeForRole(VisualRole.Disabled), item.KeyView.GetAttributeForRole(VisualRole.Normal));
+    }
+
+    [Fact]
+    public void A_menu_with_nothing_that_can_run_here_leaves_the_bar_until_something_can()
+    {
+        var scope = Themes;
+        var commands = new CommandRegistry()
+            .Register("quit", "Quit", () => { })
+            .Register("copy", "Copy colours", () => { }, Roles)
+            .Register("keys", "Show keys", () => { });
+        var keys = new Keymap(commands) { FocusedScope = () => scope };
+        var menu = new AppMenu(commands, keys,
+            [new MenuSpec("_File", ["quit"]), new MenuSpec("_Edit", ["copy"]), new MenuSpec("_Help", ["keys"])]);
+        using var bar = menu.Bar;
+
+        menu.ShowAvailable();
+        var inThemes = menu.Shown.Select(item => item.Title).ToList();
+        scope = Roles;
+        menu.ShowAvailable();
+
+        Assert.Equal(["_File", "_Help"], inThemes);
+        Assert.Equal(["_File", "_Edit", "_Help"], menu.Shown.Select(item => item.Title));
     }
 }

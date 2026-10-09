@@ -215,6 +215,36 @@ public class SampleHostTests : StaticConfigurationTest
             var items = menu.PopoverMenu!.Root!.SubViews.OfType<MenuItem>().ToList();
             Assert.Equal(items.Count, items.Select(item => item.HotKey).Distinct().Count());
         }
-        Assert.False(shell.Menu.Items.Single(entry => entry.Id == SampleWindow.Export).Item.Enabled);
+        shell.Menu.Refresh();
+        Assert.True(shell.Menu.IsDimmed(SampleWindow.Export));
+    }
+
+    [Fact]
+    public void The_sample_s_edit_menu_is_on_the_bar_only_while_the_editor_has_focus()
+    {
+        using var window = new SwatchWindow(_host.Shell);
+        var openedFromFiles = true;
+        var ticks = 0;
+
+        _host.Run(window,
+            () => FocusWord == "Themes",
+            () => Press(Key.T.WithCtrl, Key.T),
+            () => Sample?.Shell.StatusBar.FocusWord == "Editor",
+            () => Titles().SequenceEqual(["_File", "_Edit", "_View", "_Theme", "_Help"]),
+            () => Press(Key.Tab.WithShift),
+            () => Sample!.Shell.StatusBar.FocusWord == "Files",
+            () => Titles().SequenceEqual(["_File", "_View", "_Theme", "_Help"]),
+            () => Press(Key.E.WithAlt),
+            () => ++ticks > 5,
+            () => { openedFromFiles = Sample!.Shell.Menu!.IsOpen; },
+            () => Press(Key.Tab),
+            () => Sample!.Shell.StatusBar.FocusWord == "Editor",
+            () => Titles().Contains("_Edit"),
+            () => Press(Key.Esc),
+            () => _host.App.TopRunnableView is SwatchWindow);
+
+        Assert.False(openedFromFiles);
+
+        IEnumerable<string> Titles() => Sample!.Shell.Menu!.Shown.Select(menu => menu.Title);
     }
 }

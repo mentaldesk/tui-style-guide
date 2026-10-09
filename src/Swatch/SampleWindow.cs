@@ -55,9 +55,9 @@ internal sealed class SampleWindow : AppWindow
         Panes.Track(shell, FilesRegion, filesPane, _files);
         Panes.Track(shell, EditorRegion, editorPane, _editor);
         shell.Commands
-            .Register(Cut, "Cut", () => _editor.Cut())
-            .Register(Copy, "Copy", () => _editor.Copy())
-            .Register(Paste, "Paste", () => _editor.Paste())
+            .Register(Cut, "Cut", () => _editor.Cut(), EditorRegion.Scope)
+            .Register(Copy, "Copy", () => _editor.Copy(), EditorRegion.Scope)
+            .Register(Paste, "Paste", () => _editor.Paste(), EditorRegion.Scope)
             .Register(ReloadFiles, "Reload files", () => Load(Outcome.Files))
             .Register(LoadNoFiles, "Load no files", () => Load(Outcome.Empty))
             .Register(LoadFailing, "Load files, failing", () => Load(Outcome.Failure));
@@ -133,14 +133,14 @@ internal sealed class SampleWindow : AppWindow
     {
         shell.Commands
             .Register(SaveTheme, "Save theme…", () => SaveAs(shell))
-            .Register(DeleteTheme, "Delete theme…", () => Delete(shell))
+            .Register(DeleteTheme, "Delete theme…", () => Delete(shell), FilesRegion.Scope)
             .Register(Export, "Export", () => { }, isEnabled: () => false)
             .Register(Back, "Back to Swatch", () => shell.App.RequestStop());
         foreach (var theme in Themes.Names)
             shell.Commands.Register(ThemeCommand(theme), $"Theme: {theme}", () => shell.StatusBar.State = shell.ApplyTheme(theme));
         shell.Keys
             .Bind("Ctrl+S", SaveTheme)
-            .Bind("Delete", DeleteTheme, FilesRegion.Scope)
+            .Bind("Delete", DeleteTheme)
             .Bind("Esc", Back);
         var hotLetters = new HashSet<char>();
         shell.UseMenu(

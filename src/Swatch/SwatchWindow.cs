@@ -69,24 +69,24 @@ internal sealed class SwatchWindow : AppWindow
             .Register(SwatchCommands.GoToRoles, "Go to roles", () => shell.Focus.Focus(RolesRegion))
             .Register(SwatchCommands.GoToPreview, "Go to preview", () => shell.Focus.Focus(PreviewRegion))
             .Register(SwatchCommands.GoToScheme, "Go to scheme…", () => GoToScheme(shell))
-            .Register(SwatchCommands.UseTheme, "Use this theme for Swatch", () => UseTheme(shell),
+            .Register(SwatchCommands.UseTheme, "Use this theme for Swatch", () => UseTheme(shell), ThemesRegion.Scope,
                 isEnabled: () => shell.App.TopRunnableView is SwatchWindow window && window.Showing.Theme != Themes.Current)
             .Register(SwatchCommands.TryTheme, "Try this theme", () => TryTheme(shell))
-            .Register(SwatchCommands.DeleteTheme, "Delete this theme", () => DeleteTheme(shell))
-            .Register(SwatchCommands.RemoveTheme, "Remove this theme", () => RemoveTheme(shell))
-            .Register(SwatchCommands.CloseTheme, "Close this theme", () => CloseTheme(shell))
+            .Register(SwatchCommands.DeleteTheme, "Delete this theme", () => DeleteTheme(shell), ThemesRegion.Scope)
+            .Register(SwatchCommands.RemoveTheme, "Remove this theme", () => RemoveTheme(shell), ThemesRegion.Scope)
+            .Register(SwatchCommands.CloseTheme, "Close this theme", () => CloseTheme(shell), ThemesRegion.Scope)
             .Register(SwatchCommands.ShowLoadingStates, "Show loading states", () => ShowLoadingStates(shell));
         shell.Keys
             .Bind("Ctrl+G T", SwatchCommands.GoToThemes)
             .Bind("Ctrl+G R", SwatchCommands.GoToRoles)
             .Bind("Ctrl+G P", SwatchCommands.GoToPreview)
             .Bind("Ctrl+G S", SwatchCommands.GoToScheme)
-            .Bind("Ctrl+T U", SwatchCommands.UseTheme, ThemesRegion.Scope)
+            .Bind("Ctrl+T U", SwatchCommands.UseTheme)
             .Bind("Ctrl+T T", SwatchCommands.TryTheme)
             .Bind("Enter", SwatchCommands.TryTheme, PreviewRegion.Scope)
-            .Bind("Ctrl+T D", SwatchCommands.DeleteTheme, ThemesRegion.Scope)
-            .Bind("Ctrl+T R", SwatchCommands.RemoveTheme, ThemesRegion.Scope)
-            .Bind("Ctrl+T C", SwatchCommands.CloseTheme, ThemesRegion.Scope);
+            .Bind("Ctrl+T D", SwatchCommands.DeleteTheme)
+            .Bind("Ctrl+T R", SwatchCommands.RemoveTheme)
+            .Bind("Ctrl+T C", SwatchCommands.CloseTheme);
         shell.UseMenu(
             new MenuSpec("_File", [ShellCommands.Quit]),
             new MenuSpec("_Go", [
