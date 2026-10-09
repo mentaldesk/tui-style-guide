@@ -29,7 +29,7 @@ public sealed record KeySheet(KeyColumn? Here, KeyColumn Everywhere)
         var listed = new HashSet<string>(StringComparer.Ordinal);
         foreach (var spec in menu)
         {
-            var ids = spec.Items.OfType<MenuEntry>().Select(entry => entry.CommandId).Where(listed.Add).ToList();
+            var ids = spec.CommandIds.Where(listed.Add).ToList();
             var rows = Rows(ids.SelectMany(id => global.Where(binding => binding.CommandId == id)));
             if (rows.Count > 0)
                 groups.Add(new KeyGroup(spec.Title.Replace("_", string.Empty, StringComparison.Ordinal), rows));

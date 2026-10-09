@@ -44,6 +44,41 @@ public class SampleLoadingTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void The_view_menu_offers_collapse_or_expand_whichever_the_folders_need()
+    {
+        var offered = new List<string>();
+
+        Run(sample =>
+        [
+            () => sample.Files.State == LoadState.Loaded,
+            () => offered.Add(Folders(sample)),
+            () => Press(Key.F10, Key.CursorRight, Key.CursorRight),
+            () => sample.Shell.Menu!.Menus.Single(menu => menu.Title == "_View").PopoverMenuOpen,
+            () => Press(Key.C),
+            () => sample.Tree.Objects!.All(node => !sample.Tree.IsExpanded(node)),
+            () => offered.Add(Folders(sample)),
+            () => sample.Shell.Commands.Execute(SampleWindow.LoadNoFiles),
+            () => sample.Files.State == LoadState.Empty,
+            () =>
+            {
+                offered.Add(Folders(sample));
+                Press(Key.Esc);
+            },
+        ]);
+
+        Assert.Equal(["_Collapse folders", "_Expand folders", "_Collapse folders, dimmed"], offered);
+    }
+
+    private static string Folders(SampleWindow sample)
+    {
+        var menu = sample.Shell.Menu!;
+        menu.Refresh();
+        var item = menu.Menus.Single(view => view.Title == "_View").PopoverMenu!.Root!.SubViews.OfType<MenuItem>().Last();
+        var id = menu.Items.Single(entry => entry.Item == item).Id;
+        return menu.IsDimmed(id) ? $"{item.Title}, dimmed" : item.Title;
+    }
+
+    [Fact]
     public void The_view_menu_shows_empty_and_failed_in_the_pane_and_Ctrl_R_retries()
     {
         var says = new List<string>();

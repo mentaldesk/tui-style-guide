@@ -3,10 +3,17 @@ using MentalDesk.Tui.Keys;
 
 namespace MentalDesk.Tui.Chrome;
 
-public sealed record MenuSpec(string Title, IReadOnlyList<MenuEntry?> Items);
+public sealed record MenuSpec(string Title, IReadOnlyList<MenuEntry?> Items)
+{
+    public IEnumerable<string> CommandIds =>
+        Items.OfType<MenuEntry>().SelectMany(entry => entry.Opposite is { } opposite ? [entry.CommandId, opposite.CommandId] : new[] { entry.CommandId });
+}
 
 public sealed record MenuEntry(string CommandId, string? Title = null, Func<bool>? IsChecked = null)
 {
+    // Shares this entry's place in the menu, which shows whichever of the two can run.
+    public MenuEntry? Opposite { get; init; }
+
     public static implicit operator MenuEntry(string commandId) => new(commandId);
 }
 
@@ -16,7 +23,7 @@ public sealed class AppMenu
     private readonly Keymap _keys;
     private readonly List<(string Id, CommandMenuItem Item)> _items = [];
     private readonly List<(Func<bool> IsChecked, MenuItem Item, string Title)> _checks = [];
-    private readonly List<(MenuBarItem Menu, string[] Ids)> _menus = [];
+    private readonly List<(MenuBarItem Menu, string[] Ids, Slot[] Slots)> _menus = [];
 
     public AppMenu(CommandRegistry commands, Keymap keys, IEnumerable<MenuSpec> layout)
     {
@@ -24,7 +31,9 @@ public sealed class AppMenu
         _keys = keys;
         Layout = [.. layout];
         Bar = new MenuBar { Menus = [.. Layout.Select(Menu)] };
-        Bar.Disposing += (_, _) => _menus.Where(entry => entry.Menu.SuperView is null).ToList().ForEach(entry => entry.Menu.Dispose());
+        Bar.Disposing += (_, _) => _menus
+            .SelectMany(entry => entry.Slots.SelectMany(slot => new View?[] { slot.View, slot.Opposite }).Append(entry.Menu))
+            .Where(view => view is { SuperView: null }).ToList().ForEach(view => view!.Dispose());
     }
 
     public MenuBar Bar { get; }
@@ -53,6 +62,7 @@ public sealed class AppMenu
         }
         foreach (var (isChecked, item, title) in _checks)
             item.Title = Checked(title, isChecked());
+        Arrange(here);
     }
 
     // Taken off the bar rather than hidden: Terminal.Gui keeps a hidden menu's place.
@@ -63,12 +73,28 @@ public sealed class AppMenu
         List<MenuBarItem> shown = [.. _menus.Where(entry => entry.Ids.Any(id => _commands.IsAvailable(id, here))).Select(entry => entry.Menu)];
         if (!shown.SequenceEqual(Shown))
             Bar.Menus = [.. shown];
+        Arrange(here);
+    }
+
+    // Taken out rather than hidden: Terminal.Gui keeps a hidden item's place.
+    private void Arrange(CommandScope here)
+    {
+        foreach (var (menu, _, slots) in _menus)
+        {
+            if (menu.PopoverMenu?.Root is not { } root) continue;
+            List<View> shown = [.. slots.Select(slot => slot.Showing(id => _commands.IsAvailable(id, here)))];
+            if (root.SubViews.SequenceEqual(shown)) continue;
+            foreach (var view in root.SubViews.ToList())
+                root.Remove(view);
+            root.Add([.. shown]);
+        }
     }
 
     // Terminal.Gui also binds a title's bare letter, app-wide, which would swallow the app's own keys.
     private MenuBarItem Menu(MenuSpec spec)
     {
-        var menu = new MenuBarItem(spec.Title, [.. spec.Items.Select(Item)]);
+        Slot[] slots = [.. spec.Items.Select(SlotFor)];
+        var menu = new MenuBarItem(spec.Title, [.. slots.Select(slot => slot.View)]);
         menu.HotKeyBindings.Remove(menu.HotKey);
         menu.HotKeyBindings.Remove(menu.HotKey.WithShift);
         // Esc no longer quits, and it took the menu's close key with it.
@@ -80,7 +106,7 @@ public sealed class AppMenu
             Refresh();
         };
         Shut(menu);
-        _menus.Add((menu, [.. spec.Items.OfType<MenuEntry>().Select(entry => entry.CommandId)]));
+        _menus.Add((menu, [.. spec.CommandIds], slots));
         return menu;
     }
 
@@ -91,10 +117,12 @@ public sealed class AppMenu
             popover.Enabled = false;
     }
 
-    private View Item(MenuEntry? entry)
+    private Slot SlotFor(MenuEntry? entry) =>
+        entry is null ? new Slot(new Line()) : new Slot(Item(entry), entry.CommandId, entry.Opposite is { } opposite ? Item(opposite) : null, entry.Opposite?.CommandId);
+
+    private CommandMenuItem Item(MenuEntry entry)
     {
-        if (entry is not (var id, var title, var isChecked))
-            return new Line();
+        var (id, title, isChecked) = entry;
         title ??= Hot(_commands.Find(id)?.Label ?? id);
         var item = new CommandMenuItem
         {
@@ -115,4 +143,10 @@ public sealed class AppMenu
     private string KeysFor(string id) => _keys.For(id, _commands.ScopeOf(id)).FirstOrDefault()?.Display ?? string.Empty;
 
     private static string Hot(string label) => $"_{label}";
+
+    private sealed record Slot(View View, string? Id = null, CommandMenuItem? Opposite = null, string? OppositeId = null)
+    {
+        public View Showing(Func<string, bool> canRun) =>
+            Opposite is not null && !canRun(Id!) && canRun(OppositeId!) ? Opposite : View;
+    }
 }

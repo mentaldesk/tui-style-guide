@@ -48,6 +48,20 @@ public class KeySheetTests : StaticConfigurationTest
         column.Groups.SelectMany(group => group.Rows.Select(row => $"{group.Heading}: {row.Keys} {row.Label}"));
 
     [Fact]
+    public void An_opposite_action_s_key_is_under_its_menu_heading()
+    {
+        _commands
+            .Register("collapse", "Collapse folders", () => { }, isEnabled: () => false)
+            .Register("expand", "Expand folders", () => { });
+        _keys.Bind("Ctrl+K C", "collapse").Bind("Ctrl+K E", "expand");
+        MenuSpec[] menu = [new("_View", [new MenuEntry("collapse") { Opposite = new("expand") }])];
+
+        var sheet = KeySheet.For(_commands, _keys, Themes.Name, Themes, menu);
+
+        Assert.Contains("View: Ctrl+K E Expand folders", Rows(sheet.Everywhere));
+    }
+
+    [Fact]
     public void A_region_binding_is_here_and_a_global_one_is_everywhere_under_its_menu_heading()
     {
         var sheet = Sheet(Themes);
