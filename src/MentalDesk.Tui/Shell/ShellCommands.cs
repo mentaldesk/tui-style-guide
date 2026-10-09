@@ -6,4 +6,5 @@ public static class ShellCommands
     public const string ShowCommands = "app.commands";
     public const string ShowMenu = "app.menu";
     public const string ShowDiagnostics = "app.diagnostics";
+    public const string ShowKeys = "app.keys";
 }

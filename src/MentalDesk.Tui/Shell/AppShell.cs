@@ -32,17 +32,16 @@ public sealed class AppShell : IDisposable
             .Register(ShellCommands.Quit, "Quit", () => App.RequestStop())
             .Register(ShellCommands.ShowCommands, "Show all commands", ShowCommands)
             .Register(ShellCommands.ShowMenu, "Open the menu", () => Menu?.Open(), isEnabled: () => Menu is not null)
-            .Register(ShellCommands.ShowDiagnostics, "Show diagnostics", ShowDiagnostics);
+            .Register(ShellCommands.ShowDiagnostics, "Show diagnostics", ShowDiagnostics)
+            .Register(ShellCommands.ShowKeys, "Show keys", ShowKeys);
         Keys.Bind("Ctrl+Q", ShellCommands.Quit)
             .Bind("Ctrl+E", ShellCommands.ShowCommands)
             .Bind("F10", ShellCommands.ShowMenu)
-            .Bind("F12", ShellCommands.ShowDiagnostics);
+            .Bind("F12", ShellCommands.ShowDiagnostics)
+            .Bind("F1", ShellCommands.ShowKeys);
+        StatusBar.Hints.Show([new Hint(ShellCommands.ShowKeys, "keys")], Commands, Keys);
 
-        Focus.RegionChanged += (_, region) =>
-        {
-            StatusBar.SetFocusWord(region.Name);
-            ShowHints();
-        };
+        Focus.RegionChanged += (_, region) => StatusBar.SetFocusWord(region.Name);
         Scopes.ChordChanged += (_, chord) => StatusBar.SetChord(chord);
         App.Keyboard.KeyDown += OnKeyDown;
         App.Iteration += OnIteration;
@@ -67,8 +66,6 @@ public sealed class AppShell : IDisposable
 
     public TerminalClipboard Clipboard { get; }
 
-    public Func<FocusRegion?, IEnumerable<Hint>> HintsFor { get; set; } = _ => [];
-
     public AppMenu UseMenu(params MenuSpec[] layout) => Menu = new AppMenu(Commands, Keys, layout);
 
     public string ApplyTheme(string theme)
@@ -84,14 +81,19 @@ public sealed class AppShell : IDisposable
 
     public CopyOutcome Copy(string text) => Clipboard.Copy(text);
 
-    public void ShowHints() => StatusBar.Hints.Show(HintsFor(Focus.Region), Commands, Keys);
-
     public void ShowCommands()
     {
         using var palette = new CommandPalette(Commands, Keys, Focus.Region?.Scope ?? CommandScope.Global);
         palette.Run(this);
         if (palette.Chosen is { } row)
             Commands.Execute(row.Id);
+    }
+
+    public void ShowKeys()
+    {
+        var sheet = KeySheet.For(Commands, Keys, Focus.Region?.Name, Focus.Region?.Scope ?? CommandScope.Global, Menu?.Layout ?? []);
+        using var dialog = new KeysDialog(sheet, App.Screen.Size);
+        dialog.Run(this);
     }
 
     public void ShowDiagnostics()
@@ -103,7 +105,6 @@ public sealed class AppShell : IDisposable
     public void Run(IRunnable window)
     {
         ApplyTheme(Themes.Current);
-        ShowHints();
         try
         {
             App.Run(window);
@@ -114,7 +115,7 @@ public sealed class AppShell : IDisposable
         }
     }
 
-    // Keys go to inner until it closes; then this shell's theme, focus and hints come back.
+    // Keys go to inner until it closes; then this shell's theme and focus come back.
     public void RunNested(AppShell inner, IRunnable window, string? theme = null)
     {
         var outerTheme = Themes.Current;
@@ -132,7 +133,6 @@ public sealed class AppShell : IDisposable
             ApplyTheme(outerTheme);
             if (region is not null)
                 Focus.Focus(region);
-            ShowHints();
         }
     }
 

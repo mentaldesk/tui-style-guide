@@ -22,10 +22,13 @@ public sealed class AppMenu
     {
         _commands = commands;
         _keys = keys;
-        Bar = new MenuBar { Menus = [.. layout.Select(Menu)] };
+        Layout = [.. layout];
+        Bar = new MenuBar { Menus = [.. Layout.Select(Menu)] };
     }
 
     public MenuBar Bar { get; }
+
+    public IReadOnlyList<MenuSpec> Layout { get; }
 
     public IReadOnlyList<(string Id, MenuItem Item)> Items => _items;
 

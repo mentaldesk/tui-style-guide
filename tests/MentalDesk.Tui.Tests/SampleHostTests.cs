@@ -85,42 +85,7 @@ public class SampleHostTests : StaticConfigurationTest
     }
 
     [Fact]
-    public void The_preview_offers_Enter_to_try_it()
-    {
-        using var window = new SwatchWindow(_host.Shell);
-
-        _host.Run(window,
-            () => FocusWord == "Themes",
-            () => Press(Key.G.WithCtrl, Key.P),
-            () => FocusWord == "Preview",
-            () => _host.Shell.StatusBar.Says.StartsWith("Enter try it", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void The_back_hint_returns_to_Swatch()
-    {
-        using var window = new SwatchWindow(_host.Shell);
-        var says = "";
-
-        _host.Run(window,
-            () => FocusWord == "Themes",
-            () => Press(Key.T.WithCtrl, Key.T),
-            () => Sample is not null,
-            () => Sample!.Shell.StatusBar.Says.Contains("Esc back to Swatch", StringComparison.Ordinal),
-            () =>
-            {
-                says = Sample!.Shell.StatusBar.Says;
-                Sample!.Shell.StatusBar.Hints.SubViews.OfType<Button>()
-                    .Single(button => button.Text == "Esc back to Swatch").InvokeCommand(Command.Accept);
-            },
-            () => _host.App.TopRunnableView is SwatchWindow);
-
-        Assert.Equal("Ctrl+S save  •  F10 menu  •  Esc back to Swatch", says);
-        Assert.Equal("Themes", FocusWord);
-    }
-
-    [Fact]
-    public void The_hints_change_with_focus()
+    public void The_sample_s_status_bar_offers_only_F1_keys_whichever_pane_has_focus()
     {
         using var window = new SwatchWindow(_host.Shell);
 
@@ -128,9 +93,10 @@ public class SampleHostTests : StaticConfigurationTest
             () => FocusWord == "Themes",
             () => Press(Key.T.WithCtrl, Key.T),
             () => Sample?.Shell.StatusBar.FocusWord == "Editor",
+            () => Sample!.Shell.StatusBar.Says == "F1 keys",
             () => Press(Key.Tab.WithShift),
             () => Sample!.Shell.StatusBar.FocusWord == "Files",
-            () => Sample!.Shell.StatusBar.Says.StartsWith("Del delete", StringComparison.Ordinal),
+            () => Sample!.Shell.StatusBar.Says == "F1 keys",
             () => Press(Key.Esc),
             () => _host.App.TopRunnableView is SwatchWindow);
     }
