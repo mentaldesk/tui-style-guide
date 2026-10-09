@@ -59,7 +59,7 @@ internal sealed class PreviewView : View
 
         var status = Get(SchemeNames.StatusBar);
         Fill(0, 6, width, 1, status.Normal);
-        Put(1, 6, string.Join(HintRow.Separator, "Editor", "Ctrl+E commands", "F10 menu"), status.Normal);
+        Put(1, 6, string.Join(HintRow.Separator, "Editor", "F1 keys"), status.Normal);
 
         var dialog = Get(SchemeNames.Dialog);
         var left = Math.Min(2, width / 10);

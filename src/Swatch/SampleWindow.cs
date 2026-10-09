@@ -62,7 +62,6 @@ internal sealed class SampleWindow : AppWindow
             .Register(LoadNoFiles, "Load no files", () => Load(Outcome.Empty))
             .Register(LoadFailing, "Load files, failing", () => Load(Outcome.Failure));
         shell.Keys.Bind("Ctrl+R", ReloadFiles);
-        shell.HintsFor = Hints;
         shell.StatusBar.State = theme;
         Initialized += (_, _) =>
         {
@@ -138,11 +137,7 @@ internal sealed class SampleWindow : AppWindow
             .Register(Export, "Export", () => { }, isEnabled: () => false)
             .Register(Back, "Back to Swatch", () => shell.App.RequestStop());
         foreach (var theme in Themes.Names)
-            shell.Commands.Register(ThemeCommand(theme), $"Theme: {theme}", () =>
-            {
-                shell.StatusBar.State = shell.ApplyTheme(theme);
-                shell.ShowHints();
-            });
+            shell.Commands.Register(ThemeCommand(theme), $"Theme: {theme}", () => shell.StatusBar.State = shell.ApplyTheme(theme));
         shell.Keys
             .Bind("Ctrl+S", SaveTheme)
             .Bind("Delete", DeleteTheme, FilesRegion.Scope)
@@ -202,18 +197,6 @@ internal sealed class SampleWindow : AppWindow
         dialog.Run(shell);
         if (dialog.Chosen is not null)
             shell.ShowMessage($"A demo: this would have deleted \"{Themes.Current}\"");
-    }
-
-    private static IEnumerable<Hint> Hints(FocusRegion? region)
-    {
-        if (region == FilesRegion)
-        {
-            yield return new Hint(DeleteTheme, "delete");
-            yield return new Hint(ReloadFiles, "reload");
-        }
-        yield return new Hint(SaveTheme, "save");
-        yield return new Hint(ShellCommands.ShowMenu, "menu");
-        yield return new Hint(Back, "back to Swatch");
     }
 
 #pragma warning disable CS0618 // Obsolete in Terminal.Gui 2.5, but still the stock editor apps use.

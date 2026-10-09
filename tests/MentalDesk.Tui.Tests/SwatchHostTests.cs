@@ -36,13 +36,11 @@ public class SwatchHostTests : StaticConfigurationTest
     }
 
     [Fact]
-    public void Opens_with_the_themes_focused_and_their_hints_showing()
+    public void Opens_with_the_themes_focused()
     {
         using var window = new SwatchWindow(_host.Shell);
 
-        _host.Run(window,
-            () => FocusWord == "Themes",
-            () => _host.Shell.StatusBar.Says.StartsWith("Ctrl+T U use theme", StringComparison.Ordinal));
+        _host.Run(window, () => FocusWord == "Themes");
     }
 
     [Fact]
