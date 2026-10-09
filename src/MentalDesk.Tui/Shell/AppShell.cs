@@ -1,3 +1,4 @@
+using System.Globalization;
 using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Commands;
 using MentalDesk.Tui.Copying;
@@ -12,7 +13,10 @@ namespace MentalDesk.Tui.Shell;
 
 public sealed class AppShell : IDisposable
 {
+    private static readonly Command[] LineDeletes = [Command.CutToEndOfLine, Command.CutToStartOfLine];
+
     private bool _nested;
+    private bool _deleting;
 
     public AppShell(IApplication app, TerminalCursor cursor) : this(app, cursor, ClipboardTools.ThisMachine)
     {
@@ -154,7 +158,7 @@ public sealed class AppShell : IDisposable
 
     private void OnCopied(object? sender, CopyOutcome outcome)
     {
-        if (!_nested)
+        if (!_nested && !_deleting)
             ShowMessage(outcome.Message, outcome.Severity);
     }
 
@@ -164,9 +168,36 @@ public sealed class AppShell : IDisposable
         if (_nested || key.Handled || App.Popovers?.GetActivePopover() is not null) return;
         Focus.Reconcile();
         StatusBar.ClearMessage();
-        if (Scopes.Handle(key) != KeyResult.Pass)
+        if (Scopes.Handle(key) != KeyResult.Pass || DeleteToLineEdge(key))
             key.Handled = true;
     }
+
+    // Terminal.Gui puts what these delete on the clipboard, which would otherwise report it as copied.
+    private bool DeleteToLineEdge(Key key)
+    {
+        if (FocusedView() is not View view || !view.KeyBindings.TryGet(key, out var binding)
+            || !binding.Commands.Any(LineDeletes.Contains)) return false;
+        var before = Length(view);
+        _deleting = true;
+        try
+        {
+            view.InvokeCommands(binding.Commands, binding);
+        }
+        finally
+        {
+            _deleting = false;
+        }
+        var deleted = before - Length(view);
+        if (deleted > 0)
+            ShowMessage($"{deleted:N0} character{(deleted == 1 ? "" : "s")} deleted");
+        return true;
+    }
+
+    // TextView's Text hides View.Text, which goes stale once it's edited.
+    private static int Length(View view) =>
+#pragma warning disable CS0618
+        new StringInfo(view is TextView editor ? editor.Text : view.Text).LengthInTextElements;
+#pragma warning restore CS0618
 
     private void OnIteration(object? sender, EventArgs e)
     {

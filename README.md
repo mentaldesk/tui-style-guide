@@ -230,6 +230,9 @@ controls like `TextField` take that path with no app code. An app's own copy com
 | Only the terminal took it | `Copied 3 lines  •  142 characters through the terminal` | `Info` |
 | Nothing took it | `Copy failed: too large to send through the terminal (the limit is 750 KB)` | `Error` |
 
+Deleting to the end or start of a line (`Ctrl+K` and friends) puts the text on the clipboard too,
+but says what it did: `6 characters deleted`.
+
 Through the terminal is the normal outcome over SSH, not a warning. For it to land, tmux needs
 `set -g set-clipboard on`, and iTerm2 needs *Applications in terminal may access clipboard*.
 

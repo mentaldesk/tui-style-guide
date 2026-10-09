@@ -151,4 +151,49 @@ public class CopyHostTests : StaticConfigurationTest
             },
             () => field.Text == "pasted");
     }
+
+    [Fact]
+    public void Deleting_to_the_end_of_a_text_field_says_how_much_was_deleted()
+    {
+        var platform = new TestClipboard();
+        var host = Start(platform);
+        var field = new TextField { Width = 20, Text = "hello world" };
+        using var window = new Window();
+        window.Add(field);
+
+        host.Run(window,
+            () => field.HasFocus,
+            () =>
+            {
+                field.InsertionPoint = 5;
+                Press(Key.K.WithCtrl);
+            },
+            () => field.Text == "hello");
+
+        Assert.Equal(" world", platform.Text);
+        Assert.Equal("6 characters deleted", host.Shell.StatusBar.Message);
+        Assert.Equal(Severity.Info, host.Shell.StatusBar.MessageSeverity);
+    }
+
+    [Fact]
+    public void Deleting_to_the_start_of_an_editor_line_says_how_much_was_deleted()
+    {
+        var host = Start(new TestClipboard());
+#pragma warning disable CS0618
+        var editor = new TextView { Width = 20, Height = 3, Text = "first\nab" };
+#pragma warning restore CS0618
+        using var window = new Window();
+        window.Add(editor);
+
+        host.Run(window,
+            () => editor.HasFocus,
+            () =>
+            {
+                editor.InsertionPoint = new System.Drawing.Point(1, 1);
+                Press(Key.Backspace.WithCtrl.WithShift);
+            },
+            () => editor.Text.EndsWith("\nb"));
+
+        Assert.Equal("1 character deleted", host.Shell.StatusBar.Message);
+    }
 }
