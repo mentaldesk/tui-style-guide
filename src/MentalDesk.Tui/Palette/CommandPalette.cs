@@ -12,7 +12,7 @@ public sealed class CommandPalette(CommandRegistry commands, Keymap keys, Comman
 
     private static Row[] Rows(CommandRegistry commands, Keymap keys, CommandScope scope) =>
         [.. commands.All
-            .Where(command => (command.Scope == CommandScope.Global || command.Scope == scope) && commands.IsEnabled(command.Id))
+            .Where(command => commands.IsAvailable(command.Id, scope))
             .Select(command => new Row(command.Id, command.Label, string.Join(", ", keys.For(command.Id, scope).Select(b => b.Display))))
             .OrderBy(row => row.Label, StringComparer.OrdinalIgnoreCase)];
 

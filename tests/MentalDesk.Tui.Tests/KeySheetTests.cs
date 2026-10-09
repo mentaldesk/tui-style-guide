@@ -30,16 +30,16 @@ public class KeySheetTests : StaticConfigurationTest
             .Register("keys", "Show keys", () => { })
             .Register("diagnostics", "Show diagnostics", () => { })
             .Register("unbound", "Never bound", () => { })
-            .Register("delete", "Delete this theme", () => { }, isEnabled: () => _deleteEnabled)
-            .Register("use", "Use this theme", () => { });
+            .Register("delete", "Delete this theme", () => { }, Themes, isEnabled: () => _deleteEnabled)
+            .Register("use", "Use this theme", () => { }, Themes);
         _keys = new Keymap(_commands)
             .Bind("Ctrl+Q", "quit")
             .Bind("Ctrl+G T", "go.themes")
             .Bind("Ctrl+G R", "go.roles")
             .Bind("F1", "keys")
             .Bind("F12", "diagnostics")
-            .Bind("Ctrl+T U", "use", Themes)
-            .Bind("Ctrl+T D", "delete", Themes);
+            .Bind("Ctrl+T U", "use")
+            .Bind("Ctrl+T D", "delete");
     }
 
     private KeySheet Sheet(CommandScope scope) => KeySheet.For(_commands, _keys, scope.Name, scope, Menu);

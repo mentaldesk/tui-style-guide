@@ -184,26 +184,55 @@ public class SwatchHostTests : StaticConfigurationTest
         using var window = new SwatchWindow(_host.Shell);
         var menu = _host.Shell.Menu!;
         var themeMenu = menu.Menus.Single(item => item.Title == "_Theme");
-        var useTheme = menu.Items.Single(entry => entry.Id == SwatchCommands.UseTheme).Item;
         var enabledWhileOpen = false;
 
         _host.Run(window,
             () => FocusWord == "Themes",
             () => Press(DownToDaylight),
             () => window.Showing.Theme == Themes.Daylight,
-            () => Press(Key.F10, Key.CursorRight, Key.CursorRight, Key.CursorRight),
+            () => Press(Key.F10, Key.CursorRight, Key.CursorRight),
             () => themeMenu.PopoverMenuOpen,
             () =>
             {
                 menu.Refresh();
-                enabledWhileOpen = useTheme.Enabled;
+                enabledWhileOpen = !menu.IsDimmed(SwatchCommands.UseTheme);
             },
             () => Press(Key.U),
             () => Themes.Current == Themes.Daylight,
             () => menu.Refresh());
 
         Assert.True(enabledWhileOpen);
-        Assert.False(useTheme.Enabled);
+        Assert.True(menu.IsDimmed(SwatchCommands.UseTheme));
+    }
+
+    [Fact]
+    public void Away_from_the_themes_pane_the_menu_dims_its_commands_shows_their_keys_and_runs_none()
+    {
+        using var window = new SwatchWindow(_host.Shell);
+        var menu = _host.Shell.Menu!;
+        var themeMenu = menu.Menus.Single(item => item.Title == "_Theme");
+        var delete = menu.Items.Single(entry => entry.Id == SwatchCommands.DeleteTheme).Item;
+        string[] themeCommands = [SwatchCommands.TryTheme, SwatchCommands.UseTheme, SwatchCommands.DeleteTheme, SwatchCommands.RemoveTheme, SwatchCommands.CloseTheme];
+        var dimmed = new List<string>();
+        var ticks = 0;
+
+        _host.Run(window,
+            () => FocusWord == "Themes",
+            () => Press(Key.G.WithCtrl, Key.R),
+            () => FocusWord == "Roles",
+            () => Press(Key.F10, Key.CursorRight, Key.CursorRight, Key.CursorRight),
+            () => themeMenu.PopoverMenuOpen,
+            () => dimmed.AddRange(themeCommands.Where(menu.IsDimmed)),
+            () => Press(Key.CursorDown, Key.CursorDown),
+            () => delete.HasFocus,
+            () => Press(Key.Enter),
+            () => ++ticks > 5,
+            () => themeMenu.PopoverMenuOpen && _host.App.TopRunnableView == window,
+            () => Press(Key.Esc),
+            () => !menu.IsOpen);
+
+        Assert.Equal(themeCommands[1..], dimmed);
+        Assert.Equal("Ctrl+T D", delete.KeyView.Text);
     }
 
     [Fact]

@@ -274,14 +274,15 @@ headings. Both are read from the keymap when it opens, so they can't drift from 
 
 - **The main screen's status bar always shows `F1 keys`, and no other hint** (see *The status bar*),
   so it's in the same place in every app.
-- **Bind a key that only works in one region to that region's scope**, so it shows under *Here*.
-  Its menu item still runs it from anywhere.
+- **A command that only works in one region belongs to that region**, and so do its keys, so they
+  show under *Here* (see *Only what works here*).
 - It's a reference, not a runner: nothing in it takes focus, `Esc close` is its only hint, and it
-  leaves out disabled commands and commands with no key. The command palette has those.
+  leaves out commands that can't run here and commands with no key. The command palette has the
+  second kind.
 
 The library's [`KeysDialog`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Keys/KeysDialog.cs),
-which `AppShell` binds to `F1`, is the reference implementation. Swatch binds its `Ctrl+T` theme keys
-to the Themes pane.
+which `AppShell` binds to `F1`, is the reference implementation. Swatch's `Ctrl+T` theme commands,
+all but *Try it*, belong to the Themes pane.
 
 ### Filtering a list
 
@@ -372,21 +373,47 @@ registers each region with a move and an ownership test and supplies the focused
 
 **A command acts on the selection, and the selection stays put while the menu or the palette has
 focus.** Opening either one takes focus from the content. A command that finds its target by asking
-what has focus finds nothing there, so its menu item greys out a moment after the menu opens, just as
-the user reaches for it.
+what has focus finds nothing there, so its menu item dims a moment after the menu opens, just as the
+user reaches for it.
 
 - **Read the target, and `isEnabled`, from state the content keeps**: the list's selected row, the
   pane last selected. Never from `HasFocus` or `Navigation.GetFocused()`.
 - **Where selecting a thing is focusing it**, as in a grid of panes, remember the last one focus was
   in, and keep answering with it while focus is outside them.
-- **Test it with the menu open.** Select something, open the menu, refresh it, and check the item is
-  still enabled. Refreshing matters: an app that refreshes its menu on a timer greys the item on the
+- **Test it with the menu open.** Select something, open the menu, refresh it, and check the item
+  isn't dimmed. Refreshing matters: an app that refreshes its menu on a timer dims the item on the
   first tick, not when the menu opens.
 
 `FocusTracker` already does this for regions: while focus is in a view no region owns, such as the
 open menu, it keeps the region it had. Swatch's *Theme › Use for Swatch* is the reference for a
 selection. It acts on the theme selected in the tree, and is enabled only while that isn't the theme
 already in use.
+
+### Only what works here
+
+**A command that can't run where you are seems not to exist.** Where you are is the region that had
+focus when the menu or the palette opened. A command can run there if it's global or that region's,
+and enabled. Its key, its menu item, the palette and `F1` all go by that one test, so they never
+disagree, and none of them says why a command didn't run.
+
+- **The palette and `F1` leave it out.**
+- **The menu dims it in place**, so a menu reads the same wherever it opens. The arrows still stop on
+  a dimmed item; `Enter` or a click on it does nothing.
+- **A menu with nothing that can run leaves the bar**, and the titles close up behind it. Its
+  `Alt+letter` does nothing until it's back.
+- **A command that only works in one region belongs to that region, and so do its keys**, so a menu
+  item can always show its key: the key works wherever the item does. A global command can have an
+  extra key in one region, as Swatch's preview has `Enter`.
+- Framework mechanic: Terminal.Gui's arrows skip a disabled `MenuItem`, and its `MenuBar` keeps a
+  hidden title's place. So dim an item by drawing it in the `Disabled` colour and ignoring its
+  activation, and take an empty menu off the bar.
+
+The library's [`AppMenu`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/AppMenu.cs)
+and [`CommandPalette`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Palette/CommandPalette.cs)
+share the test, `CommandRegistry.IsAvailable`, and `Keymap.Bind` won't give a region's command a key
+anywhere else. In Swatch, open *Theme* from the Roles pane: *Delete…*, *Remove…* and *Close…* are
+dimmed, with their `Ctrl+T` keys. In the sample app that *Try it* opens, *Edit* leaves the bar while
+the Files pane has focus.
 
 ### The caret
 

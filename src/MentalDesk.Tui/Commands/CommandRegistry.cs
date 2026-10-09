@@ -23,6 +23,9 @@ public sealed class CommandRegistry
     public bool IsEnabled(string id) =>
         _entries.TryGetValue(id, out var entry) && entry.IsEnabled?.Invoke() != false;
 
+    public bool IsAvailable(string id, CommandScope scope) =>
+        Find(id) is { } command && (command.Scope == CommandScope.Global || command.Scope == scope) && IsEnabled(id);
+
     public bool Execute(string id)
     {
         if (!_entries.TryGetValue(id, out var entry) || entry.IsEnabled?.Invoke() == false)

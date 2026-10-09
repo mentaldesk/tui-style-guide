@@ -170,8 +170,9 @@ public sealed class AppShell : IDisposable
 
     private void OnIteration(object? sender, EventArgs e)
     {
-        if (!_nested)
-            Focus.Reconcile();
+        if (_nested) return;
+        Focus.Reconcile();
+        Menu?.ShowAvailable();
     }
 
     private object? FocusedView()

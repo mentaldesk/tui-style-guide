@@ -14,9 +14,9 @@ public sealed class AppMenu
 {
     private readonly CommandRegistry _commands;
     private readonly Keymap _keys;
-    private readonly List<(string Id, MenuItem Item)> _items = [];
+    private readonly List<(string Id, CommandMenuItem Item)> _items = [];
     private readonly List<(Func<bool> IsChecked, MenuItem Item, string Title)> _checks = [];
-    private readonly List<MenuBarItem> _menus = [];
+    private readonly List<(MenuBarItem Menu, string[] Ids)> _menus = [];
 
     public AppMenu(CommandRegistry commands, Keymap keys, IEnumerable<MenuSpec> layout)
     {
@@ -24,29 +24,45 @@ public sealed class AppMenu
         _keys = keys;
         Layout = [.. layout];
         Bar = new MenuBar { Menus = [.. Layout.Select(Menu)] };
+        Bar.Disposing += (_, _) => _menus.Where(entry => entry.Menu.SuperView is null).ToList().ForEach(entry => entry.Menu.Dispose());
     }
 
     public MenuBar Bar { get; }
 
     public IReadOnlyList<MenuSpec> Layout { get; }
 
-    public IReadOnlyList<(string Id, MenuItem Item)> Items => _items;
+    public IReadOnlyList<(string Id, MenuItem Item)> Items => [.. _items.Select(entry => (entry.Id, (MenuItem)entry.Item))];
 
-    public IReadOnlyList<MenuBarItem> Menus => _menus;
+    public IReadOnlyList<MenuBarItem> Menus => [.. _menus.Select(entry => entry.Menu)];
+
+    public IEnumerable<MenuBarItem> Shown => Bar.SubViews.OfType<MenuBarItem>();
 
     public bool IsOpen => Bar.IsOpen();
 
     public void Open() => Bar.InvokeCommand(Command.HotKey);
 
+    internal bool IsDimmed(string id) => _items.Single(entry => entry.Id == id).Item.Dimmed;
+
     public void Refresh()
     {
+        var here = _keys.FocusedScope();
         foreach (var (id, item) in _items)
         {
             item.KeyView.Text = KeysFor(id);
-            item.Enabled = _commands.IsEnabled(id);
+            item.Dimmed = !_commands.IsAvailable(id, here);
         }
         foreach (var (isChecked, item, title) in _checks)
             item.Title = Checked(title, isChecked());
+    }
+
+    // Taken off the bar rather than hidden: Terminal.Gui keeps a hidden menu's place.
+    public void ShowAvailable()
+    {
+        if (IsOpen) return;
+        var here = _keys.FocusedScope();
+        List<MenuBarItem> shown = [.. _menus.Where(entry => entry.Ids.Any(id => _commands.IsAvailable(id, here))).Select(entry => entry.Menu)];
+        if (!shown.SequenceEqual(Shown))
+            Bar.Menus = [.. shown];
     }
 
     // Terminal.Gui also binds a title's bare letter, app-wide, which would swallow the app's own keys.
@@ -64,7 +80,7 @@ public sealed class AppMenu
             Refresh();
         };
         Shut(menu);
-        _menus.Add(menu);
+        _menus.Add((menu, [.. spec.Items.OfType<MenuEntry>().Select(entry => entry.CommandId)]));
         return menu;
     }
 
@@ -80,7 +96,7 @@ public sealed class AppMenu
         if (entry is not (var id, var title, var isChecked))
             return new Line();
         title ??= Hot(_commands.Find(id)?.Label ?? id);
-        var item = new MenuItem
+        var item = new CommandMenuItem
         {
             Title = isChecked is null ? title : Checked(title, isChecked()),
             // A label only: the keymap already runs this key.
@@ -96,7 +112,7 @@ public sealed class AppMenu
 
     private static string Checked(string title, bool isChecked) => $"{(isChecked ? '●' : ' ')} {title}";
 
-    private string KeysFor(string id) => _keys.For(id).FirstOrDefault()?.Display ?? string.Empty;
+    private string KeysFor(string id) => _keys.For(id, _commands.ScopeOf(id)).FirstOrDefault()?.Display ?? string.Empty;
 
     private static string Hot(string label) => $"_{label}";
 }
