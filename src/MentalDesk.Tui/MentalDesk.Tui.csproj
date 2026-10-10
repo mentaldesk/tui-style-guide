@@ -3,7 +3,7 @@
   <PropertyGroup>
     <RootNamespace>MentalDesk.Tui</RootNamespace>
     <Authors>James Crosswell</Authors>
-    <Description>Shared Terminal.Gui building blocks for MentalDesk TUI apps: themes, commands and chord key bindings, focus, menu and status bars, dialogs, the command palette and diagnostics.</Description>
+    <Description>Shared Terminal.Gui building blocks for MentalDesk TUI apps: themes, commands and chord key bindings, focus, menu and status bars, dialogs, the command palette, diagnostics and the shared icon style.</Description>
     <PackageTags>terminal.gui;tui;terminal;console</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/mentaldesk/tui-style-guide</PackageProjectUrl>

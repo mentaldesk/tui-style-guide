@@ -1,4 +1,5 @@
 using MentalDesk.Tui.Chrome;
+using MentalDesk.Tui.Icons;
 using MentalDesk.Tui.Theming;
 
 namespace Swatch;
@@ -11,10 +12,13 @@ internal sealed class PreviewView : View
     private static readonly (string Label, string Scheme)[] Buttons =
         [("Enter Save", SchemeNames.ButtonPrimary), ("Del Delete", SchemeNames.ButtonDanger), ("Esc Cancel", SchemeNames.ButtonSecondary)];
 
+    private readonly IconSettings _icons;
     private IReadOnlyDictionary<string, Scheme> _schemes = new Dictionary<string, Scheme>();
 
-    public PreviewView()
+    public PreviewView(IconSettings icons)
     {
+        _icons = icons;
+        icons.Changed += OnIconsChanged;
         CanFocus = true;
         Width = Dim.Fill();
         Height = Dim.Fill();
@@ -46,9 +50,9 @@ internal sealed class PreviewView : View
         var sidebar = Get(SchemeNames.Sidebar);
         Fill(0, 1, split, 5, sidebar.Normal);
         Box(0, 1, split, 5, "Files", sidebar.Normal, heavy: false);
-        Put(1, 2, "▾ src", sidebar.Normal);
-        Put(1, 3, "  notes.md".PadRight(Math.Max(0, split - 2)), sidebar.Active);
-        Put(1, 4, "  todo.md", sidebar.Disabled);
+        FileRow(2, "▾ ", SwatchIcons.Folder, "src", sidebar, sidebar.Normal, split);
+        FileRow(3, "  ", SwatchIcons.File, "notes.md", sidebar, sidebar.Active, split);
+        FileRow(4, "  ", SwatchIcons.File, "todo.md", sidebar, sidebar.Disabled, split);
 
         Box(split, 1, width - split, 5, "Editor", @base.Focus, heavy: true);
         Put(split + 1, 2, "Hello, ", @base.Editable);
@@ -82,6 +86,21 @@ internal sealed class PreviewView : View
             x += label.Length + 5;
         }
         return true;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _icons.Changed -= OnIconsChanged;
+        base.Dispose(disposing);
+    }
+
+    private void OnIconsChanged(object? sender, EventArgs e) => SetNeedsDraw();
+
+    private void FileRow(int y, string indent, Icon icon, string name, Scheme sidebar, Attribute row, int split)
+    {
+        Put(1, y, indent, row);
+        IconField.Draw(this, 1 + indent.Length, y, _icons.Glyph(icon), sidebar, row);
+        Put(1 + indent.Length + IconField.Width, y, name.PadRight(Math.Max(0, split - 2 - indent.Length - IconField.Width)), row);
     }
 
     private Scheme Get(string name) =>

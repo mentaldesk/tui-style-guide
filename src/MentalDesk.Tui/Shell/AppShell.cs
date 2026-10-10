@@ -4,6 +4,7 @@ using MentalDesk.Tui.Commands;
 using MentalDesk.Tui.Copying;
 using MentalDesk.Tui.Diagnostics;
 using MentalDesk.Tui.Focus;
+using MentalDesk.Tui.Icons;
 using MentalDesk.Tui.Keys;
 using MentalDesk.Tui.Palette;
 using MentalDesk.Tui.Theming;
@@ -18,14 +19,16 @@ public sealed class AppShell : IDisposable
     private bool _nested;
     private bool _deleting;
 
-    public AppShell(IApplication app, TerminalCursor cursor) : this(app, cursor, ClipboardTools.ThisMachine)
+    public AppShell(IApplication app, TerminalCursor cursor, IconSettings? icons = null)
+        : this(app, cursor, ClipboardTools.ThisMachine, icons)
     {
     }
 
-    internal AppShell(IApplication app, TerminalCursor cursor, ClipboardTools clipboardTools)
+    internal AppShell(IApplication app, TerminalCursor cursor, ClipboardTools clipboardTools, IconSettings? icons = null)
     {
         App = app;
         Cursor = cursor;
+        Icons = icons ?? IconSettings.ForThisUser();
         Clipboard = InstallClipboard(app, clipboardTools);
         Focus = new FocusTracker(FocusedView);
         Keys = new Keymap(Commands) { FocusedScope = () => Focus.Region?.Scope ?? CommandScope.Global };
@@ -70,6 +73,8 @@ public sealed class AppShell : IDisposable
 
     public TerminalClipboard Clipboard { get; }
 
+    public IconSettings Icons { get; }
+
     public AppMenu UseMenu(params MenuSpec[] layout) => Menu = new AppMenu(Commands, Keys, layout);
 
     public string ApplyTheme(string theme)
@@ -102,7 +107,7 @@ public sealed class AppShell : IDisposable
 
     public void ShowDiagnostics()
     {
-        using var diagnostics = new DiagnosticsDialog(App, Cursor, Themes.Current);
+        using var diagnostics = new DiagnosticsDialog(App, Cursor, Themes.Current, Icons);
         diagnostics.Run(this);
     }
 

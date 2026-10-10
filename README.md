@@ -256,15 +256,30 @@ ones that mean something invisible.
 
 - **One vocabulary per app.** Reuse a glyph already in use before picking a new one, and pick from
   one Nerd Font set (`nf-md-*`, say) rather than mixing.
-- **Always have a fallback.** No terminal reports its font, so assume some users have no Nerd Font:
-  fall back to emoji, then to plain text. Make it a user-visible setting where icons are prominent.
+- **Always have a fallback: plain Unicode, not emoji.** No terminal reports its font, so assume some
+  users have no Nerd Font. Give every icon a plain Unicode glyph too (`▸`, `✓`, `⚠`). Emoji ignore the
+  theme's colours, and their width depends on the terminal and the font.
+- **One icon style for every MentalDesk app**: *Auto*, *Nerd Font* or *Plain*. It's a shared
+  setting, never a per-app one, kept in `~/.config/mentaldesk/settings.json` (`$XDG_CONFIG_HOME` if
+  set; `%APPDATA%\MentalDesk\settings.json` on Windows). Change it in any app and the others use it
+  the next time they start.
+- **Auto says why it chose what it did**, so a user who gets Plain can see why and fix it:
+  "iTerm2 uses JetBrainsMono Nerd Font", "couldn't tell which font the terminal uses". Show it next to
+  the setting and in Diagnostics.
 - **Draw the icon; don't put it in the text.** Prepend the glyph's cells at draw time so the item's
-  text stays the bare name — otherwise filtering, sorting and type-to-jump all match against the
-  glyph. See TuiCode's
-  [`FileIcons`](https://github.com/mentaldesk/TuiCode/tree/main/src/TuiCode.Icons).
-- **Budget the cells.** Nerd Font glyphs are one cell; emoji are two. Lay out for the fallback you
-  actually ship, or columns shift when the style changes.
+  text stays the bare name, or filtering, sorting and type-to-jump all match against the glyph.
+- **Budget the cells.** Every icon gets the same 2-cell field in either style, so the text beside it
+  never moves when the style changes.
 - **Colour comes from the theme**, and the icon keeps its row's background so selection still reads.
+
+The library's [`IconSettings`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Icons/IconSettings.cs)
+is the shared style, read once at start (`AppShell.Icons`), with
+[`TerminalFontDetection`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Icons/TerminalFontDetection.cs)
+behind *Auto*. Each app keeps its own icons, each an `Icon` with a Nerd Font and a Plain glyph.
+[`IconField`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Icons/IconField.cs)
+draws one in its 2-cell field, in the row's hot colour over the row's background, in front of a tree
+row or anywhere else. In Swatch, *Help › Icons…* picks the style and previews it in the *Files* panes,
+and `F12` shows what Auto chose.
 
 ## 5. Keys and focus
 
@@ -275,6 +290,11 @@ ones that mean something invisible.
 - **Tab moves focus, everywhere.** Terminal.Gui.Editor binds Tab to indent, so a multi-line field in
   a dialog is the library's `MultiLineField`, which leaves Tab, Esc and `Ctrl+Enter` to the dialog.
 - **Focus lands where work starts** when a view opens — the filter field, the summary, the first row.
+- **In a set of options, the arrows choose.** `Left`/`Right` (or `Up`/`Down`) pick the next option,
+  not just focus it, and focus enters on the chosen option. `Space` has nothing left to do. Terminal.Gui's
+  `OptionSelector` only moves focus, so call the library's
+  [`SelectOnArrows()`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Fields/OptionSelectors.cs)
+  on every one. Swatch's *Help › Icons…* uses it.
 - A container `View` that hosts focusable children needs `CanFocus = true`; `SetFocus()` silently
   returns false when any ancestor has it off.
 
