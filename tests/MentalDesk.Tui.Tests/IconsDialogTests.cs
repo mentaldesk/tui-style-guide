@@ -68,19 +68,36 @@ public class IconsDialogTests : StaticConfigurationTest
     }
 
     [Fact]
-    public void Picking_a_style_previews_it_at_once()
+    public void An_arrow_picks_the_next_style_and_previews_it_at_once()
     {
         Run(
-            () => Press(Key.CursorRight, Key.Space),
-            () => Icons.InUse == IconStyle.NerdFont,
+            () => Press(Key.CursorRight),
+            () => Icons.InUse == IconStyle.NerdFont && Dialog!.Style.Value == 1,
+            () => Press(Key.CursorLeft),
+            () => Icons.Style == IconStyle.Auto && Dialog!.Style.Value == 0,
             () => Press(Key.Esc));
+    }
+
+    [Fact]
+    public void It_opens_on_the_saved_style_rather_than_the_first()
+    {
+        Icons.Preview(IconStyle.Plain);
+        Icons.Keep();
+
+        Run(() =>
+        {
+            Assert.Equal(2, Dialog!.Style.Value);
+            Assert.True(Dialog.Style.SubViews.OfType<CheckBox>().Last().HasFocus);
+            Assert.Equal(IconStyle.Plain, Icons.Style);
+            Press(Key.Esc);
+        });
     }
 
     [Fact]
     public void Ctrl_Enter_keeps_the_style_for_the_next_start()
     {
         Run(
-            () => Press(Key.CursorRight, Key.CursorRight, Key.Space),
+            () => Press(Key.CursorRight, Key.CursorRight),
             () => Icons.Style == IconStyle.Plain,
             () => Press(Key.Enter.WithCtrl),
             () => _host.App.TopRunnableView is SwatchWindow);
@@ -95,7 +112,7 @@ public class IconsDialogTests : StaticConfigurationTest
     public void Esc_or_the_close_box_puts_the_saved_style_back(bool esc)
     {
         Run(
-            () => Press(Key.CursorRight, Key.Space),
+            () => Press(Key.CursorRight),
             () => Icons.InUse == IconStyle.NerdFont,
             () =>
             {

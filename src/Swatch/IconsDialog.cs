@@ -1,5 +1,6 @@
 using MentalDesk.Tui;
 using MentalDesk.Tui.Dialogs;
+using MentalDesk.Tui.Fields;
 using MentalDesk.Tui.Icons;
 
 namespace Swatch;
@@ -24,7 +25,7 @@ internal sealed class IconsDialog : AppDialog
             Orientation = Orientation.Horizontal,
             Labels = [.. Styles.Select(IconSettings.Name)],
             Value = Array.IndexOf(Styles, icons.Style),
-        };
+        }.SelectOnArrows();
         Style.ValueChanged += (_, e) =>
         {
             if (e.NewValue is { } index) icons.Preview(Styles[index]);

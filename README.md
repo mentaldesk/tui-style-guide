@@ -290,6 +290,11 @@ and `F12` shows what Auto chose.
 - **Tab moves focus, everywhere.** Terminal.Gui.Editor binds Tab to indent, so a multi-line field in
   a dialog is the library's `MultiLineField`, which leaves Tab, Esc and `Ctrl+Enter` to the dialog.
 - **Focus lands where work starts** when a view opens — the filter field, the summary, the first row.
+- **In a set of options, the arrows choose.** `Left`/`Right` (or `Up`/`Down`) pick the next option,
+  not just focus it, and focus enters on the chosen option. `Space` has nothing left to do. Terminal.Gui's
+  `OptionSelector` only moves focus, so call the library's
+  [`SelectOnArrows()`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Fields/OptionSelectors.cs)
+  on every one. Swatch's *Help › Icons…* uses it.
 - A container `View` that hosts focusable children needs `CanFocus = true`; `SetFocus()` silently
   returns false when any ancestor has it off.
 
