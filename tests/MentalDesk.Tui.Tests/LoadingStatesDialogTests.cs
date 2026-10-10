@@ -22,7 +22,7 @@ public class LoadingStatesDialogTests : StaticConfigurationTest
     private LoadingStatesDialog? Dialog => _host.App.TopRunnableView as LoadingStatesDialog;
 
     [Fact]
-    public void Help_opens_it_loading_with_its_keys_on_the_hint_row()
+    public void Help_opens_it_loading_with_a_button_for_each_key_and_no_hint_row()
     {
         Run(
             () => { _host.Shell.Commands.Execute(SwatchCommands.ShowLoadingStates); },
@@ -30,7 +30,10 @@ public class LoadingStatesDialogTests : StaticConfigurationTest
             () =>
             {
                 Assert.Equal(LoadState.Loading, Dialog!.Rows.State);
-                Assert.Equal("R reload  •  E load empty  •  F load failing  •  Esc close", Dialog.Hints.Says);
+                Assert.Equal(
+                    [" R Reload ", " E Load empty ", " F Load failing ", " Esc Close "],
+                    Dialog.SubViews.OfType<Button>().Select(button => button.Text));
+                Assert.Empty(Dialog.SubViews.OfType<MentalDesk.Tui.Chrome.HintRow>());
                 _host.App.InjectKey(Key.Esc);
             },
             () => Dialog is null);

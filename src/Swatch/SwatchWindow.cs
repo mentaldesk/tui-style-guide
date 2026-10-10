@@ -133,7 +133,7 @@ internal sealed class SwatchWindow : AppWindow
     {
         if (shell.App.TopRunnableView is not SwatchWindow window) return;
         Selection[] pairs = [.. Themes.Names.SelectMany(theme => SchemeNames.All.Select(scheme => new Selection(theme, scheme)))];
-        using var picker = new PickerDialog<Selection>("Go to scheme", width: 76, contentRows: 18, pairs, pair => pair.Display, verb: "go");
+        using var picker = new PickerDialog<Selection>("Go to scheme", width: 76, contentRows: 18, pairs, pair => pair.Display, verb: "Go");
         picker.Run(shell);
         if (picker.Chosen is not { } chosen) return;
         var theme = window._themes.Objects?.FirstOrDefault(node => node.Text == chosen.Theme);
