@@ -88,19 +88,19 @@ public class PickerHostTests : StaticConfigurationTest
             () => Press(Key.Esc));
 
     [Fact]
-    public void Nothing_matching_says_so_drops_Enter_and_Enter_does_nothing()
+    public void Nothing_matching_says_so_dims_Enter_and_Enter_does_nothing()
     {
         var ticks = 0;
         InPalette(
-            () => Palette!.Hints.Says.Contains("Enter run"),
+            () => Palette!.PickButton.Enabled,
             () => Type("xyz"),
             () => Palette!.NoMatches,
-            () => Palette!.Hints.Says == "Type to filter  •  Esc cancel",
+            () => !Palette!.PickButton.Enabled,
             () => Press(Key.Enter),
             () => ++ticks > 5,
             () => Palette is not null,
             () => Press(Key.Backspace, Key.Backspace, Key.Backspace),
-            () => Palette!.Hints.Says.Contains("Enter run") && !Palette.NoMatches,
+            () => Palette!.PickButton.Enabled && !Palette.NoMatches,
             () => Press(Key.Esc));
     }
 

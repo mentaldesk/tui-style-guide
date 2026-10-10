@@ -62,7 +62,7 @@ public class IconsDialogTests : StaticConfigurationTest
             Assert.Contains(Dialog.SubViews, view => view.Text == "Auto chose Plain: couldn't tell which font the terminal uses");
             Assert.Equal(" Ctrl+Enter Keep ", Dialog.KeepButton.Text);
             Assert.Equal(" Esc Cancel ", Dialog.CancelButton.Text);
-            Assert.Empty(Dialog.Hints.Says);
+            Assert.Empty(Dialog.SubViews.OfType<MentalDesk.Tui.Chrome.HintRow>());
             Press(Key.Esc);
         });
     }

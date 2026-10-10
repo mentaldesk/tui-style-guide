@@ -1,5 +1,6 @@
 using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Commands;
+using MentalDesk.Tui.Shell;
 
 namespace MentalDesk.Tui.Keys;
 
@@ -9,7 +10,7 @@ public sealed record KeyGroup(string? Heading, IReadOnlyList<KeyRow> Rows);
 
 public sealed record KeyColumn(string Heading, IReadOnlyList<KeyGroup> Groups);
 
-public sealed record KeySheet(KeyColumn? Here, KeyColumn Everywhere)
+public sealed record KeySheet(KeyColumn? Here, KeyColumn? Everywhere)
 {
     public const string OtherHeading = "Other";
 
@@ -21,7 +22,7 @@ public sealed record KeySheet(KeyColumn? Here, KeyColumn Everywhere)
             .ToList();
 
         KeyColumn? here = null;
-        if (scope != CommandScope.Global && Rows(bindings.Where(binding => binding.Scope == scope)) is { Count: > 0 } local)
+        if (scope != CommandScope.Global && Rows(commands, bindings.Where(binding => binding.Scope == scope)) is { Count: > 0 } local)
             here = new KeyColumn($"Here: {regionName ?? scope.Name}", [new KeyGroup(null, local)]);
 
         var global = bindings.Where(binding => binding.Scope == CommandScope.Global).ToList();
@@ -30,16 +31,25 @@ public sealed record KeySheet(KeyColumn? Here, KeyColumn Everywhere)
         foreach (var spec in menu)
         {
             var ids = spec.CommandIds.Where(listed.Add).ToList();
-            var rows = Rows(ids.SelectMany(id => global.Where(binding => binding.CommandId == id)));
+            var rows = Rows(commands, ids.SelectMany(id => global.Where(binding => binding.CommandId == id)));
             if (rows.Count > 0)
                 groups.Add(new KeyGroup(spec.Title.Replace("_", string.Empty, StringComparison.Ordinal), rows));
         }
-        var other = Rows(global.Where(binding => !listed.Contains(binding.CommandId)));
+        var other = Rows(commands, global.Where(binding => !listed.Contains(binding.CommandId)));
         if (other.Count > 0)
             groups.Add(new KeyGroup(OtherHeading, other));
         return new KeySheet(here, new KeyColumn("Everywhere", groups));
-
-        List<KeyRow> Rows(IEnumerable<KeyBinding> shown) =>
-            [.. shown.Select(binding => new KeyRow(binding.Display, commands.Find(binding.CommandId)!.Label))];
     }
+
+    // The app's keys don't run behind a dialog, so there's no Everywhere.
+    public static KeySheet ForDialog(string title, CommandRegistry commands, Keymap keys)
+    {
+        var bindings = keys.Bindings
+            .Where(binding => binding.CommandId != ShellCommands.ShowKeys && commands.IsEnabled(binding.CommandId))
+            .OrderBy(binding => binding.Chord is [var key] && key == Key.Esc);
+        return new KeySheet(new KeyColumn($"Here: {title}", [new KeyGroup(null, Rows(commands, bindings))]), null);
+    }
+
+    private static List<KeyRow> Rows(CommandRegistry commands, IEnumerable<KeyBinding> shown) =>
+        [.. shown.Select(binding => new KeyRow(binding.Display, commands.Find(binding.CommandId)!.Label))];
 }

@@ -20,7 +20,7 @@ public sealed class DiagnosticsDialog : AppDialog
     private readonly RecordingScope _scope;
 
     public DiagnosticsDialog(IApplication app, TerminalCursor cursor, string theme, IconSettings icons)
-        : base("Diagnostics", width: 72, contentRows: 14)
+        : base("Diagnostics", width: 72, contentRows: 15)
     {
         _cursor = cursor;
         var y = 0;
@@ -34,15 +34,15 @@ public sealed class DiagnosticsDialog : AppDialog
         IconsLine = iconsRow.Text;
         y++;
         y++;
-        Add(new Label { X = 1, Y = y++, Text = "Last key" });
+        Row("Last key", "Press any key to see it here");
         _keyName = Row("  Name", "—");
         _keyHex = Row("  Hex", "—");
         _keyBase = Row("  Base", "—");
         _keyRune = Row("  Rune", "—");
 
-        Commands.Register("diagnostics.close", "Close", Cancel);
-        Keys.Bind("Esc", "diagnostics.close");
-        ShowHints(Hint.Note("Press any key to see it here"), new Hint("diagnostics.close", "close"));
+        Commands.Register(CancelId, "Close", Cancel);
+        CloseButton = CommandButton(ButtonKind.Secondary, CancelId);
+        AddButtonRow(y + 1, CloseButton);
         _scope = new RecordingScope(this);
 
         ShowCursor();
@@ -60,6 +60,8 @@ public sealed class DiagnosticsDialog : AppDialog
     public string CursorLine => _cursorColour.Text;
 
     public string IconsLine { get; }
+
+    public Button CloseButton { get; }
 
     protected override IInputScope Scope => _scope;
 

@@ -1,3 +1,4 @@
+using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Dialogs;
 
 namespace MentalDesk.Tui.Tests;
@@ -46,6 +47,6 @@ public class ConfirmDialogTests : StaticConfigurationTest
         using var dialog = new ConfirmDialog("Save", ["Sure?"], [Save, Delete]);
 
         Assert.Equal([dialog.ButtonFor(Save), dialog.ButtonFor(Delete), dialog.CancelButton], dialog.ButtonRow);
-        Assert.Equal("", dialog.Hints.Says);
+        Assert.Empty(dialog.SubViews.OfType<HintRow>());
     }
 }

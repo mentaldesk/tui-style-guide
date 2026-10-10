@@ -58,7 +58,7 @@ public class KeySheetTests : StaticConfigurationTest
 
         var sheet = KeySheet.For(_commands, _keys, Themes.Name, Themes, menu);
 
-        Assert.Contains("View: Ctrl+K E Expand folders", Rows(sheet.Everywhere));
+        Assert.Contains("View: Ctrl+K E Expand folders", Rows(sheet.Everywhere!));
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public class KeySheetTests : StaticConfigurationTest
                 "Help: F1 Show keys",
                 "Other: F12 Show diagnostics",
             ],
-            Rows(sheet.Everywhere));
+            Rows(sheet.Everywhere!));
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class KeySheetTests : StaticConfigurationTest
         var sheet = Sheet(Themes);
 
         Assert.Equal([": Ctrl+T U Use this theme"], Rows(sheet.Here!));
-        Assert.DoesNotContain(Rows(sheet.Everywhere), row => row.Contains("Never bound", StringComparison.Ordinal));
+        Assert.DoesNotContain(Rows(sheet.Everywhere!), row => row.Contains("Never bound", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public class KeySheetTests : StaticConfigurationTest
         _keys.Unbind(KeyChord.Parse("F12"), CommandScope.Global);
         _keys.Bind("Ctrl+D", "diagnostics");
 
-        Assert.Contains("Other: Ctrl+D Show diagnostics", Rows(Sheet(Themes).Everywhere));
+        Assert.Contains("Other: Ctrl+D Show diagnostics", Rows(Sheet(Themes).Everywhere!));
     }
 
     [Fact]

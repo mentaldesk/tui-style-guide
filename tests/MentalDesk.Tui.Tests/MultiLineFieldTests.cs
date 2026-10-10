@@ -61,16 +61,16 @@ public class MultiLineFieldTests : StaticConfigurationTest
     public void Help_opens_it_with_the_field_focused_its_keys_on_the_buttons_and_no_hints()
     {
         string[]? buttons = null;
-        string? hints = null;
+        var hintRows = -1;
         Run(() =>
         {
             buttons = [Dialog!.PostButton.Text, Dialog.CancelButton.Text];
-            hints = Dialog.Hints.Says;
+            hintRows = Dialog.SubViews.OfType<MentalDesk.Tui.Chrome.HintRow>().Count();
             Press(Key.Esc);
         }, () => Dialog is null);
 
         Assert.Equal([" Ctrl+Enter Post ", " Esc Cancel "], buttons!);
-        Assert.Equal(string.Empty, hints);
+        Assert.Equal(0, hintRows);
     }
 
     [Fact]
