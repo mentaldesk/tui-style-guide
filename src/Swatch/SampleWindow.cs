@@ -2,6 +2,7 @@ using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Commands;
 using MentalDesk.Tui.Dialogs;
 using MentalDesk.Tui.Focus;
+using MentalDesk.Tui.Icons;
 using MentalDesk.Tui.Loading;
 using MentalDesk.Tui.Shell;
 using MentalDesk.Tui;
@@ -50,6 +51,8 @@ internal sealed class SampleWindow : AppWindow
 
         var todo = new TreeNode { Text = "todo.md" };
         _src = new TreeNode { Text = "src", Children = [new TreeNode { Text = "notes.md" }, todo] };
+        _files.DrawLine += (_, e) => IconField.Prepend(e, shell.Icons.Glyph(e.Model == _src ? SwatchIcons.Folder : SwatchIcons.File));
+        shell.Icons.Changed += OnIconsChanged;
         _files.ColorGetter = node => node == todo && _files.GetScheme() is { } scheme
             ? scheme with { Normal = scheme.Disabled, Active = scheme.Disabled }
             : null;
@@ -95,9 +98,15 @@ internal sealed class SampleWindow : AppWindow
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing && _load is not null) App?.RemoveTimeout(_load);
+        if (disposing)
+        {
+            if (_load is not null) App?.RemoveTimeout(_load);
+            Shell.Icons.Changed -= OnIconsChanged;
+        }
         base.Dispose(disposing);
     }
+
+    private void OnIconsChanged(object? sender, EventArgs e) => _files.SetNeedsDraw();
 
     private void Load(Outcome outcome)
     {

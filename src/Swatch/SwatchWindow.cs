@@ -18,10 +18,11 @@ internal sealed class SwatchWindow : AppWindow
     private readonly FrameView _previewPane;
     private readonly TreeView _themes = new() { Width = Dim.Fill(), Height = Dim.Fill() };
     private readonly ListView _roles = new() { Width = Dim.Fill(), Height = Dim.Fill() };
-    private readonly PreviewView _preview = new();
+    private readonly PreviewView _preview;
 
     public SwatchWindow(AppShell shell) : base(Register(shell))
     {
+        _preview = new PreviewView(shell.Icons);
         _themesPane = Panes.Create("Themes", _themes, x: 0, width: 24);
         _themesPane.SchemeName = SchemeNames.Sidebar;
         _rolesPane = Panes.Create("Roles", _roles, x: Pos.Right(_themesPane), width: 50);
@@ -77,7 +78,8 @@ internal sealed class SwatchWindow : AppWindow
             .Register(SwatchCommands.CloseTheme, "Close this theme", () => CloseTheme(shell), ThemesRegion.Scope)
             .Register(SwatchCommands.CopyColours, "Copy colours", () => CopyColours(shell), RolesRegion.Scope)
             .Register(SwatchCommands.ShowLoadingStates, "Show loading states", () => ShowLoadingStates(shell))
-            .Register(SwatchCommands.WriteComment, "Write a comment", () => WriteComment(shell));
+            .Register(SwatchCommands.WriteComment, "Write a comment", () => WriteComment(shell))
+            .Register(SwatchCommands.ShowIcons, "Icons…", () => ShowIcons(shell));
         shell.Keys
             .Bind("Ctrl+G T", SwatchCommands.GoToThemes)
             .Bind("Ctrl+G R", SwatchCommands.GoToRoles)
@@ -113,6 +115,7 @@ internal sealed class SwatchWindow : AppWindow
                 null,
                 new MenuEntry(SwatchCommands.ShowLoadingStates, "_Loading states…"),
                 new MenuEntry(SwatchCommands.WriteComment, "_Writing a comment…"),
+                new MenuEntry(SwatchCommands.ShowIcons, "_Icons…"),
                 new MenuEntry(ShellCommands.ShowDiagnostics, "Show _diagnostics"),
             ]));
         return shell;
@@ -144,7 +147,7 @@ internal sealed class SwatchWindow : AppWindow
     private static void TryTheme(AppShell shell)
     {
         if (shell.App.TopRunnableView is not SwatchWindow window) return;
-        using var sampleShell = new AppShell(shell.App, shell.Cursor);
+        using var sampleShell = new AppShell(shell.App, shell.Cursor, shell.Icons);
         using var sample = new SampleWindow(sampleShell, window.Showing.Theme);
         shell.RunNested(sampleShell, sample, window.Showing.Theme);
     }
@@ -178,6 +181,14 @@ internal sealed class SwatchWindow : AppWindow
         dialog.Run(shell);
         if (dialog.Confirmed)
             shell.ShowMessage("A demo: Swatch has nowhere to post it, so the comment went nowhere");
+    }
+
+    private static void ShowIcons(AppShell shell)
+    {
+        using var dialog = new IconsDialog(shell.Icons);
+        dialog.Run(shell);
+        if (!dialog.Confirmed)
+            shell.Icons.Revert();
     }
 
     private static void Confirm(AppShell shell, Func<string, ConfirmDialog> open, Func<ConfirmAction, string> said)

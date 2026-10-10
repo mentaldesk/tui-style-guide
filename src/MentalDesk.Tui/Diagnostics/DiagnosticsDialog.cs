@@ -1,5 +1,6 @@
 using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Dialogs;
+using MentalDesk.Tui.Icons;
 using MentalDesk.Tui.Keys;
 using MentalDesk.Tui.Theming;
 using Terminal.Gui.Drivers;
@@ -18,8 +19,8 @@ public sealed class DiagnosticsDialog : AppDialog
     private readonly Label _keyRune;
     private readonly RecordingScope _scope;
 
-    public DiagnosticsDialog(IApplication app, TerminalCursor cursor, string theme)
-        : base("Diagnostics", width: 72, contentRows: 12)
+    public DiagnosticsDialog(IApplication app, TerminalCursor cursor, string theme, IconSettings icons)
+        : base("Diagnostics", width: 72, contentRows: 14)
     {
         _cursor = cursor;
         var y = 0;
@@ -28,6 +29,10 @@ public sealed class DiagnosticsDialog : AppDialog
         Row("Terminal", Terminal());
         Row("Theme", theme);
         _cursorColour = Row("Cursor colour", string.Empty);
+        var iconsRow = Row("Icons", Icons(icons));
+        iconsRow.Height = 2;
+        IconsLine = iconsRow.Text;
+        y++;
         y++;
         Add(new Label { X = 1, Y = y++, Text = "Last key" });
         _keyName = Row("  Name", "—");
@@ -53,6 +58,8 @@ public sealed class DiagnosticsDialog : AppDialog
     }
 
     public string CursorLine => _cursorColour.Text;
+
+    public string IconsLine { get; }
 
     protected override IInputScope Scope => _scope;
 
@@ -82,6 +89,10 @@ public sealed class DiagnosticsDialog : AppDialog
         };
         _cursorColour.Text = $"asked {asked}{HintRow.Separator}terminal reports {reported}{verdict}";
     }
+
+    private static string Icons(IconSettings icons) => icons.Style == IconStyle.Auto
+        ? $"{IconSettings.Name(icons.InUse)} (Auto){HintRow.Separator}{icons.Detected.Reason}"
+        : $"{IconSettings.Name(icons.InUse)} (chosen){HintRow.Separator}Auto would pick {IconSettings.Name(icons.AutoChoice)}: {icons.Detected.Reason}";
 
     private static string Kitty(IApplication app) =>
         app.Driver?.KittyKeyboardCapabilities is not { } kitty ? "no answer"
