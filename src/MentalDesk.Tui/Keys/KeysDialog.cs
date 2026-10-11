@@ -1,5 +1,5 @@
 using System.Drawing;
-using MentalDesk.Tui.Chrome;
+using MentalDesk.Tui.Commands;
 using MentalDesk.Tui.Dialogs;
 
 namespace MentalDesk.Tui.Keys;
@@ -22,37 +22,41 @@ public sealed class KeysDialog : AppDialog
     {
         Sheet = sheet;
         Stacked = plan.Stacked;
-        Body = new View { X = 1, Y = 0, Width = Dim.Fill(1), Height = plan.ContentRows(screen) - 1, CanFocus = false };
+        var contentRows = plan.ContentRows(screen);
+        Body = new View { X = 1, Y = 0, Width = Dim.Fill(1), Height = contentRows - 2, CanFocus = false };
         Body.ViewportSettings |= ViewportSettingsFlags.HasVerticalScrollBar;
         Body.SetContentSize(new Size(plan.SheetWidth, plan.SheetHeight));
-        if (plan.Here is { } here)
+        if (plan.First is { } first)
         {
-            Body.Add(here.View);
+            Body.Add(first.View);
             if (Stacked)
             {
-                here.View.Width = Dim.Fill();
-                plan.Everywhere.View.Y = here.Height + 1;
+                first.View.Width = Dim.Fill();
+                plan.Last.View.Y = first.Height + 1;
             }
             else
             {
-                Body.Add(new Line { Orientation = Orientation.Vertical, X = here.Width + 1, Height = Dim.Fill() });
-                plan.Everywhere.View.X = here.Width + Gutter;
+                Body.Add(new Line { Orientation = Orientation.Vertical, X = first.Width + 1, Height = Dim.Fill() });
+                plan.Last.View.X = first.Width + Gutter;
             }
         }
-        plan.Everywhere.View.Width = Dim.Fill();
-        Body.Add(plan.Everywhere.View);
+        plan.Last.View.Width = Dim.Fill();
+        Body.Add(plan.Last.View);
         Add(Body);
 
         Commands
+            .Register(CancelId, "Close", Cancel)
             .Register("keys.up", "Scroll up", () => Body.ScrollVertical(-1))
             .Register("keys.down", "Scroll down", () => Body.ScrollVertical(1))
             .Register("keys.pageUp", "Page up", () => Body.ScrollVertical(-Body.Viewport.Height))
             .Register("keys.pageDown", "Page down", () => Body.ScrollVertical(Body.Viewport.Height));
+        Keys.Unbind([Key.F1], CommandScope.Global);
         Keys.Bind("CursorUp", "keys.up")
             .Bind("CursorDown", "keys.down")
             .Bind("PageUp", "keys.pageUp")
             .Bind("PageDown", "keys.pageDown");
-        ShowHints(new Hint(CancelId, "close"));
+        CloseButton = CommandButton(ButtonKind.Secondary, CancelId);
+        AddButtonRow(contentRows - 1, CloseButton);
         _scope = new ReferenceScope(Keys);
     }
 
@@ -61,6 +65,8 @@ public sealed class KeysDialog : AppDialog
     public bool Stacked { get; }
 
     public View Body { get; }
+
+    public Button CloseButton { get; }
 
     protected override IInputScope Scope => _scope;
 
@@ -86,27 +92,28 @@ public sealed class KeysDialog : AppDialog
         }
     }
 
-    private sealed record Plan(Column? Here, Column Everywhere, bool Stacked)
+    // Last is Everywhere, or Here alone in a dialog's sheet.
+    private sealed record Plan(Column? First, Column Last, bool Stacked)
     {
-        public int SheetWidth => Here is null ? Everywhere.Width
-            : Stacked ? Math.Max(Here.Width, Everywhere.Width)
-            : Here.Width + Gutter + Everywhere.Width;
+        public int SheetWidth => First is null ? Last.Width
+            : Stacked ? Math.Max(First.Width, Last.Width)
+            : First.Width + Gutter + Last.Width;
 
-        public int SheetHeight => Here is null ? Everywhere.Height
-            : Stacked ? Here.Height + 1 + Everywhere.Height
-            : Math.Max(Here.Height, Everywhere.Height);
+        public int SheetHeight => First is null ? Last.Height
+            : Stacked ? First.Height + 1 + Last.Height
+            : Math.Max(First.Height, Last.Height);
 
         public int Width => Math.Max(MinWidth, SheetWidth + Chrome);
 
-        // A blank row between the sheet and the hint.
-        public int ContentRows(Size screen) => Math.Max(3, Math.Min(SheetHeight + 1, screen.Height - Chrome));
+        // A blank row, then the button.
+        public int ContentRows(Size screen) => Math.Max(4, Math.Min(SheetHeight + 2, screen.Height - Chrome));
 
         public static Plan Of(KeySheet sheet, Size screen)
         {
-            var here = sheet.Here is null ? null : Column.Of(sheet.Here);
-            var everywhere = Column.Of(sheet.Everywhere);
-            var sideBySide = new Plan(here, everywhere, Stacked: false);
-            return here is null || sideBySide.Width <= screen.Width ? sideBySide : sideBySide with { Stacked = true };
+            Column[] columns = [.. new[] { sheet.Here, sheet.Everywhere }.OfType<KeyColumn>().Select(Column.Of)];
+            if (columns.Length == 1) return new Plan(null, columns[0], Stacked: false);
+            var sideBySide = new Plan(columns[0], columns[1], Stacked: false);
+            return sideBySide.Width <= screen.Width ? sideBySide : sideBySide with { Stacked = true };
         }
     }
 

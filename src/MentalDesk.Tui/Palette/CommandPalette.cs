@@ -6,7 +6,7 @@ namespace MentalDesk.Tui.Palette;
 
 public sealed class CommandPalette(CommandRegistry commands, Keymap keys, CommandScope scope)
     : PickerDialog<CommandPalette.Row>("Commands", width: 76, contentRows: 18, Rows(commands, keys, scope),
-        row => $"{row.Label} {row.Keys}", verb: "run", display: row => row.Format())
+        row => $"{row.Label} {row.Keys}", verb: "Run", display: row => row.Format())
 {
     private const int LabelWidth = 48;
 

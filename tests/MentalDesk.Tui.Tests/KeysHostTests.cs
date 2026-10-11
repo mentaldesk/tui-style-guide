@@ -64,8 +64,8 @@ public class KeysHostTests : StaticConfigurationTest
                 Assert.Equal(
                     ["Use this theme for Swatch", "Delete this theme", "Remove this theme", "Close this theme"],
                     Labels(Keys.Sheet.Here));
-                Assert.Equal(["File", "Go", "Theme", "Help"], Keys.Sheet.Everywhere.Groups.Select(group => group.Heading));
-                Assert.Equal("Esc close", Keys.Hints.Says);
+                Assert.Equal(["File", "Go", "Theme", "Help"], Keys.Sheet.Everywhere!.Groups.Select(group => group.Heading));
+                Assert.Equal(" Esc Close ", Keys.CloseButton.Text);
                 Assert.DoesNotContain(Descendants(Keys), view => view.CanFocus);
             },
             () => Press(Key.Esc),
@@ -108,17 +108,22 @@ public class KeysHostTests : StaticConfigurationTest
     }
 
     [Fact]
-    public void F1_with_another_dialog_open_does_nothing()
+    public void F1_in_another_dialog_shows_only_that_dialog_s_keys()
     {
         using var window = new SwatchWindow(_host.Shell);
-        var ticks = 0;
 
         _host.Run(window,
             () => FocusWord == "Themes",
             () => Press(Key.E.WithCtrl),
             () => _host.App.TopRunnableView is CommandPalette,
             () => Press(Key.F1),
-            () => ++ticks > 5,
+            () => Keys is not null,
+            () =>
+            {
+                Assert.Equal("Here: Commands", Keys!.Sheet.Here!.Heading);
+                Assert.Null(Keys.Sheet.Everywhere);
+            },
+            () => Press(Key.Esc),
             () => _host.App.TopRunnableView is CommandPalette,
             () => Press(Key.Esc),
             () => _host.App.TopRunnableView is SwatchWindow);

@@ -16,12 +16,12 @@ public sealed record ConfirmAction(string Label, ButtonKind Kind, Key Key);
 public sealed class ConfirmDialog : AppDialog
 {
     private const string Gap = "   ";
-    private const string NothingId = "dialog.nothing";
     private const string PreviousId = "dialog.previous";
     private const string NextId = "dialog.next";
     private const string CancelCaption = "Esc Cancel";
 
     private readonly Dictionary<ConfirmAction, Button> _buttons = [];
+    private readonly EnterScope _scope;
 
     public ConfirmDialog(
         string title, IReadOnlyList<string> lines, IReadOnlyList<ConfirmAction> actions,
@@ -47,13 +47,10 @@ public sealed class ConfirmDialog : AppDialog
         }
         var buttonsY = lines.Count + (field is null ? 1 : 2);
 
-        Commands.Register(NothingId, "Nothing", () => { });
         // Off while the field has focus, so the arrows move its cursor instead.
         Commands.Register(PreviousId, "Previous button", () => Move(-1), isEnabled: OnAButton);
         Commands.Register(NextId, "Next button", () => Move(+1), isEnabled: OnAButton);
-        // A focused Button presses on Enter, so Enter is always the dialog's: unbound, it does nothing.
-        Keys.Bind([Key.Enter], NothingId)
-            .Bind([Key.CursorLeft], PreviousId)
+        Keys.Bind([Key.CursorLeft], PreviousId)
             .Bind([Key.CursorRight], NextId);
 
         for (var i = 0; i < actions.Count; i++)
@@ -80,6 +77,7 @@ public sealed class ConfirmDialog : AppDialog
         Add([.. ButtonRow]);
         View focused = focus is not null ? _buttons[focus] : (View?)field ?? CancelButton;
         Initialized += (_, _) => focused.SetFocus();
+        _scope = new EnterScope(Keys);
     }
 
     public IReadOnlyList<string> Lines { get; }
@@ -93,6 +91,8 @@ public sealed class ConfirmDialog : AppDialog
     public ConfirmAction? Chosen { get; private set; }
 
     public Button ButtonFor(ConfirmAction action) => _buttons[action];
+
+    protected override IInputScope Scope => _scope;
 
     // A letter in the label is its underlined hotkey; any other key is written before the label, as in a hint.
     private static Button Button(ConfirmAction action) => action.Kind switch
@@ -138,5 +138,17 @@ public sealed class ConfirmDialog : AppDialog
     {
         var at = ButtonRow.ToList().FindIndex(button => button.HasFocus);
         ButtonRow[Math.Clamp(at < 0 ? 0 : at + by, 0, ButtonRow.Count - 1)].SetFocus();
+    }
+
+    // A focused Button presses on Enter, so Enter is always the dialog's: unbound, it does nothing.
+    private sealed class EnterScope(Keymap keys) : IInputScope
+    {
+        public KeyResult Handle(Key key)
+        {
+            var result = keys.Handle(key);
+            return result == KeyResult.Pass && key == Key.Enter ? KeyResult.Consumed : result;
+        }
+
+        public string? PendingChord => keys.PendingChord;
     }
 }

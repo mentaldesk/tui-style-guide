@@ -10,6 +10,13 @@ public static class AppButton
 
     public static Button Secondary(string text) => Filled(text, SchemeNames.ButtonSecondary);
 
+    public static Button Of(ButtonKind kind, string text) => kind switch
+    {
+        ButtonKind.Primary => Primary(text),
+        ButtonKind.Danger => Danger(text),
+        _ => Secondary(text),
+    };
+
     // With NoDecorations the stock Button drops its padding, so the padding is part of the text.
     private static Button Filled(string text, string scheme, bool isDefault = false) => new()
     {

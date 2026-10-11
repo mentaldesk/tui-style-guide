@@ -26,7 +26,7 @@ internal sealed class LoadingStatesDialog : AppDialog
     private object? _load;
 
     public LoadingStatesDialog(AppShell shell, TimeSpan? loadTime = null)
-        : base("Loading states", width: 68, contentRows: 8)
+        : base("Loading states", width: 68, contentRows: 9)
     {
         LoadTime = loadTime ?? TimeSpan.FromSeconds(1.5);
         Rows = new LoadStateView(_list, "Loading sample rows…") { Height = 7 };
@@ -35,15 +35,14 @@ internal sealed class LoadingStatesDialog : AppDialog
         Add(Rows);
 
         Commands
+            .Register(CancelId, "Close", Cancel)
             .Register(ReloadId, "Reload", () => Load(Outcome.Rows))
             .Register(EmptyId, "Load empty", () => Load(Outcome.Empty))
             .Register(FailingId, "Load failing", () => Load(Outcome.Failure));
         Keys.Bind([Key.R], ReloadId)
             .Bind([Key.E], EmptyId)
             .Bind([Key.F], FailingId);
-        ShowHints(
-            new Hint(ReloadId, "reload"), new Hint(EmptyId, "load empty"), new Hint(FailingId, "load failing"),
-            new Hint(CancelId, "close"));
+        AddButtonRow(8, [.. new[] { ReloadId, EmptyId, FailingId, CancelId }.Select(id => CommandButton(ButtonKind.Secondary, id))]);
         Initialized += (_, _) =>
         {
             _list.SetFocus();

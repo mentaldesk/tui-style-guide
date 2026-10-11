@@ -70,29 +70,14 @@ cursor; that sentence is the whole bar to clear.
 *and* a hint reading `Ctrl+Enter submit` is telling the user the same thing twice and asking them to
 work out whether it is one thing or two.
 
-**Each view picks one place for its keys: on its buttons, or in its hint bar.** Never both, and
+**Each view shows its keys in one place: on its buttons.** Never on a button and in a hint too, and
 never a mix: if one action shows its key, every action does, Cancel included. Wherever the key is
-shown, **it comes first**: `Del delete` in a hint, `▓ Del Delete ▓` on a button.
+shown, **it comes first**: `▓ Del Delete ▓` on a button, `F1 keys` in the status bar's one hint.
 
-- **A dialog that submits or cancels shows them as buttons**, keys on the labels, with no hint bar:
-  `▓ Ctrl+Enter Post ▓  ▓ Esc Cancel ▓`. That holds when the dialog is mostly a field.
-- **Use the hint bar where there are no buttons**, or where a key on every button would crowd them:
-  a picker, a dialog with many buttons. The main screen is different: see *The status bar*. Make
-  the hints clickable. A Terminal.Gui `Button` with its decorations turned off *is* a clickable hint:
-
-```csharp
-private static Button Hint(string text, Pos x) => new()
-{
-    Text = text,
-    X = x,
-    Y = Pos.AnchorEnd(1),
-    NoDecorations = true,
-    NoPadding = true,
-    ShadowStyle = ShadowStyles.None,
-    HotKeySpecifier = (Rune)0xffff,   // the hint names its own key; don't also claim a hotkey
-};
-```
-
+- **A dialog shows every action as a button**, keys on the labels, with no hint row:
+  `▓ Ctrl+Enter Post ▓  ▓ Esc Cancel ▓`. That holds when the dialog is mostly a field, when it's a
+  picker (`▓ Enter Run ▓  ▓ Esc Cancel ▓`), and when it has many actions. Its other keys are found
+  with `F1` (see *Status bars and hints*).
 
 ### Buttons
 
@@ -113,35 +98,43 @@ The library's [`AppButton`](https://github.com/mentaldesk/tui-style-guide/blob/m
 [themes](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Theming/themes.json) are the reference implementation.
 Swatch's *Theme › Delete…*, *Remove…* and *Close…* are live dialogs to tab through and hover over.
 
-### The hint bar
-
-Hints belong on the **last row of the view**, anchored with `Pos.AnchorEnd(1)`, separated by
-`  •  ` (two spaces, U+2022, two spaces). [`HintRow`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/HintRow.cs)
-lays them out.
-
-Write each hint as **key first, then a lower-case verb phrase**: the key is what the user is
-scanning for.
-
-```
-Type to filter  •  Up/Down/PgUp/PgDn  •  Enter compare  •  Esc cancel
-Ctrl+Enter submit  •  Esc cancel
-```
-
-- Order by how often the hint is used, with **cancel last**.
-- Name keys as the terminal reports them: `Ctrl+Enter`, `Esc`, `Up/Down`, `PgUp/PgDn`.
-- Leave out keys that every view has (`Tab` to move focus). Name the ones specific to this view.
-- **Hint the view's own actions, never a control's editing keys**: users should discover generic keyboard shortcuts like undo, select all, `Home`/`End`
-  via the context sensitive help (not the status/hint bar).
-- Keep it to one row. If the hints don't fit, the view is doing too much.
-
-### The status bar
+### Status bars and hints
 
 **The main screen's last row is the status bar, and it shows status, not keys**: the focus word
 (section 5), errors outside a dialog (section 3), and whatever describes where the user is, such as
 the selected item or the caret's row and column.
 
-**Its one hint is `F1 keys`** (section 5). Every other key is in the keys dialog, or in the command
-palette, which the keys dialog shows how to open. Without that one hint, none of them can be found.
+**Its one hint is `F1 keys`** (section 5). Without it, no other key can be found.
+
+**A dialog never has a hint row.** Every action it has is a button at its foot, right-aligned, with
+its key on the label (section 2).
+
+**Every other key, in a dialog or on the main screen, is found with `F1` (its *Here*) or the command
+palette, never on screen**: a picker's `Up/Down/PgUp/PgDn`, a control's editing keys such as undo,
+select all and `Home`/`End`.
+
+Write the status bar's hint and status text the same way:
+
+- **Key first, then a lower-case verb phrase**: `F1 keys`. The key is what the user is scanning for.
+- **Separate items with `  •  `** (two spaces, U+2022, two spaces): `Editor  •  F1 keys`.
+  [`HintRow`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/HintRow.cs)
+  lays them out.
+- Name keys as the terminal reports them: `Ctrl+Enter`, `Esc`, `PgUp`.
+- **Make the hint clickable.** A Terminal.Gui `Button` with its decorations turned off *is* a clickable hint:
+
+```csharp
+private static Button Hint(string text, Pos x) => new()
+{
+    Text = text,
+    X = x,
+    NoDecorations = true,
+    NoPadding = true,
+    ShadowStyle = ShadowStyles.None,
+    HotKeySpecifier = (Rune)0xffff,   // the hint names its own key; don't also claim a hotkey
+};
+```
+
+The status bar itself:
 
 - **It spans the full width of the screen's last row**, never the window title or the foot of one pane.
 - **Give it its own colour**, a `StatusBar` scheme whose background differs from every region above
@@ -152,15 +145,18 @@ palette, which the keys dialog shows how to open. Without that one hint, none of
 The library's [`AppStatusBar`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/AppStatusBar.cs),
 which `AppShell` gives `F1 keys` and nothing else, and the `StatusBar` scheme in each of its
 [themes](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Theming/themes.json) are the reference implementation.
+[`AppDialog`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Dialogs/AppDialog.cs)
+has no hint row, and lays out a dialog's buttons from its commands and keys. Every dialog in Swatch,
+the command palette and *Help › Loading states…* included, has buttons and no hint row.
 
 ## 3. Errors and status
 
 **An error must never be interleaved with the controls.** Growing a `Label` in place pushes it over
 whatever sits below, and an error that lands between the buttons reads as part of them.
 
-**Give the dialog a dedicated message block at its foot, below the hints**, spanning the full width,
+**Give the dialog a dedicated message block at its foot, below its buttons**, spanning the full width,
 occupying zero rows while there is nothing to say. When a message arrives, **the dialog grows** and
-the content above it shrinks — the message never steals the hint row.
+the content above it shrinks — the message never steals the buttons' row.
 
 The library's [`AlertView`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Dialogs/AlertView.cs) is the reference implementation: it
 word-wraps to as many rows as the message needs, reports that count as `Lines` so the dialog can
@@ -188,7 +184,7 @@ Rules that matter more than the widget:
 ### Loading and empty
 
 **A region that waits for data says so in itself**, where its content goes: not on the status bar,
-in a header or in the hint row. A message away from the pane outlives the load.
+or in a header. A message away from the pane outlives the load.
 
 **It's always one of four states**: loading, empty, failed, or its content. Never blank.
 
@@ -304,16 +300,21 @@ and `F12` shows what Auto chose.
 the keys bound to the focused region; *Everywhere* lists the global ones, grouped under the menu's
 headings. Both are read from the keymap when it opens, so they can't drift from the real bindings.
 
-- **The main screen's status bar always shows `F1 keys`, and no other hint** (see *The status bar*),
-  so it's in the same place in every app.
+**`F1` works in dialogs too, with *Here* only.** *Here* is headed with the dialog's title
+(`Here: Commands`) and lists every key the dialog binds, its buttons' keys included. There's no
+*Everywhere*: the app's keys don't work behind a dialog (see *Only what works here*). Closing it puts
+you back in the dialog, with focus where it was.
+
+- **The main screen's status bar always shows `F1 keys`, and no other hint** (see *Status bars and
+  hints*), so it's in the same place in every app. A dialog shows no `F1` hint: it works the same everywhere.
 - **A command that only works in one region belongs to that region**, and so do its keys, so they
   show under *Here* (see *Only what works here*).
-- It's a reference, not a runner: nothing in it takes focus, `Esc close` is its only hint, and it
-  leaves out commands that can't run here and commands with no key. The command palette has the
+- It's a reference, not a runner: nothing in it takes focus, its one button is `▓ Esc Close ▓`, `F1`
+  in it does nothing, and it leaves out commands that can't run here and commands with no key. The command palette has the
   second kind.
 
 The library's [`KeysDialog`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Keys/KeysDialog.cs),
-which `AppShell` binds to `F1`, is the reference implementation. Swatch's `Ctrl+T` theme commands,
+which `AppShell` binds to `F1` and `AppDialog` binds in every dialog, is the reference implementation. Swatch's `Ctrl+T` theme commands,
 all but *Try it*, belong to the Themes pane.
 
 ### Filtering a list
@@ -329,7 +330,8 @@ all but *Try it*, belong to the Themes pane.
   letters. Ties, and an empty filter, keep the list's own order.
 - **Match only what's on screen.** A hidden id never matches, so every row shows why it's there.
 - **Say when nothing matches**, in the list: a dimmed `(no matches)`. `Enter` then does nothing, and
-  the hint bar drops it.
+  its button is dimmed.
+- **An empty filter says `Type to filter`**, dimmed, in the field. It goes as soon as you type.
 - **Typing never leaves the filter.** `Up/Down/PgUp/PgDn` move the selection while the cursor stays
   in the field, and the first row is selected after every keystroke, so `Enter` takes the best match.
 
@@ -347,7 +349,7 @@ A dialog of buttons, such as an "are you sure?", works the same way in every app
 - **`Left`/`Right` (and `Tab`) move between the buttons, and `Space` presses the focused one.**
 - **Every action has one key, shown on its button**, Cancel's `Esc` too: the underlined letter
   (`S` save, `D` don't save), or the key written before the label (`▓ Del Delete ▓`). The letter
-  works without `Alt`. The dialog has no hint bar (section 2).
+  works without `Alt`. The dialog has no hint row (see *Status bars and hints*).
 - **`Enter` is optional.** Bind it only to a trivial, harmless action, never a destructive one, and
   then it is that action's one key (`▓ Enter Save ▓`). Where it isn't bound, it does nothing,
   whichever button has focus.
@@ -532,7 +534,7 @@ a vertical scroll bar.
 
 Then say, in prose:
 
-- **Every key the view shows**, verbatim, on its buttons or in its hint bar — it is part of the
+- **Every key the view shows**, verbatim, on its buttons or in the status bar — it is part of the
   design, not a detail for the implementer.
 - **Where focus starts**, and what `Enter` and `Esc` do.
 - **What happens when it fails.** Which message, shown where, and what survives. A requirement that
