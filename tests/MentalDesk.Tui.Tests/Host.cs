@@ -11,14 +11,17 @@ internal sealed class Host : IDisposable
     private const int MaxIterations = 1000;
 
     // Tests never reach the machine's real clipboard or settings.
-    public Host(IClipboard? platform = null, FontDetection? detected = null)
+    public Host(IClipboard? platform = null, FontDetection? detected = null, bool? isWindows = null)
     {
         SettingsPath = Path.Combine(Path.GetTempPath(), $"mentaldesk-{Guid.NewGuid():N}", "settings.json");
         var icons = new IconSettings(new MentalDeskSettings(SettingsPath), () => detected ?? new FontDetection(false, "a test terminal"));
         App = Application.Create();
         App.Init(driverName: DriverRegistry.Names.ANSI);
         App.Driver!.Clipboard = platform ?? new FakeClipboard();
-        Shell = new AppShell(App, new TerminalCursor(Written.Add), ClipboardProgram.Missing, icons);
+        Shell = new AppShell(App, new TerminalCursor(Written.Add), ClipboardProgram.Missing, icons)
+        {
+            IsWindows = isWindows ?? OperatingSystem.IsWindows(),
+        };
     }
 
     public IApplication App { get; }

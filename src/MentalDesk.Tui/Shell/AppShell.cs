@@ -75,6 +75,8 @@ public sealed class AppShell : IDisposable
 
     public IconSettings Icons { get; }
 
+    internal bool IsWindows { get; init; } = OperatingSystem.IsWindows();
+
     public AppMenu UseMenu(params MenuSpec[] layout) => Menu = new AppMenu(Commands, Keys, layout);
 
     public string ApplyTheme(string theme)
@@ -107,7 +109,7 @@ public sealed class AppShell : IDisposable
 
     public void ShowDiagnostics()
     {
-        using var diagnostics = new DiagnosticsDialog(App, Cursor, Themes.Current, Icons);
+        using var diagnostics = new DiagnosticsDialog(App, Cursor, Themes.Current, Icons, IsWindows);
         diagnostics.Run(this);
     }
 
@@ -173,7 +175,7 @@ public sealed class AppShell : IDisposable
         if (_nested || key.Handled || App.Popovers?.GetActivePopover() is not null) return;
         Focus.Reconcile();
         StatusBar.ClearMessage();
-        if (Scopes.Handle(key) != KeyResult.Pass || DeleteToLineEdge(key))
+        if (Scopes.Handle(CtrlEnter.FromWindows(key, IsWindows)) != KeyResult.Pass || DeleteToLineEdge(key))
             key.Handled = true;
     }
 

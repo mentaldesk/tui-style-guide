@@ -1,52 +1,61 @@
 using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Dialogs;
+using MentalDesk.Tui.Keys;
 
 namespace MentalDesk.Tui.Tests;
 
 public class ConfirmDialogTests : StaticConfigurationTest
 {
-    private static readonly ConfirmAction Delete = new("Delete", ButtonKind.Danger, Key.Delete);
-    private static readonly ConfirmAction Save = new("Save", ButtonKind.Primary, Key.S);
-    private static readonly ConfirmAction SaveOnEnter = new("Save", ButtonKind.Primary, Key.Enter);
+    private static readonly ConfirmAction Delete = new("Delete", ButtonKind.Danger, CtrlEnter.Key);
+    private static readonly ConfirmAction Save = new("Save", ButtonKind.Primary, CtrlEnter.Key);
+    private static readonly ConfirmAction DontSave = new("Don't save", ButtonKind.Danger, Key.D);
 
-    [Fact]
-    public void Enter_is_never_bound_to_a_danger_action()
+    [Theory]
+    [InlineData(ButtonKind.Primary)]
+    [InlineData(ButtonKind.Danger)]
+    public void An_action_bound_to_Enter_is_refused(ButtonKind kind)
     {
-        Assert.Throws<ArgumentException>(() => new ConfirmDialog("Delete", ["Sure?"], [Delete with { Key = Key.Enter }]));
+        Assert.Throws<ArgumentException>(() => new ConfirmDialog("Save", ["Sure?"], [Save with { Kind = kind }, DontSave with { Key = Key.Enter }]));
     }
 
     [Fact]
-    public void Enter_is_bound_to_one_action_at_most()
+    public void Ctrl_Enter_is_bound_to_exactly_one_action()
     {
-        Assert.Throws<ArgumentException>(() => new ConfirmDialog("Save", ["Sure?"], [SaveOnEnter, SaveOnEnter with { Label = "Keep" }]));
+        Assert.Throws<ArgumentException>(() => new ConfirmDialog("Save", ["Sure?"], [DontSave]));
+        Assert.Throws<ArgumentException>(() => new ConfirmDialog("Save", ["Sure?"], [Save, Delete]));
     }
 
     [Fact]
-    public void A_key_that_is_not_a_letter_of_the_label_is_written_before_it_on_the_button()
+    public void Focus_never_starts_on_a_Danger_button()
     {
-        using var dialog = new ConfirmDialog("Delete", ["Sure?"], [Delete, SaveOnEnter]);
+        Assert.Throws<ArgumentException>(() => new ConfirmDialog("Delete", ["Sure?"], [Delete], focus: Delete));
+    }
 
-        Assert.Equal(" Del Delete ", dialog.ButtonFor(Delete).Text);
-        Assert.Equal(" Enter Save ", dialog.ButtonFor(SaveOnEnter).Text);
-        Assert.True(dialog.ButtonFor(SaveOnEnter).IsDefault);
+    [Fact]
+    public void Ctrl_Enter_is_written_before_the_label_and_no_button_is_the_default()
+    {
+        using var dialog = new ConfirmDialog("Delete", ["Sure?"], [Delete]);
+
+        Assert.Equal(" Ctrl+Enter Delete ", dialog.ButtonFor(Delete).Text);
         Assert.Equal(" Esc Cancel ", dialog.CancelButton.Text);
+        Assert.DoesNotContain(dialog.ButtonRow, button => button.IsDefault);
     }
 
     [Fact]
     public void A_letter_key_is_the_buttons_underlined_hotkey()
     {
-        using var dialog = new ConfirmDialog("Save", ["Sure?"], [Save]);
+        using var dialog = new ConfirmDialog("Save", ["Sure?"], [Save, DontSave]);
 
-        Assert.Equal(" _Save ", dialog.ButtonFor(Save).Text);
-        Assert.Equal(Key.S, dialog.ButtonFor(Save).HotKey);
+        Assert.Equal(" _Don't save ", dialog.ButtonFor(DontSave).Text);
+        Assert.Equal(Key.D, dialog.ButtonFor(DontSave).HotKey);
     }
 
     [Fact]
     public void Cancel_comes_last_and_the_buttons_are_the_only_hints()
     {
-        using var dialog = new ConfirmDialog("Save", ["Sure?"], [Save, Delete]);
+        using var dialog = new ConfirmDialog("Save", ["Sure?"], [Save, DontSave]);
 
-        Assert.Equal([dialog.ButtonFor(Save), dialog.ButtonFor(Delete), dialog.CancelButton], dialog.ButtonRow);
+        Assert.Equal([dialog.ButtonFor(Save), dialog.ButtonFor(DontSave), dialog.CancelButton], dialog.ButtonRow);
         Assert.Empty(dialog.SubViews.OfType<HintRow>());
     }
 }

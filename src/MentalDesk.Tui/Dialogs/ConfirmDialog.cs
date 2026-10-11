@@ -29,10 +29,12 @@ public sealed class ConfirmDialog : AppDialog
         : base(title, DialogWidth(title, lines, actions), contentRows: lines.Count + (field is null ? 2 : 3))
     {
         if (actions.Count == 0) throw new ArgumentException("A confirm needs at least one action.", nameof(actions));
-        if (actions.Count(action => action.Key == Key.Enter) > 1)
-            throw new ArgumentException("Enter is bound to one action at most.", nameof(actions));
-        if (actions.Any(action => action.Key == Key.Enter && action.Kind == ButtonKind.Danger))
-            throw new ArgumentException("Enter is never bound to a Danger action.", nameof(actions));
+        if (actions.Any(action => action.Key == Key.Enter))
+            throw new ArgumentException("Enter never confirms a dialog: Ctrl+Enter does.", nameof(actions));
+        if (actions.Count(action => action.Key == CtrlEnter.Key) != 1)
+            throw new ArgumentException("Ctrl+Enter is bound to exactly one action.", nameof(actions));
+        if (focus is { Kind: ButtonKind.Danger })
+            throw new ArgumentException("Focus never starts on a Danger button.", nameof(focus));
 
         Lines = lines;
         for (var i = 0; i < lines.Count; i++)
@@ -60,7 +62,7 @@ public sealed class ConfirmDialog : AppDialog
             Commands.Register(id, action.Label, () => Choose(action));
             Keys.Bind([action.Key], id);
             var button = Button(action);
-            button.IsDefault = action.Key == Key.Enter;
+            button.IsDefault = false;
             button.Accepting += (_, e) => Press(e, () => Choose(action));
             _buttons[action] = button;
         }
@@ -140,14 +142,10 @@ public sealed class ConfirmDialog : AppDialog
         ButtonRow[Math.Clamp(at < 0 ? 0 : at + by, 0, ButtonRow.Count - 1)].SetFocus();
     }
 
-    // A focused Button presses on Enter, so Enter is always the dialog's: unbound, it does nothing.
+    // A focused Button presses on Enter, so the dialog takes Enter and does nothing with it.
     private sealed class EnterScope(Keymap keys) : IInputScope
     {
-        public KeyResult Handle(Key key)
-        {
-            var result = keys.Handle(key);
-            return result == KeyResult.Pass && key == Key.Enter ? KeyResult.Consumed : result;
-        }
+        public KeyResult Handle(Key key) => key == Key.Enter ? KeyResult.Consumed : keys.Handle(key);
 
         public string? PendingChord => keys.PendingChord;
     }

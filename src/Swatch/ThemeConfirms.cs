@@ -1,12 +1,13 @@
 using MentalDesk.Tui.Dialogs;
+using MentalDesk.Tui.Keys;
 
 namespace Swatch;
 
 internal static class ThemeConfirms
 {
-    public static readonly ConfirmAction Delete = new("Delete", ButtonKind.Danger, Key.Delete);
-    public static readonly ConfirmAction Remove = new("Remove", ButtonKind.Primary, Key.Enter);
-    public static readonly ConfirmAction Save = new("Save", ButtonKind.Primary, Key.S);
+    public static readonly ConfirmAction Delete = new("Delete", ButtonKind.Danger, CtrlEnter.Key);
+    public static readonly ConfirmAction Remove = new("Remove", ButtonKind.Primary, CtrlEnter.Key);
+    public static readonly ConfirmAction Save = new("Save", ButtonKind.Primary, CtrlEnter.Key);
     public static readonly ConfirmAction DontSave = new("Don't save", ButtonKind.Danger, Key.D);
 
     public static ConfirmDialog DeleteTheme(string theme) =>

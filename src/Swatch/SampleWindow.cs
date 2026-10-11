@@ -3,6 +3,7 @@ using MentalDesk.Tui.Commands;
 using MentalDesk.Tui.Dialogs;
 using MentalDesk.Tui.Focus;
 using MentalDesk.Tui.Icons;
+using MentalDesk.Tui.Keys;
 using MentalDesk.Tui.Loading;
 using MentalDesk.Tui.Shell;
 using MentalDesk.Tui;
@@ -30,7 +31,7 @@ internal sealed class SampleWindow : AppWindow
     public static readonly FocusRegion FilesRegion = new("Files", new CommandScope("Files"));
     public static readonly FocusRegion EditorRegion = new("Editor", new CommandScope("Editor"));
 
-    public static readonly ConfirmAction Save = new("Save", ButtonKind.Primary, Key.Enter);
+    public static readonly ConfirmAction Save = new("Save", ButtonKind.Primary, CtrlEnter.Key);
 
     private readonly TreeView _files = new() { Width = Dim.Fill(), Height = Dim.Fill() };
     private readonly SampleEditor _editor = new() { Width = Dim.Fill(), Height = Dim.Fill() };

@@ -186,7 +186,7 @@ public class SampleHostTests : StaticConfigurationTest
             () => Sample is not null,
             () => Press(action == "save" ? [Key.S.WithCtrl] : [Key.Tab.WithShift, Key.Delete]),
             () => _host.App.TopRunnableView is ConfirmDialog,
-            () => Press(action == "save" ? Key.Enter : Key.Delete),
+            () => Press(Key.Enter.WithCtrl),
             () => Sample?.Shell.StatusBar.Message is not null,
             () =>
             {

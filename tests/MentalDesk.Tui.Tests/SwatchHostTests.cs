@@ -265,7 +265,7 @@ public class SwatchHostTests : StaticConfigurationTest
             () => Press(Key.T.WithCtrl, Key.D),
             () => (dialog = _host.App.TopRunnableView as ConfirmDialog) is not null,
             () => dialog!.CancelButton.HasFocus,
-            () => dialog!.ButtonRow.Select(button => button.Text).SequenceEqual([" Del Delete ", " Esc Cancel "]),
+            () => dialog!.ButtonRow.Select(button => button.Text).SequenceEqual([" Ctrl+Enter Delete ", " Esc Cancel "]),
             () => Press(Key.Esc),
             () => _host.App.TopRunnableView is SwatchWindow);
 
@@ -292,7 +292,7 @@ public class SwatchHostTests : StaticConfigurationTest
 
     [Theory]
     [MemberData(nameof(KeysThatDoNotDelete))]
-    public void Esc_cancels_and_Enter_does_nothing_whichever_button_is_focused(Key move, Key key)
+    public void Esc_cancels_and_Enter_or_Del_does_nothing_whichever_button_is_focused(Key move, Key key)
     {
         using var window = new SwatchWindow(_host.Shell);
         ConfirmDialog? dialog = null;
@@ -319,11 +319,12 @@ public class SwatchHostTests : StaticConfigurationTest
         { Key.CursorLeft, Key.Enter },
         { Key.CursorRight, Key.Esc },
         { Key.CursorLeft, Key.Esc },
+        { Key.CursorRight, Key.Delete },
     };
 
     [Theory]
     [MemberData(nameof(WaysToDelete))]
-    public void Del_or_arrowing_to_Delete_and_Space_deletes_and_says_the_themes_are_built_in(Key[] keys)
+    public void Ctrl_Enter_or_arrowing_to_Delete_and_Space_deletes_and_says_the_themes_are_built_in(Key[] keys)
     {
         using var window = new SwatchWindow(_host.Shell);
         ConfirmDialog? dialog = null;
@@ -333,6 +334,7 @@ public class SwatchHostTests : StaticConfigurationTest
             () => Press(Key.T.WithCtrl, Key.D),
             () => (dialog = _host.App.TopRunnableView as ConfirmDialog) is not null,
             () => dialog!.CancelButton.HasFocus,
+            () => dialog!.ButtonRow.Select(button => button.Text).SequenceEqual([" Ctrl+Enter Delete ", " Esc Cancel "]),
             () => Press(keys),
             () => _host.App.TopRunnableView is SwatchWindow,
             () => _host.Shell.StatusBar.Message == "Swatch's themes are built in, so nothing was deleted");
@@ -341,11 +343,11 @@ public class SwatchHostTests : StaticConfigurationTest
         Assert.Equal(Themes.Names, window.ThemeNames);
     }
 
-    public static TheoryData<Key[]> WaysToDelete => new() { new[] { Key.Delete }, new[] { Key.CursorLeft, Key.Space }, new[] { Key.Tab, Key.Space } };
+    public static TheoryData<Key[]> WaysToDelete => new() { new[] { Key.Enter.WithCtrl }, new[] { Key.CursorLeft, Key.Space }, new[] { Key.Tab, Key.Space } };
 
     [Theory]
     [MemberData(nameof(WaysToRemove))]
-    public void Remove_takes_Enter_or_Space_on_its_button(Key[] keys)
+    public void Remove_takes_Ctrl_Enter_or_Space_on_its_button(Key[] keys)
     {
         using var window = new SwatchWindow(_host.Shell);
         ConfirmDialog? dialog = null;
@@ -355,7 +357,7 @@ public class SwatchHostTests : StaticConfigurationTest
             () => Press(Key.T.WithCtrl, Key.R),
             () => (dialog = _host.App.TopRunnableView as ConfirmDialog) is not null,
             () => dialog!.CancelButton.HasFocus,
-            () => dialog!.ButtonRow.Select(button => button.Text).SequenceEqual([" Enter Remove ", " Esc Cancel "]),
+            () => dialog!.ButtonRow.Select(button => button.Text).SequenceEqual([" Ctrl+Enter Remove ", " Esc Cancel "]),
             () => Press(keys),
             () => _host.App.TopRunnableView is SwatchWindow,
             () => _host.Shell.StatusBar.Message == "A demo: Swatch's themes are built in, so nothing was removed");
@@ -364,11 +366,11 @@ public class SwatchHostTests : StaticConfigurationTest
         Assert.Equal($"Remove {Themes.Names[0]}?", dialog.Title);
     }
 
-    public static TheoryData<Key[]> WaysToRemove => new() { new[] { Key.Enter }, new[] { Key.CursorLeft, Key.Space } };
+    public static TheoryData<Key[]> WaysToRemove => new() { new[] { Key.Enter.WithCtrl }, new[] { Key.CursorLeft, Key.Space } };
 
     [Theory]
     [MemberData(nameof(WaysToClose))]
-    public void Close_takes_S_D_or_Space_and_Enter_does_nothing(Key[] keys, string? said)
+    public void Close_takes_Ctrl_Enter_D_or_Space_and_Enter_does_nothing(Key[] keys, string? said)
     {
         using var window = new SwatchWindow(_host.Shell);
         ConfirmDialog? dialog = null;
@@ -379,7 +381,7 @@ public class SwatchHostTests : StaticConfigurationTest
             () => Press(Key.T.WithCtrl, Key.C),
             () => (dialog = _host.App.TopRunnableView as ConfirmDialog) is not null,
             () => dialog!.CancelButton.HasFocus,
-            () => dialog!.ButtonRow.Select(button => button.Text).SequenceEqual([" _Save ", " _Don't save ", " Esc Cancel "]),
+            () => dialog!.ButtonRow.Select(button => button.Text).SequenceEqual([" Ctrl+Enter Save ", " _Don't save ", " Esc Cancel "]),
             () => Press(keys),
             () => ++ticks > 5,
             () => _host.App.TopRunnableView is SwatchWindow == (said is not null),
@@ -391,12 +393,14 @@ public class SwatchHostTests : StaticConfigurationTest
 
     public static TheoryData<Key[], string?> WaysToClose => new()
     {
-        { [Key.S], "A demo: Swatch has no unsaved changes, so nothing was saved" },
+        { [Key.Enter.WithCtrl], "A demo: Swatch has no unsaved changes, so nothing was saved" },
         { [Key.D], "A demo: Swatch has no unsaved changes, so nothing was lost" },
         { [Key.CursorLeft, Key.CursorLeft, Key.Space], "A demo: Swatch has no unsaved changes, so nothing was saved" },
         { [Key.CursorLeft, Key.Space], "A demo: Swatch has no unsaved changes, so nothing was lost" },
         { [Key.Enter], null },
         { [Key.CursorLeft, Key.Enter], null },
+        { [Key.CursorLeft, Key.CursorLeft, Key.Enter], null },
+        { [Key.S], null },
     };
 
     [Fact]

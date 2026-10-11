@@ -12,7 +12,7 @@ namespace MentalDesk.Tui.Tests;
 
 public class DialogKeysTests : StaticConfigurationTest
 {
-    private readonly Host _host = new();
+    private readonly Host _host = new(isWindows: false);
 
     public override void Dispose()
     {
@@ -84,7 +84,7 @@ public class DialogKeysTests : StaticConfigurationTest
             () => Press(Key.Esc));
 
         Assert.Equal("Here: Unsaved changes", sheet!.Here!.Heading);
-        Assert.Equal(["← Previous button", "→ Next button", "S Save", "D Don't save", "Esc Cancel"], Rows(sheet));
+        Assert.Equal(["← Previous button", "→ Next button", "Ctrl+Enter Save", "D Don't save", "Esc Cancel"], Rows(sheet));
     }
 
     [Fact]
@@ -204,6 +204,26 @@ public class DialogKeysTests : StaticConfigurationTest
                 diagnostics.CloseButton.InvokeCommand(Command.Accept);
             },
             () => _host.App.TopRunnableView is SwatchWindow);
+    }
+
+    [Fact]
+    public void Diagnostics_says_when_this_terminal_does_not_report_Ctrl_Enter_until_it_does()
+    {
+        var before = "";
+        DiagnosticsDialog? diagnostics = null;
+        Run(
+            () => Press(Key.F12),
+            () => (diagnostics = _host.App.TopRunnableView as DiagnosticsDialog) is not null,
+            () =>
+            {
+                before = diagnostics!.CtrlEnterLine;
+                Press(Key.Enter.WithCtrl);
+            },
+            () => diagnostics!.CtrlEnterLine == "reported by this terminal",
+            () => Press(Key.Esc),
+            () => _host.App.TopRunnableView is SwatchWindow);
+
+        Assert.Equal("not reported by this terminal: Tab to the button and press Space", before);
     }
 
     [Fact]
