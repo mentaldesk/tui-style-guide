@@ -176,7 +176,7 @@ public class SettingsDialogTests : StaticConfigurationTest
         KeySheet? onSecond = null;
         Run(
             () => Press(Key.X),
-            () => _first.Actions == 1,
+            () => _first.Done == 1,
             () => Press(Key.F1),
             () => _host.App.TopRunnableView is KeysDialog keys && (onFirst = keys.Sheet) is not null,
             () => Press(Key.Esc),
@@ -184,14 +184,14 @@ public class SettingsDialogTests : StaticConfigurationTest
             () => Press(Key.PageDown.WithCtrl),
             () => _second.One.HasFocus,
             () => Press(Key.X),
-            () => _second.Actions == 1,
+            () => _second.Done == 1,
             () => Press(Key.F1),
             () => _host.App.TopRunnableView is KeysDialog keys && (onSecond = keys.Sheet) is not null,
             () => Press(Key.Esc),
             () => _host.App.TopRunnableView is SettingsDialog,
             () => Press(Key.Esc));
 
-        Assert.Equal([1, 1, 0], [_first.Actions, _second.Actions, _third.Actions]);
+        Assert.Equal([1, 1, 0], [_first.Done, _second.Done, _third.Done]);
         Assert.Equal("Here: Settings", onFirst!.Here!.Heading);
         Assert.Null(onFirst.Everywhere);
         var rows = onFirst.Here.Groups.SelectMany(group => group.Rows).Select(row => $"{row.Keys} {row.Label}").ToList();
@@ -244,7 +244,7 @@ public class SettingsDialogTests : StaticConfigurationTest
             One = new CheckBox { Text = "One" };
             Two = new CheckBox { Text = "Two", Y = 1 };
             One.ValueChanged += (_, _) => OnChanged();
-            Add(One, Two, ActionButton($"{title}.do", "Do it", Key.X, () => Actions++));
+            Add(One, Two, ActionButton($"{title}.do", "Do it", Key.X, () => Done++));
         }
 
         public CheckBox One { get; }
@@ -255,7 +255,7 @@ public class SettingsDialogTests : StaticConfigurationTest
 
         public int Reverts { get; private set; }
 
-        public int Actions { get; private set; }
+        public int Done { get; private set; }
 
         public bool Fail { get; set; }
 
