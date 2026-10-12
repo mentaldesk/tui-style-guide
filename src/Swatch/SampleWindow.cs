@@ -15,7 +15,9 @@ namespace Swatch;
 // The painted preview, live: every state here is Terminal.Gui's own.
 internal sealed class SampleWindow : AppWindow
 {
+    public const string SaveFile = "sample.save";
     public const string SaveTheme = "sample.saveTheme";
+    public const string Settings = "sample.settings";
     public const string DeleteTheme = "sample.deleteTheme";
     public const string Export = "sample.export";
     public const string Cut = "sample.cut";
@@ -148,23 +150,26 @@ internal sealed class SampleWindow : AppWindow
     private static AppShell Register(AppShell shell)
     {
         shell.Commands
-            .Register(SaveTheme, "Save theme…", () => SaveAs(shell))
+            .Register(SaveFile, "Save", () => shell.ShowMessage("A demo: this would have saved the file"))
+            .Register(SaveTheme, "Save theme as…", () => SaveAs(shell))
+            .Register(Settings, "Settings…", () => shell.ShowMessage("A demo: this would have opened the settings"))
             .Register(DeleteTheme, "Delete theme…", () => Delete(shell), FilesRegion.Scope)
             .Register(Export, "Export", () => { }, isEnabled: () => false)
             .Register(Back, "Back to Swatch", () => shell.App.RequestStop());
         foreach (var theme in Themes.Names)
             shell.Commands.Register(ThemeCommand(theme), $"Theme: {theme}", () => shell.StatusBar.State = shell.ApplyTheme(theme));
         shell.Keys
-            .Bind("Ctrl+S", SaveTheme)
+            .Bind("Ctrl+S", SaveFile)
             .Bind("Delete", DeleteTheme)
             .Bind("Esc", Back);
-        var hotLetters = new HashSet<char>();
         shell.UseMenu(
             new MenuSpec("_File", [
-                new MenuEntry(SaveTheme, "_Save theme…"),
-                new MenuEntry(DeleteTheme, "_Delete…"),
+                new MenuEntry(SaveFile, "Save"),
+                new MenuEntry(SaveTheme, "Save as…"),
+                new MenuEntry(Settings, "Settings…"),
+                new MenuEntry(DeleteTheme, "Delete…"),
                 null,
-                new MenuEntry(Export, "_Export"),
+                new MenuEntry(Export, "Export"),
             ]),
             new MenuSpec("_Edit", [
                 new MenuEntry(Cut, "Cu_t"),
@@ -179,7 +184,7 @@ internal sealed class SampleWindow : AppWindow
                 new MenuEntry(CollapseFolders, "_Collapse folders") { Opposite = new(ExpandFolders, "_Expand folders") },
             ]),
             new MenuSpec("_Theme", [.. Themes.Names.Select(theme =>
-                new MenuEntry(ThemeCommand(theme), Hot(theme, hotLetters), () => Themes.Current == theme))]),
+                new MenuEntry(ThemeCommand(theme), theme, () => Themes.Current == theme))]),
             new MenuSpec("_Help", [
                 new MenuEntry(ShellCommands.ShowCommands, "Show all _commands"),
                 new MenuEntry(Back, "_Back to Swatch"),
@@ -188,15 +193,6 @@ internal sealed class SampleWindow : AppWindow
     }
 
     public static string ThemeCommand(string theme) => $"sample.theme.{theme}";
-
-    // Midnight and Modern Borland would otherwise share M.
-    private static string Hot(string title, HashSet<char> taken)
-    {
-        var at = Enumerable.Range(0, title.Length)
-            .Where(i => i == 0 || title[i - 1] == ' ')
-            .FirstOrDefault(i => taken.Add(char.ToLowerInvariant(title[i])), -1);
-        return at < 0 ? title : title.Insert(at, "_");
-    }
 
     private static void SaveAs(AppShell shell)
     {

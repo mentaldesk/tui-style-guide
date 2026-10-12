@@ -346,6 +346,21 @@ and TuiCode's [`CamelHumps`](https://github.com/mentaldesk/tui-style-guide/blob/
 is the reference implementation. The command palette is built on it, and so is Swatch's
 *Go › Scheme…*.
 
+### Menu letters
+
+**Every item in an open menu has its own underlined letter, and pressing it runs the item**, without
+`Alt`, as the menu bar's titles do with it.
+
+- **No two items in a menu share a letter.** Each takes its first letter if that's free, else the first
+  letter of a later word (*Save [a]s…*), else any letter in its label (*Se[t]tings…*, with *Export* holding `E`). First letters are
+  handed out before later words, so *Open recent* doesn't take *Run*'s `R`. An item that marks its own
+  letter keeps it.
+- **A dimmed item keeps its letter**, underlined in the dim colour, so the menu doesn't change shape.
+  Pressing it does nothing, and the menu stays open.
+
+`AppMenu` picks the letters, keeping any a `MenuEntry` title marks with `_`. The sample app's *File*
+menu has *Save*, *Save as…* and *Settings…*; Swatch's *Theme › Use for Swatch* dims with its `U`.
+
 ### Dialog buttons
 
 A dialog of buttons, such as an "are you sure?", works the same way in every app:
@@ -355,7 +370,7 @@ A dialog of buttons, such as an "are you sure?", works the same way in every app
 - **The main action's key is `Ctrl+Enter`**, Danger or not (`▓ Ctrl+Enter Delete ▓`).
 - **Every action has one key, shown on its button**, Cancel's `Esc` too: the key written before the
   label (`▓ Ctrl+Enter Save ▓`), or for any other action the underlined letter (`D` don't save). The
-  letter works without `Alt`. The dialog has no hint row (see *Status bars and hints*).
+  letter works without `Alt`, as in a menu. The dialog has no hint row (see *Status bars and hints*).
 - **`Enter` does nothing**, whichever button has focus.
 
 ```

@@ -156,8 +156,33 @@ public class SwatchHostTests : StaticConfigurationTest
         foreach (var menu in menus)
         {
             var items = menu.PopoverMenu!.Root!.SubViews.OfType<MenuItem>().ToList();
+            Assert.DoesNotContain(Key.Empty, items.Select(item => item.HotKey));
             Assert.Equal(items.Count, items.Select(item => item.HotKey).Distinct().Count());
         }
+    }
+
+    [Fact]
+    public void A_dimmed_item_s_letter_runs_nothing_and_leaves_the_menu_open()
+    {
+        using var window = new SwatchWindow(_host.Shell);
+        var menu = _host.Shell.Menu!;
+        var themeMenu = menu.Menus.Single(item => item.Title == "_Theme");
+        var dimmed = false;
+        var ticks = 0;
+
+        _host.Run(window,
+            () => FocusWord == "Themes",
+            () => Press(Key.F10, Key.CursorRight, Key.CursorRight),
+            () => themeMenu.PopoverMenuOpen,
+            () => dimmed = menu.IsDimmed(SwatchCommands.UseTheme),
+            () => Press(Key.U),
+            () => ++ticks > 5,
+            () => themeMenu.PopoverMenuOpen,
+            () => Press(Key.Esc),
+            () => !menu.IsOpen);
+
+        Assert.True(dimmed);
+        Assert.Null(_host.Shell.StatusBar.Message);
     }
 
     [Fact]
