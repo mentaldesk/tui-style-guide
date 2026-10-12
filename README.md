@@ -72,7 +72,7 @@ work out whether it is one thing or two.
 
 **Each view shows its keys in one place: on its buttons.** Never on a button and in a hint too, and
 never a mix: if one action shows its key, every action does, Cancel included. Wherever the key is
-shown, **it comes first**: `▓ Del Delete ▓` on a button, `F1 keys` in the status bar's one hint.
+shown, **it comes first**: `▓ Ctrl+Enter Delete ▓` on a button, `F1 keys` in the status bar's one hint.
 
 - **A dialog shows every action as a button**, keys on the labels, with no hint row:
   `▓ Ctrl+Enter Post ▓  ▓ Esc Cancel ▓`. That holds when the dialog is mostly a field, when it's a
@@ -82,9 +82,9 @@ shown, **it comes first**: `▓ Del Delete ▓` on a button, `F1 keys` in the st
 ### Buttons
 
 - **A button is a filled block, not bracketed text.** No `[ ]`, one space of padding either side.
-- **One Primary per view, at most.** If `Enter` does anything, it's the Primary.
+- **One Primary per view, at most.**
 - **Danger is for destructive actions only**: delete, discard, overwrite. If the destructive action
-  is the only one besides Cancel, it's still Danger, not Primary, and it's never the default.
+  is the only one besides Cancel, it's still Danger, not Primary, and focus never starts on it.
 - **Everything else is Secondary**, including Cancel.
 - **Focus is shown by colour and in bold**, separately from emphasis, so a focused Secondary button
   is still obviously focused. **Hover** lightens the button without moving focus.
@@ -280,8 +280,13 @@ and `F12` shows what Auto chose.
 ## 5. Keys and focus
 
 - **`Esc` cancels. Always.** It never does anything else.
-- **`Enter` confirms a single-line dialog; `Ctrl+Enter` confirms one with a multi-line field**, where
-  plain `Enter` has to insert a newline. A dialog's `Enter` is always harmless (see *Dialog buttons*).
+- **`Ctrl+Enter` confirms. Always.** In every dialog, whether it has a field, a multi-line one or none,
+  so a user never has to stop and check which key this one takes. `Enter` never confirms a dialog: in
+  a multi-line field it starts a new line, and anywhere else it does nothing, so a stray `Enter` can't
+  delete or save anything. A picker is a list, not a dialog: `Enter` picks (see *Filtering a list*).
+- Framework mechanic: the Windows console reports `Ctrl+Enter` as `Ctrl+LineFeed`; `AppShell` turns it
+  back. Terminal.app and other terminals without the kitty keyboard protocol send it as plain `Enter`,
+  so there the user `Tab`s to the button and presses `Space`. `F12` says which this terminal does.
 - **Every action is reachable from the keyboard.** The mouse is a convenience, never the only way.
 - **Tab moves focus, everywhere.** Terminal.Gui.Editor binds Tab to indent, so a multi-line field in
   a dialog is the library's `MultiLineField`, which leaves Tab, Esc and `Ctrl+Enter` to the dialog.
@@ -347,33 +352,34 @@ A dialog of buttons, such as an "are you sure?", works the same way in every app
 
 - **`Esc` cancels.**
 - **`Left`/`Right` (and `Tab`) move between the buttons, and `Space` presses the focused one.**
-- **Every action has one key, shown on its button**, Cancel's `Esc` too: the underlined letter
-  (`S` save, `D` don't save), or the key written before the label (`▓ Del Delete ▓`). The letter
-  works without `Alt`. The dialog has no hint row (see *Status bars and hints*).
-- **`Enter` is optional.** Bind it only to a trivial, harmless action, never a destructive one, and
-  then it is that action's one key (`▓ Enter Save ▓`). Where it isn't bound, it does nothing,
-  whichever button has focus.
+- **The main action's key is `Ctrl+Enter`**, Danger or not (`▓ Ctrl+Enter Delete ▓`).
+- **Every action has one key, shown on its button**, Cancel's `Esc` too: the key written before the
+  label (`▓ Ctrl+Enter Save ▓`), or for any other action the underlined letter (`D` don't save). The
+  letter works without `Alt`. The dialog has no hint row (see *Status bars and hints*).
+- **`Enter` does nothing**, whichever button has focus.
 
 ```
 ┌─ Delete theme ───────────────────────────────────┐
 │ Delete "Solar"?                                  │
 │ This can't be undone.                            │
 │                                                  │
-│              ▓ Del Delete ▓   ▓ Esc Cancel ▓     │   Button (Danger, key Del), Button (Secondary, key Esc)
+│       ▓ Ctrl+Enter Delete ▓   ▓ Esc Cancel ▓     │   Button (Danger, key Ctrl+Enter), Button (Secondary, key Esc)
 └──────────────────────────────────────────────────┘
 ```
 
-Which button starts focused, the wording and the layout are up to the app. Two pieces of advice:
+Which button starts focused, as long as it isn't a Danger one, the wording and the layout are up to
+the app. Two pieces of advice:
 **name the action on the button** (`Delete`, not `OK`), and **say in the text whether it can be
 undone**.
 
 - Framework mechanic: a focused `Button` presses on `Enter`. The dialog takes `Enter` before the
-  button sees it, so an unbound `Enter` can't press Delete just because Delete has focus.
+  button sees it, so `Enter` can't press Delete just because Delete has focus.
 
 The library's [`ConfirmDialog`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Dialogs/ConfirmDialog.cs)
 is the reference implementation: give it the message and the actions with their keys. It refuses
-`Enter` on a Danger action, or on more than one. Swatch's *Theme › Delete…* (can't be
-undone), *Remove…* (`Enter` removes) and *Close…* (Save, Don't save, Cancel) try every key.
+an action on `Enter`, a dialog without exactly one action on `Ctrl+Enter`, and focus starting on a
+Danger button. Swatch's *Theme › Delete…* (can't be undone), *Remove…* and *Close…* (Save, Don't
+save, Cancel) try every key.
 
 ### Showing focus
 

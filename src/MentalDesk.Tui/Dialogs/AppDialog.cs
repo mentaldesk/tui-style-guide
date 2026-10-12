@@ -11,6 +11,7 @@ public abstract class AppDialog : Dialog
     private const string ButtonGap = "   ";
 
     private readonly int _contentRows;
+    private readonly ButtonsIgnoreEnter _buttonsIgnoreEnter;
     private AppShell? _shell;
 
     protected AppDialog(string title, int width, int contentRows)
@@ -22,6 +23,7 @@ public abstract class AppDialog : Dialog
         Height = Dim.Func(_ => _contentRows + Alert.Lines + GetAdornmentsThickness().Vertical);
         Add(Alert);
         Keys = new Keymap(Commands);
+        _buttonsIgnoreEnter = new ButtonsIgnoreEnter(this);
         Commands
             .Register(CancelId, "Cancel", Cancel)
             .Register(ShellCommands.ShowKeys, "Show keys", ShowKeys);
@@ -37,7 +39,7 @@ public abstract class AppDialog : Dialog
 
     protected Keymap Keys { get; }
 
-    protected virtual IInputScope Scope => Keys;
+    protected virtual IInputScope Scope => _buttonsIgnoreEnter;
 
     public void Run(AppShell shell)
     {
@@ -104,5 +106,14 @@ public abstract class AppDialog : Dialog
         using (var keys = new KeysDialog(KeysHere(), _shell.App.Screen.Size))
             keys.Run(_shell);
         focused?.SetFocus();
+    }
+
+    // A focused Button presses on Enter, and Enter never confirms a dialog.
+    private sealed class ButtonsIgnoreEnter(AppDialog dialog) : IInputScope
+    {
+        public KeyResult Handle(Key key) =>
+            key == Key.Enter && dialog.MostFocused is Button ? KeyResult.Consumed : dialog.Keys.Handle(key);
+
+        public string? PendingChord => dialog.Keys.PendingChord;
     }
 }

@@ -121,6 +121,28 @@ public class MultiLineFieldTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void Enter_on_a_button_presses_nothing()
+    {
+        var ticks = 0;
+        Run(
+            () => Type("a"),
+            () => Press(Key.Tab),
+            () => Dialog!.PostButton.HasFocus,
+            () => Press(Key.Enter),
+            () => ++ticks > 5,
+            () => Dialog is not null,
+            () => Press(Key.Tab),
+            () => Dialog!.CancelButton.HasFocus,
+            () => Press(Key.Enter),
+            () => ++ticks > 10,
+            () => Dialog is not null,
+            () => Press(Key.Esc),
+            () => Dialog is null);
+
+        Assert.Null(Host.Shell.StatusBar.Message);
+    }
+
+    [Fact]
     public void Tab_and_Shift_Tab_move_focus_and_never_type_a_tab()
     {
         var focus = new List<string>();

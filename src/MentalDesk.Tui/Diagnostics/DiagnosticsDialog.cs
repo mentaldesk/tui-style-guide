@@ -10,22 +10,29 @@ namespace MentalDesk.Tui.Diagnostics;
 public sealed class DiagnosticsDialog : AppDialog
 {
     private const int FieldX = 18;
+    private const string CtrlEnterReported = "reported by this terminal";
+    private const string CtrlEnterNotReported = "not reported by this terminal: Tab to the button and press Space";
 
     private readonly TerminalCursor _cursor;
     private readonly Label _cursorColour;
+    private readonly Label _ctrlEnter;
     private readonly Label _keyName;
     private readonly Label _keyHex;
     private readonly Label _keyBase;
     private readonly Label _keyRune;
     private readonly RecordingScope _scope;
 
-    public DiagnosticsDialog(IApplication app, TerminalCursor cursor, string theme, IconSettings icons)
-        : base("Diagnostics", width: 72, contentRows: 15)
+    public DiagnosticsDialog(IApplication app, TerminalCursor cursor, string theme, IconSettings icons, bool? isWindows = null)
+        : base("Diagnostics", width: 72, contentRows: 17)
     {
         _cursor = cursor;
         var y = 0;
         Row("Driver", app.Driver?.GetName() ?? "unknown");
         Row("Kitty keyboard", Kitty(app));
+        _ctrlEnter = Row("Ctrl+Enter",
+            CtrlEnter.IsReported(app, isWindows ?? OperatingSystem.IsWindows()) ? CtrlEnterReported : CtrlEnterNotReported);
+        _ctrlEnter.Height = 2;
+        y++;
         Row("Terminal", Terminal());
         Row("Theme", theme);
         _cursorColour = Row("Cursor colour", string.Empty);
@@ -61,6 +68,8 @@ public sealed class DiagnosticsDialog : AppDialog
 
     public string IconsLine { get; }
 
+    public string CtrlEnterLine => _ctrlEnter.Text;
+
     public Button CloseButton { get; }
 
     protected override IInputScope Scope => _scope;
@@ -73,6 +82,8 @@ public sealed class DiagnosticsDialog : AppDialog
         _keyHex.Text = $"0x{raw:X8}";
         _keyBase.Text = $"0x{raw & ~modifiers:X8}";
         _keyRune.Text = key.AsRune.Value != 0 ? $"U+{key.AsRune.Value:X4}  {key.AsGrapheme}" : "—";
+        if (key == CtrlEnter.Key)
+            _ctrlEnter.Text = CtrlEnterReported;
     }
 
     private void ShowCursor()
