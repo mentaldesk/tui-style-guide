@@ -75,6 +75,8 @@ public sealed class AppShell : IDisposable
 
     public IconSettings Icons { get; }
 
+    public MentalDeskSettings Settings => Icons.File;
+
     internal bool IsWindows { get; init; } = OperatingSystem.IsWindows();
 
     public AppMenu UseMenu(params MenuSpec[] layout) => Menu = new AppMenu(Commands, Keys, layout);
