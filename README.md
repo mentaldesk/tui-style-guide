@@ -57,6 +57,20 @@ Pick the control that matches the *shape of the input*, not the one that is easi
 rules: it wraps, shows a dimmed `Placeholder` while empty, undoes and selects like an editor, and
 copies through the library's clipboard. In Swatch, *Help › Writing a comment…* has one.
 
+It moves the caret with the keys a Mac user already knows:
+
+| To move to | Keys | On a Mac laptop |
+| --- | --- | --- |
+| Previous / next word | `Option+←/→` or `Ctrl+←/→` | — |
+| Start / end of the row you see | `Home` / `End` | `fn+←/→` |
+| Start / end of the text | `Ctrl+Home` / `Ctrl+End` | `fn+Ctrl+←/→` |
+
+Each selects as it moves with `Shift` held, and `Ctrl+A` selects all. `Option+←/→` works whether the
+terminal sends it as `Alt+←/→` (iTerm2, Ghostty) or `Esc b`/`Esc f` (Terminal.app).
+
+`Home` and `End` go by the row you see rather than the paragraph, as in TextEdit: in a box that wraps,
+a comment is often one long paragraph, and `End` would otherwise jump to the end of all of it.
+
 **Style a built-in before you replace it.** Most of what looks like "we need a custom control" is a
 property: `NoDecorations`, `NoPadding`, `ShadowStyle`, `SchemeName`, `Orientation`, `TabBehavior`.
 

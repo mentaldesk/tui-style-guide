@@ -2,6 +2,7 @@ using MentalDesk.Tui.Copying;
 using MentalDesk.Tui.Dialogs;
 using MentalDesk.Tui.Focus;
 using Terminal.Gui.Drivers;
+using Terminal.Gui.Editor.Rendering;
 
 namespace MentalDesk.Tui.Fields;
 
@@ -15,6 +16,15 @@ public sealed class MultiLineField : Terminal.Gui.Editor.Editor
         Key.CursorUp.WithCtrl.WithAlt, Key.CursorDown.WithCtrl.WithAlt,
     ];
 
+    // Option+←/→ on a Mac: Alt+←/→ from iTerm2 and Ghostty, Esc b/Esc f (Alt+B/Alt+F) from Terminal.app.
+    private static readonly (Key Key, Command Command)[] MacWordKeys =
+    [
+        (Key.CursorLeft.WithAlt, Command.WordLeft), (Key.CursorRight.WithAlt, Command.WordRight),
+        (Key.CursorLeft.WithAlt.WithShift, Command.WordLeftExtend), (Key.CursorRight.WithAlt.WithShift, Command.WordRightExtend),
+        (Key.B.WithAlt, Command.WordLeft), (Key.F.WithAlt, Command.WordRight),
+        (Key.B.WithAlt.WithShift, Command.WordLeftExtend), (Key.F.WithAlt.WithShift, Command.WordRightExtend),
+    ];
+
     private readonly FocusBorder _border;
     private string? _copyFailure;
 
@@ -25,6 +35,12 @@ public sealed class MultiLineField : Terminal.Gui.Editor.Editor
         ViewportSettings |= ViewportSettingsFlags.HasVerticalScrollBar;
         foreach (var key in EditorOnlyKeys)
             KeyBindings.Remove(key);
+        foreach (var (key, command) in MacWordKeys)
+            KeyBindings.ReplaceCommands(key, command);
+        AddCommand(Command.LeftStart, () => MoveTo(VisibleRow().Start, extend: false));
+        AddCommand(Command.RightEnd, () => MoveTo(VisibleRow().End, extend: false));
+        AddCommand(Command.LeftStartExtend, () => MoveTo(VisibleRow().Start, extend: true));
+        AddCommand(Command.RightEndExtend, () => MoveTo(VisibleRow().End, extend: true));
         AddCommand(Command.Copy, () =>
         {
             CopySelection();
@@ -67,6 +83,44 @@ public sealed class MultiLineField : Terminal.Gui.Editor.Editor
 
     protected override bool OnMouseEvent(Mouse mouse) =>
         mouse.Flags.HasFlag(MouseFlags.Ctrl) || mouse.Flags.HasFlag(MouseFlags.Alt) || base.OnMouseEvent(mouse);
+
+    // A row ends before the space it wraps at: the offset after that space is drawn on the next row.
+    private (int Start, int End) VisibleRow()
+    {
+        var line = Document!.GetLineByOffset(CaretOffset);
+        var text = Document.GetText(line);
+        var segments = WordWrapStrategy.ComputeSegments(text, Viewport.Width > 0 ? Viewport.Width : 80, IndentationSize);
+        var index = segments.Count - 1;
+        while (index > 0 && segments[index].StartOffset > CaretOffset - line.Offset)
+            index--;
+        var row = segments[index];
+        var end = row.StartOffset + row.Length;
+        if (index < segments.Count - 1)
+        {
+            var trimmed = row.StartOffset + text[row.StartOffset..end].TrimEnd().Length;
+            end = trimmed < end ? trimmed : end - 1;
+        }
+        return (line.Offset + row.StartOffset, line.Offset + Math.Max(row.StartOffset, end));
+    }
+
+    private bool MoveTo(int offset, bool extend)
+    {
+        if (!extend)
+        {
+            ClearSelection();
+            CaretOffset = offset;
+            return true;
+        }
+        // Editor keeps its selection anchor private, so step there with its own extending moves.
+        var forward = offset > CaretOffset;
+        while (forward ? CaretOffset < offset : CaretOffset > offset)
+        {
+            var before = CaretOffset;
+            InvokeCommand(forward ? Command.RightExtend : Command.LeftExtend);
+            if (CaretOffset == before) break;
+        }
+        return true;
+    }
 
     // A failure goes in the dialog's message block rather than the status bar, and the selection stays.
     private bool CopySelection()

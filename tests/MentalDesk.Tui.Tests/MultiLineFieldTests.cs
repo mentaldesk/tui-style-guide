@@ -287,6 +287,147 @@ public class MultiLineFieldTests : StaticConfigurationTest
         Assert.Equal("tw", selected);
     }
 
+    private const string Paragraph =
+        "The quick brown fox jumps over the lazy dog and keeps running through the long grass beyond the river, " +
+        "past the mill, over the bridge and up the hill until the sun goes down behind the far woods.";
+
+    private record Landing(int Caret, string Selected);
+
+    // From each start offset, presses the keys and records where the caret lands and what is selected.
+    private List<Landing> Landings(string text, IEnumerable<(int Start, Key[] Keys)> cases, Action<string[]>? rows = null)
+    {
+        var landings = new List<Landing>();
+        var steps = new List<Delegate> { () => { Field.Text = text; }, () => Row(Field, 0).Length > 0 };
+        if (rows is not null)
+            steps.Add(() => rows(Enumerable.Range(0, Field.Viewport.Height).Select(row => Row(Field, row)).ToArray()));
+        foreach (var (start, keys) in cases)
+        {
+            steps.Add(() =>
+            {
+                Field.ClearSelection();
+                Field.CaretOffset = start;
+                Press(keys);
+            });
+            steps.Add(() => landings.Add(new Landing(Field.CaretOffset, Field.SelectedText)));
+        }
+        steps.Add(() => Press(Key.Esc));
+        Run([.. steps]);
+        return landings;
+    }
+
+    private (int Start, int End)[] VisibleRows()
+    {
+        string[] rows = [];
+        Landings(Paragraph, [], seen => rows = seen.Where(row => row.Length > 0).ToArray());
+        Assert.True(rows.Length >= 3, "the paragraph wraps over at least three rows");
+        var at = 0;
+        return rows.Select(row =>
+        {
+            var start = Paragraph.IndexOf(row, at, StringComparison.Ordinal);
+            at = start + row.Length;
+            return (start, at);
+        }).ToArray();
+    }
+
+    [Fact]
+    public void Home_and_End_go_to_the_start_and_end_of_the_row_you_see()
+    {
+        var rows = VisibleRows();
+        var cases = new List<(int, Key[])>();
+        var expected = new List<Landing>();
+        foreach (var (start, end) in rows)
+        foreach (var from in new[] { start, (start + end) / 2, end })
+        {
+            cases.Add((from, [Key.End]));
+            expected.Add(new Landing(end, ""));
+            cases.Add((from, [Key.End, Key.End]));
+            expected.Add(new Landing(end, ""));
+            cases.Add((from, [Key.Home]));
+            expected.Add(new Landing(start, ""));
+        }
+
+        Assert.Equal(expected, Landings(Paragraph, cases));
+    }
+
+    [Fact]
+    public void Shift_Home_and_Shift_End_select_to_the_start_and_end_of_the_row()
+    {
+        var rows = VisibleRows();
+        var cases = new List<(int, Key[])>();
+        var expected = new List<Landing>();
+        foreach (var (start, end) in rows)
+        {
+            var middle = (start + end) / 2;
+            cases.Add((middle, [Key.End.WithShift]));
+            expected.Add(new Landing(end, Paragraph[middle..end]));
+            cases.Add((middle, [Key.Home.WithShift]));
+            expected.Add(new Landing(start, Paragraph[start..middle]));
+            cases.Add((middle, [Key.End.WithShift, Key.Home.WithShift]));
+            expected.Add(new Landing(start, Paragraph[start..middle]));
+        }
+
+        Assert.Equal(expected, Landings(Paragraph, cases));
+    }
+
+    [Fact]
+    public void Ctrl_Home_and_Ctrl_End_go_to_the_start_and_end_of_the_text()
+    {
+        var middle = VisibleRows()[1].Start + 3;
+
+        Assert.Equal(
+            [
+                new Landing(Paragraph.Length, ""),
+                new Landing(0, ""),
+                new Landing(Paragraph.Length, Paragraph[middle..]),
+                new Landing(0, Paragraph[..middle]),
+            ],
+            Landings(Paragraph, [
+                (middle, [Key.End.WithCtrl]),
+                (middle, [Key.Home.WithCtrl]),
+                (middle, [Key.End.WithCtrl.WithShift]),
+                (middle, [Key.Home.WithCtrl.WithShift]),
+            ]));
+    }
+
+    [Fact]
+    public void Home_and_End_stay_put_on_an_empty_line()
+    {
+        Assert.Equal(
+            [new Landing(4, ""), new Landing(4, "")],
+            Landings("one\n\ntwo", [(4, [Key.Home]), (4, [Key.End])]));
+    }
+
+    [Fact]
+    public void Option_arrows_and_Alt_B_and_F_move_by_word_like_Ctrl_arrows()
+    {
+        var jumps = Paragraph.IndexOf("jumps", StringComparison.Ordinal);
+        var over = Paragraph.IndexOf(" over", StringComparison.Ordinal);
+        var the = Paragraph.IndexOf("the lazy", StringComparison.Ordinal);
+        Key[][] right = [[Key.CursorRight.WithCtrl], [Key.CursorRight.WithAlt], [Key.F.WithAlt]];
+        Key[][] left = [[Key.CursorLeft.WithCtrl], [Key.CursorLeft.WithAlt], [Key.B.WithAlt]];
+        Key[][] selectRight = [[Key.CursorRight.WithCtrl.WithShift], [Key.CursorRight.WithAlt.WithShift], [Key.F.WithAlt.WithShift]];
+        Key[][] selectLeft = [[Key.CursorLeft.WithCtrl.WithShift], [Key.CursorLeft.WithAlt.WithShift], [Key.B.WithAlt.WithShift]];
+
+        var landings = Landings(Paragraph, [
+            .. right.Select(keys => (over, keys.Concat(keys).ToArray())),
+            .. left.Select(keys => (over, keys)),
+            .. selectRight.Select(keys => (over, keys)),
+            .. selectLeft.Select(keys => (over, keys)),
+        ]);
+
+        Assert.Equal(
+            [
+                .. Enumerable.Repeat(landings[0], 3),
+                .. Enumerable.Repeat(new Landing(jumps, ""), 3),
+                .. Enumerable.Repeat(landings[6], 3),
+                .. Enumerable.Repeat(new Landing(jumps, "jumps"), 3),
+            ],
+            landings);
+        Assert.Equal(the, landings[0].Caret);
+        Assert.Equal(Paragraph[over..landings[6].Caret], landings[6].Selected);
+        Assert.True(landings[6].Caret > over);
+    }
+
     [Fact]
     public void Ctrl_C_copies_the_selection_and_says_so_on_the_status_bar()
     {
