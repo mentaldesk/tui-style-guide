@@ -34,16 +34,16 @@ public class KeysHostTests : StaticConfigurationTest
         view.SubViews.SelectMany(sub => Descendants(sub).Prepend(sub));
 
     [Fact]
-    public void F1_keys_is_the_status_bar_s_only_hint_whichever_pane_has_focus()
+    public void Press_F1_for_help_is_the_status_bar_s_only_hint_whichever_pane_has_focus()
     {
         using var window = new SwatchWindow(_host.Shell);
 
         _host.Run(window,
             () => FocusWord == "Themes",
-            () => _host.Shell.StatusBar.Says == "F1 keys",
+            () => _host.Shell.StatusBar.Says == "Press F1 for help",
             () => Press(Key.G.WithCtrl, Key.R),
             () => FocusWord == "Roles",
-            () => _host.Shell.StatusBar.Says == "F1 keys");
+            () => _host.Shell.StatusBar.Says == "Press F1 for help");
     }
 
     [Fact]
@@ -59,8 +59,8 @@ public class KeysHostTests : StaticConfigurationTest
             () => Keys is not null,
             () =>
             {
-                Assert.Equal("Keys", Keys!.Title);
-                Assert.Equal("Here: Themes", Keys.Sheet.Here!.Heading);
+                Assert.Equal("Help", Keys!.Title);
+                Assert.Equal("Themes", Keys.Sheet.Here!.Heading);
                 Assert.Equal(
                     ["Use this theme for Swatch", "Delete this theme", "Remove this theme", "Close this theme"],
                     Labels(Keys.Sheet.Here));
@@ -83,7 +83,7 @@ public class KeysHostTests : StaticConfigurationTest
             () => FocusWord == "Roles",
             () => Press(Key.F1),
             () => Keys is not null,
-            () => Keys!.Sheet.Here?.Heading == "Here: Roles" && Labels(Keys.Sheet.Here).SequenceEqual(["Copy colours"]),
+            () => Keys!.Sheet.Here?.Heading == "Roles" && Labels(Keys.Sheet.Here).SequenceEqual(["Copy colours"]),
             () => Press(Key.Esc),
             () => _host.App.TopRunnableView is SwatchWindow);
     }
@@ -120,7 +120,7 @@ public class KeysHostTests : StaticConfigurationTest
             () => Keys is not null,
             () =>
             {
-                Assert.Equal("Here: Commands", Keys!.Sheet.Here!.Heading);
+                Assert.Equal("Commands", Keys!.Sheet.Here!.Heading);
                 Assert.Null(Keys.Sheet.Everywhere);
             },
             () => Press(Key.Esc),

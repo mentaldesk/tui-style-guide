@@ -46,7 +46,7 @@ public sealed class AppShell : IDisposable
             .Bind("F10", ShellCommands.ShowMenu)
             .Bind("F12", ShellCommands.ShowDiagnostics)
             .Bind("F1", ShellCommands.ShowKeys);
-        StatusBar.Hints.Show([new Hint(ShellCommands.ShowKeys, "keys")], Commands, Keys);
+        StatusBar.Hints.Show([("Press F1 for help", () => Commands.Execute(ShellCommands.ShowKeys))]);
 
         Focus.RegionChanged += (_, region) => StatusBar.SetFocusWord(region.Name);
         Scopes.ChordChanged += (_, chord) => StatusBar.SetChord(chord);

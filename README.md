@@ -86,7 +86,8 @@ work out whether it is one thing or two.
 
 **Each view shows its keys in one place: on its buttons.** Never on a button and in a hint too, and
 never a mix: if one action shows its key, every action does, Cancel included. Wherever the key is
-shown, **it comes first**: `▓ Ctrl+Enter Delete ▓` on a button, `F1 keys` in the status bar's one hint.
+shown, **it comes first**: `▓ Ctrl+Enter Delete ▓`. The status bar's `Press F1 for help` is the one
+exception (see *Status bars and hints*).
 
 - **A dialog shows every action as a button**, keys on the labels, with no hint row:
   `▓ Ctrl+Enter Post ▓  ▓ Esc Cancel ▓`. That holds when the dialog is mostly a field, when it's a
@@ -118,19 +119,23 @@ Swatch's *Theme › Delete…*, *Remove…* and *Close…* are live dialogs to t
 (section 5), errors outside a dialog (section 3), and whatever describes where the user is, such as
 the selected item or the caret's row and column.
 
-**Its one hint is `F1 keys`** (section 5). Without it, no other key can be found.
+**Its one hint is `Press F1 for help`, always last at its right end** (section 5). Without it, no
+other key can be found. It's the one hint that doesn't put the key first: it's a sentence for someone
+who hasn't learned the keys yet. Anything else the status bar shows on the right, such as the theme
+name, sits just before it: `Daylight  •  Press F1 for help`.
 
 **A dialog never has a hint row.** Every action it has is a button at its foot, right-aligned, with
 its key on the label (section 2).
 
-**Every other key, in a dialog or on the main screen, is found with `F1` (its *Here*) or the command
+**Every other key, in a dialog or on the main screen, is found with `F1` (under the area's name) or the command
 palette, never on screen**: a picker's `Up/Down/PgUp/PgDn`, a control's editing keys such as undo,
 select all and `Home`/`End`.
 
 Write the status bar's hint and status text the same way:
 
-- **Key first, then a lower-case verb phrase**: `F1 keys`. The key is what the user is scanning for.
-- **Separate items with `  •  `** (two spaces, U+2022, two spaces): `Editor  •  F1 keys`.
+- **Key first, then a lower-case verb phrase**: `Ctrl+E commands`. The key is what the user is
+  scanning for. `Press F1 for help` is the one exception.
+- **Separate items with `  •  `** (two spaces, U+2022, two spaces): `Daylight  •  Press F1 for help`.
   [`HintRow`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/HintRow.cs)
   lays them out.
 - Name keys as the terminal reports them: `Ctrl+Enter`, `Esc`, `PgUp`.
@@ -157,7 +162,7 @@ The status bar itself:
   between its items, so the status bar is a plain one-row `View` in the `StatusBar` scheme instead.
 
 The library's [`AppStatusBar`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/AppStatusBar.cs),
-which `AppShell` gives `F1 keys` and nothing else, and the `StatusBar` scheme in each of its
+which `AppShell` gives `Press F1 for help` and nothing else, and the `StatusBar` scheme in each of its
 [themes](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Theming/themes.json) are the reference implementation.
 [`AppDialog`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Dialogs/AppDialog.cs)
 has no hint row, and lays out a dialog's buttons from its commands and keys. Every dialog in Swatch,
@@ -315,19 +320,22 @@ and `F12` shows what Auto chose.
 
 ### Finding keys
 
-**`F1` always opens the keys for here and everywhere, and never means anything else.** *Here* lists
-the keys bound to the focused region; *Everywhere* lists the global ones, grouped under the menu's
-headings. Both are read from the keymap when it opens, so they can't drift from the real bindings.
+**`F1` always opens *Help*, and never means anything else.** *Everywhere* is on the left: the
+global keys, grouped under the menu's headings. The focused area's keys are on the right, headed with
+the area's name alone (`Themes`). When the two columns don't fit side by side, the area's keys go on
+top and *Everywhere* below. Both are read from the keymap when it opens, so they can't drift from the
+real bindings.
 
-**`F1` works in dialogs too, with *Here* only.** *Here* is headed with the dialog's title
-(`Here: Commands`) and lists every key the dialog binds, its buttons' keys included. There's no
-*Everywhere*: the app's keys don't work behind a dialog (see *Only what works here*). Closing it puts
-you back in the dialog, with focus where it was.
+**`F1` works in dialogs too, with one column.** It's headed with the dialog's title (`Commands`) and
+lists every key the dialog binds, its buttons' keys included. There's no *Everywhere*: the app's keys
+don't work behind a dialog (see *Only what works here*). Closing it puts you back in the dialog, with
+focus where it was.
 
-- **The main screen's status bar always shows `F1 keys`, and no other hint** (see *Status bars and
-  hints*), so it's in the same place in every app. A dialog shows no `F1` hint: it works the same everywhere.
+- **The main screen's status bar always ends with `Press F1 for help`, and shows no other hint** (see
+  *Status bars and hints*), so it's in the same place in every app. A dialog shows no `F1` hint: it
+  works the same everywhere.
 - **A command that only works in one region belongs to that region**, and so do its keys, so they
-  show under *Here* (see *Only what works here*).
+  show under its name (see *Only what works here*).
 - It's a reference, not a runner: nothing in it takes focus, its one button is `▓ Esc Close ▓`, `F1`
   in it does nothing, and it leaves out commands that can't run here and commands with no key. The command palette has the
   second kind.

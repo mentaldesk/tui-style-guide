@@ -19,6 +19,20 @@ public class ChromeTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void The_focus_word_stands_alone_until_a_message_follows_it()
+    {
+        using var bar = new AppStatusBar();
+        var focus = bar.SubViews.OfType<Label>().First();
+        bar.SetFocusWord("Roles");
+
+        var alone = focus.Text;
+        bar.ShowMessage("Copied");
+
+        Assert.Equal("Roles", alone);
+        Assert.Equal($"Roles{HintRow.Separator}", focus.Text);
+    }
+
+    [Fact]
     public void A_chord_in_flight_takes_the_hints_place_then_gives_it_back()
     {
         using var bar = new AppStatusBar();
@@ -33,17 +47,42 @@ public class ChromeTests : StaticConfigurationTest
     }
 
     [Fact]
-    public void A_message_replaces_the_hints_until_it_is_cleared()
+    public void A_message_is_what_the_bar_says_until_it_is_cleared_and_the_hint_stays_put()
     {
         using var bar = new AppStatusBar();
         bar.Hints.Show([("Ctrl+E commands", () => { }), ("Ctrl+Q quit", () => { })]);
 
         bar.ShowMessage("Couldn't read theme", Severity.Error);
         var during = bar.Says;
+        var hintShown = bar.Hints.Visible;
         bar.ClearMessage();
 
         Assert.Equal("Couldn't read theme", during);
+        Assert.True(hintShown);
         Assert.Equal($"Ctrl+E commands{HintRow.Separator}Ctrl+Q quit", bar.Says);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("Daylight")]
+    public void The_hint_is_last_on_the_right_with_any_state_just_before_it(string state)
+    {
+        const string help = "Press F1 for help";
+        using var bar = new AppStatusBar { State = state };
+        bar.SetFocusWord("Themes");
+        bar.Hints.Show([(help, () => { })]);
+
+        bar.Layout(new System.Drawing.Size(80, 1));
+
+        var hint = bar.Hints.FrameToScreen();
+        Assert.Equal(80 - 1, hint.Right);
+        Assert.Equal(80 - 1 - help.Length, hint.X);
+        if (state.Length > 0)
+        {
+            var label = bar.SubViews.SelectMany(view => view.SubViews.Prepend(view)).OfType<Label>()
+                .Single(view => view.Text == $"{state}{HintRow.Separator}");
+            Assert.Equal(hint.X, label.FrameToScreen().Right);
+        }
     }
 
     [Fact]

@@ -85,7 +85,7 @@ public class SampleHostTests : StaticConfigurationTest
     }
 
     [Fact]
-    public void The_sample_s_status_bar_offers_only_F1_keys_whichever_pane_has_focus()
+    public void The_sample_s_status_bar_offers_only_Press_F1_for_help_whichever_pane_has_focus()
     {
         using var window = new SwatchWindow(_host.Shell);
 
@@ -93,10 +93,10 @@ public class SampleHostTests : StaticConfigurationTest
             () => FocusWord == "Themes",
             () => Press(Key.T.WithCtrl, Key.T),
             () => Sample?.Shell.StatusBar.FocusWord == "Editor",
-            () => Sample!.Shell.StatusBar.Says == "F1 keys",
+            () => Sample!.Shell.StatusBar.Says == "Press F1 for help",
             () => Press(Key.Tab.WithShift),
             () => Sample!.Shell.StatusBar.FocusWord == "Files",
-            () => Sample!.Shell.StatusBar.Says == "F1 keys",
+            () => Sample!.Shell.StatusBar.Says == "Press F1 for help",
             () => Press(Key.Esc),
             () => _host.App.TopRunnableView is SwatchWindow);
     }

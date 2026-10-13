@@ -60,7 +60,7 @@ public class DialogKeysTests : StaticConfigurationTest
             () => Palette is not null,
             () => Press(Key.Esc));
 
-        Assert.Equal("Here: Commands", sheet!.Here!.Heading);
+        Assert.Equal("Commands", sheet!.Here!.Heading);
         Assert.Null(sheet.Everywhere);
         Assert.Equal(["Enter Run", "↑ Previous", "↓ Next", "PageUp Page up", "PageDown Page down", "Esc Cancel"], Rows(sheet));
     }
@@ -83,7 +83,7 @@ public class DialogKeysTests : StaticConfigurationTest
             () => dialog!.ButtonFor(ThemeConfirms.DontSave).HasFocus,
             () => Press(Key.Esc));
 
-        Assert.Equal("Here: Unsaved changes", sheet!.Here!.Heading);
+        Assert.Equal("Unsaved changes", sheet!.Here!.Heading);
         Assert.Equal(["← Previous button", "→ Next button", "Ctrl+Enter Save", "D Don't save", "Esc Cancel"], Rows(sheet));
     }
 
@@ -126,7 +126,7 @@ public class DialogKeysTests : StaticConfigurationTest
             () => Press(Key.Esc),
             () => _host.App.TopRunnableView is SwatchWindow);
 
-        Assert.Equal("Here: Bare", sheet!.Here!.Heading);
+        Assert.Equal("Bare", sheet!.Here!.Heading);
         Assert.Equal(["Esc Cancel"], Rows(sheet));
     }
 

@@ -66,7 +66,7 @@ public class KeySheetTests : StaticConfigurationTest
     {
         var sheet = Sheet(Themes);
 
-        Assert.Equal("Here: Themes", sheet.Here!.Heading);
+        Assert.Equal("Themes", sheet.Here!.Heading);
         Assert.Equal([": Ctrl+T U Use this theme", ": Ctrl+T D Delete this theme"], Rows(sheet.Here));
         Assert.Equal(
             [
@@ -116,6 +116,22 @@ public class KeySheetTests : StaticConfigurationTest
         Assert.True(narrow.Stacked);
         Assert.True(narrow.Body.GetContentSize().Width <= 40);
     }
+
+    [Fact]
+    public void The_sheet_is_titled_help_with_everywhere_first_when_wide_and_the_area_on_top_when_narrow()
+    {
+        using var wide = new KeysDialog(Sheet(Themes), new Size(120, 30));
+        using var narrow = new KeysDialog(Sheet(Themes), new Size(40, 30));
+
+        Assert.Equal("Help", wide.Title);
+        Assert.True(Column(wide, "Everywhere").X is PosAbsolute { Position: 0 });
+        Assert.True(Column(wide, "Themes").X is PosAbsolute { Position: > 0 });
+        Assert.True(Column(narrow, "Themes").Y is PosAbsolute { Position: 0 });
+        Assert.True(Column(narrow, "Everywhere").Y is PosAbsolute { Position: > 0 });
+    }
+
+    private static View Column(KeysDialog dialog, string heading) =>
+        dialog.Body.SubViews.Single(view => view.SubViews.FirstOrDefault()?.Text == heading);
 
     [Fact]
     public void A_sheet_taller_than_the_screen_scrolls()
