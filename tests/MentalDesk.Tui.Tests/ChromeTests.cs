@@ -142,6 +142,45 @@ public class ChromeTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void A_dimmed_menu_item_keeps_its_letter_underlined_in_the_dim_colour()
+    {
+        using var menu = new View { SchemeName = SchemeNames.Menu };
+        var item = new CommandMenuItem { Title = "_Use" };
+        menu.Add(item);
+
+        item.Dimmed = true;
+        var hot = item.GetAttributeForRole(VisualRole.HotNormal);
+
+        Assert.Equal(item.GetAttributeForRole(VisualRole.Disabled).Foreground, hot.Foreground);
+        Assert.Equal(menu.GetAttributeForRole(VisualRole.HotNormal).Style, hot.Style);
+        Assert.True(hot.Style.HasFlag(TextStyle.Underline));
+    }
+
+    [Theory]
+    [InlineData(new[] { "Save", "Save as…", "Settings…" }, new[] { "_Save", "Save _as…", "S_ettings…" })]
+    [InlineData(new[] { "Save as…", "Apply" }, new[] { "_Save as…", "_Apply" })]
+    [InlineData(new[] { "Open", "Open recent", "Run" }, new[] { "_Open", "O_pen recent", "_Run" })]
+    [InlineData(new[] { "Save", "Show _all", "Apply" }, new[] { "_Save", "Show _all", "A_pply" })]
+    [InlineData(new[] { "Cut", "_Copy" }, new[] { "C_ut", "_Copy" })]
+    [InlineData(new[] { "Turbo Pascal", "Modern Borland", "Midnight" }, new[] { "_Turbo Pascal", "_Modern Borland", "M_idnight" })]
+    public void Each_menu_item_gets_a_letter_of_its_own(string[] titles, string[] picked) =>
+        Assert.Equal(picked, MenuLetters.Pick(titles));
+
+    [Fact]
+    public void A_menu_letters_its_entries_and_their_opposites_together()
+    {
+        var commands = new CommandRegistry()
+            .Register("collapse", "Collapse", () => { })
+            .Register("expand", "Expand", () => { })
+            .Register("edit", "Edit", () => { })
+            .Register("close", "Close", () => { });
+        var menu = new AppMenu(commands, new Keymap(commands),
+            [new MenuSpec("_View", [new MenuEntry("collapse") { Opposite = new("expand") }, "edit", "close"])]);
+
+        Assert.Equal(["_Collapse", "_Expand", "E_dit", "C_lose"], menu.Items.Select(entry => entry.Item.Title));
+    }
+
+    [Fact]
     public void Of_two_opposite_actions_the_menu_shows_the_one_that_can_run_in_their_shared_place()
     {
         bool? expanded = true;

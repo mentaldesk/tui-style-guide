@@ -131,7 +131,7 @@ public class SampleHostTests : StaticConfigurationTest
             () => FocusWord == "Themes",
             () => Press(Key.T.WithCtrl, Key.T),
             () => Sample is not null,
-            () => Press(Key.S.WithCtrl),
+            () => Press(Key.F10, Key.A),
             () => _host.App.TopRunnableView is ConfirmDialog,
             () => Press(Key.Esc),
             () => Sample is not null,
@@ -184,7 +184,7 @@ public class SampleHostTests : StaticConfigurationTest
             () => FocusWord == "Themes",
             () => Press(Key.T.WithCtrl, Key.T),
             () => Sample is not null,
-            () => Press(action == "save" ? [Key.S.WithCtrl] : [Key.Tab.WithShift, Key.Delete]),
+            () => Press(action == "save" ? [Key.F10, Key.A] : [Key.Tab.WithShift, Key.Delete]),
             () => _host.App.TopRunnableView is ConfirmDialog,
             () => Press(Key.Enter.WithCtrl),
             () => Sample?.Shell.StatusBar.Message is not null,
@@ -213,10 +213,38 @@ public class SampleHostTests : StaticConfigurationTest
         foreach (var menu in menus)
         {
             var items = menu.PopoverMenu!.Root!.SubViews.OfType<MenuItem>().ToList();
+            Assert.DoesNotContain(Key.Empty, items.Select(item => item.HotKey));
             Assert.Equal(items.Count, items.Select(item => item.HotKey).Distinct().Count());
         }
+        Assert.Equal(["_Save", "Save _as…", "Se_ttings…", "_Delete…", "_Export"],
+            menus[0].PopoverMenu!.Root!.SubViews.OfType<MenuItem>().Select(item => item.Title));
         shell.Menu.Refresh();
         Assert.True(shell.Menu.IsDimmed(SampleWindow.Export));
+    }
+
+    [Fact]
+    public void An_open_menu_runs_an_item_from_its_letter_alone_and_closes()
+    {
+        using var window = new SwatchWindow(_host.Shell);
+        var said = "";
+
+        _host.Run(window,
+            () => FocusWord == "Themes",
+            () => Press(Key.T.WithCtrl, Key.T),
+            () => Sample is not null,
+            () => Press(Key.F10),
+            () => Sample!.Shell.Menu!.IsOpen,
+            () => Press(Key.T),
+            () => Sample!.Shell.StatusBar.Message is not null,
+            () =>
+            {
+                said = Sample!.Shell.StatusBar.Message!;
+                Assert.False(Sample.Shell.Menu!.IsOpen);
+                Press(Key.Esc);
+            },
+            () => _host.App.TopRunnableView is SwatchWindow);
+
+        Assert.Equal("A demo: this would have opened the settings", said);
     }
 
     [Fact]

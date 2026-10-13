@@ -28,8 +28,11 @@ internal sealed class CommandMenuItem : MenuItem
         if (!Dimmed) return base.OnGettingAttributeForRole(role, ref currentAttribute);
         var scheme = GetScheme();
         var disabled = scheme.GetAttributeForRole(VisualRole.Disabled, App?.Driver?.DefaultAttribute);
-        currentAttribute = HasFocus
-            ? disabled with { Background = scheme.GetAttributeForRole(VisualRole.Focus, App?.Driver?.DefaultAttribute).Background }
+        if (HasFocus)
+            disabled = disabled with { Background = scheme.GetAttributeForRole(VisualRole.Focus, App?.Driver?.DefaultAttribute).Background };
+        // Keeps its letter's underline, so the menu doesn't change shape.
+        currentAttribute = role is VisualRole.HotNormal or VisualRole.HotFocus
+            ? disabled with { Style = scheme.GetAttributeForRole(role, App?.Driver?.DefaultAttribute).Style }
             : disabled;
         return true;
     }
