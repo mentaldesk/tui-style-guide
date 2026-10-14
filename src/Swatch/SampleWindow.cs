@@ -8,6 +8,7 @@ using MentalDesk.Tui.Loading;
 using MentalDesk.Tui.Shell;
 using MentalDesk.Tui;
 using MentalDesk.Tui.Theming;
+using System.Collections.ObjectModel;
 using Terminal.Gui.Configuration;
 
 namespace Swatch;
@@ -32,11 +33,16 @@ internal sealed class SampleWindow : AppWindow
 
     public static readonly FocusRegion FilesRegion = new("Files", new CommandScope("Files"));
     public static readonly FocusRegion EditorRegion = new("Editor", new CommandScope("Editor"));
+    public static readonly FocusRegion LogRegion = new("Log", new CommandScope("Log"));
+
+    public static readonly AppScreen FilesScreen = new("Files", 'F');
+    public static readonly AppScreen LogScreen = new("Log", 'L');
 
     public static readonly ConfirmAction Save = new("Save", ButtonKind.Primary, CtrlEnter.Key);
 
     private readonly TreeView _files = new() { Width = Dim.Fill(), Height = Dim.Fill() };
     private readonly SampleEditor _editor = new() { Width = Dim.Fill(), Height = Dim.Fill() };
+    private readonly ListView _log = new() { Width = Dim.Fill(), Height = Dim.Fill() };
     private readonly TreeNode _src;
     private object? _load;
 
@@ -50,7 +56,11 @@ internal sealed class SampleWindow : AppWindow
         var filesPane = Panes.Create("Files", Files, x: 0, width: 24);
         filesPane.SchemeName = SchemeNames.Sidebar;
         var editorPane = Panes.Create("Editor", _editor, x: Pos.Right(filesPane), width: Dim.Fill());
-        Body.Add(filesPane, editorPane);
+        var logPane = Panes.Create("Log", _log, x: 0, width: Dim.Fill());
+        _log.SetSource(new ObservableCollection<string>(["Opened the sample", "Listed the files in src"]));
+        var filesScreen = Screen(filesPane, editorPane);
+        var logScreen = Screen(logPane);
+        Body.Add(filesScreen, logScreen);
 
         var todo = new TreeNode { Text = "todo.md" };
         _src = new TreeNode { Text = "src", Children = [new TreeNode { Text = "notes.md" }, todo] };
@@ -62,6 +72,8 @@ internal sealed class SampleWindow : AppWindow
 
         Panes.Track(shell, FilesRegion, filesPane, _files);
         Panes.Track(shell, EditorRegion, editorPane, _editor);
+        Panes.Track(shell, LogRegion, logPane, _log);
+        shell.AddScreen(FilesScreen, filesScreen, EditorRegion).AddScreen(LogScreen, logScreen, LogRegion);
         shell.Commands
             .Register(Cut, "Cut", () => _editor.Cut(), EditorRegion.Scope)
             .Register(Copy, "Copy", () => _editor.Copy(), EditorRegion.Scope)
@@ -107,6 +119,13 @@ internal sealed class SampleWindow : AppWindow
             Shell.Icons.Changed -= OnIconsChanged;
         }
         base.Dispose(disposing);
+    }
+
+    private static View Screen(params View[] panes)
+    {
+        var screen = new View { Width = Dim.Fill(), Height = Dim.Fill(), CanFocus = true };
+        screen.Add(panes);
+        return screen;
     }
 
     private void OnIconsChanged(object? sender, EventArgs e) => _files.SetNeedsDraw();
@@ -183,6 +202,7 @@ internal sealed class SampleWindow : AppWindow
                 null,
                 new MenuEntry(CollapseFolders, "_Collapse folders") { Opposite = new(ExpandFolders, "_Expand folders") },
             ]),
+            shell.GoMenu(shell.GoTo(FilesScreen), shell.GoTo(LogScreen)),
             new MenuSpec("_Theme", [.. Themes.Names.Select(theme =>
                 new MenuEntry(ThemeCommand(theme), theme, () => Themes.Current == theme))]),
             new MenuSpec("_Help", [

@@ -44,7 +44,7 @@ public class SwatchHostTests : StaticConfigurationTest
     }
 
     [Fact]
-    public void A_chord_shows_while_it_is_typed_then_moves_focus()
+    public void A_chord_shows_while_it_is_typed_then_runs()
     {
         using var window = new SwatchWindow(_host.Shell);
         var during = "";
@@ -54,8 +54,10 @@ public class SwatchHostTests : StaticConfigurationTest
             () => Press(Key.G.WithCtrl),
             () => _host.Shell.StatusBar.Says == "Ctrl+G…",
             () => { during = _host.Shell.StatusBar.Says; },
-            () => Press(Key.R),
-            () => FocusWord == "Roles");
+            () => Press(Key.S),
+            () => _host.App.TopRunnableView is PickerDialog<SwatchWindow.Selection>,
+            () => Press(Key.Esc),
+            () => _host.App.TopRunnableView is SwatchWindow);
 
         Assert.Equal("Ctrl+G…", during);
     }
@@ -82,10 +84,10 @@ public class SwatchHostTests : StaticConfigurationTest
             () => FocusWord == "Themes",
             () => Press(Key.E.WithCtrl),
             () => _host.App.TopRunnableView is CommandPalette,
-            () => Press([.. "preview".Select(c => new Key(c))]),
-            () => ((CommandPalette)_host.App.TopRunnableView!).Shown.Select(row => row.Label).SequenceEqual(["Go to preview"]),
+            () => Press([.. "next".Select(c => new Key(c))]),
+            () => ((CommandPalette)_host.App.TopRunnableView!).Shown.Select(row => row.Label).SequenceEqual(["Next pane"]),
             () => Press(Key.Enter),
-            () => _host.App.TopRunnableView is SwatchWindow && FocusWord == "Preview");
+            () => _host.App.TopRunnableView is SwatchWindow && FocusWord == "Roles");
     }
 
     [Fact]
@@ -99,7 +101,7 @@ public class SwatchHostTests : StaticConfigurationTest
             () => _host.App.TopRunnableView is CommandPalette,
             () => Press(Key.Esc),
             () => _host.App.TopRunnableView is SwatchWindow,
-            () => Press(Key.G.WithCtrl, Key.P),
+            () => Press(Key.F6.WithShift),
             () => FocusWord == "Preview");
     }
 
@@ -243,7 +245,7 @@ public class SwatchHostTests : StaticConfigurationTest
 
         _host.Run(window,
             () => FocusWord == "Themes",
-            () => Press(Key.G.WithCtrl, Key.R),
+            () => Press(Key.F6),
             () => FocusWord == "Roles",
             () => Press(Key.F10, Key.CursorRight, Key.CursorRight, Key.CursorRight),
             () => themeMenu.PopoverMenuOpen,

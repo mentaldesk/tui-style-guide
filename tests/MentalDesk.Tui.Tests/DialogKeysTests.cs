@@ -154,8 +154,8 @@ public class DialogKeysTests : StaticConfigurationTest
             () => _host.App.TopRunnableView is SwatchWindow,
             () => Press(Key.E.WithCtrl),
             () => Palette is not null,
-            () => Press([.. "go to roles".Select(c => new Key(c))]),
-            () => Palette!.Shown.FirstOrDefault()?.Label == "Go to roles",
+            () => Press([.. "next pane".Select(c => new Key(c))]),
+            () => Palette!.Shown.FirstOrDefault()?.Label == "Next pane",
             () => { Palette!.PickButton.InvokeCommand(Command.Accept); },
             () => _host.App.TopRunnableView is SwatchWindow && _host.Shell.StatusBar.FocusWord == "Roles");
     }

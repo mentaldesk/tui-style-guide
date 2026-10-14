@@ -309,6 +309,8 @@ and `F12` shows what Auto chose.
 - **Every action is reachable from the keyboard.** The mouse is a convenience, never the only way.
 - **Tab moves focus, everywhere.** Terminal.Gui.Editor binds Tab to indent, so a multi-line field in
   a dialog is the library's `MultiLineField`, which leaves Tab, Esc and `Ctrl+Enter` to the dialog.
+  `Tab` goes on from a pane's last control to the next pane. Where an app has a stated reason for `Tab`
+  to do something else, such as an editor that indents, `F6` is still the way out (see *Panes and screens*).
 - **Focus lands where work starts** when a view opens — the filter field, the summary, the first row.
 - **In a set of options, the arrows choose.** `Left`/`Right` (or `Up`/`Down`) pick the next option,
   not just focus it, and focus enters on the chosen option. `Space` has nothing left to do. Terminal.Gui's
@@ -317,6 +319,41 @@ and `F12` shows what Auto chose.
   on every one. Swatch's *Help › Icons…* uses it.
 - A container `View` that hosts focusable children needs `CanFocus = true`; `SetFocus()` silently
   returns false when any ancestor has it off.
+
+### Panes and screens
+
+A **pane** is a part of the current screen that takes its own keys: a sidebar view, an editor group,
+a list beside a detail. Moving to one only moves focus. A **screen** replaces everything below the menu
+bar, so moving to one redraws the window.
+
+- **`F6` / `Shift+F6` move to the next / previous pane**, in reading order, wrapping. Focus lands where
+  work starts in it. Every pane is reachable this way, whatever else the app binds.
+- **A pane the user moves to many times an hour may also have a chord of its own**, as TuiCode's
+  Explorer has `Ctrl+Shift+E`. It's a second way in, never the only one. Not `Ctrl+Esc`, which Windows
+  takes, and remember some terminals fold `Ctrl+Shift+letter` into `Ctrl+letter`.
+- **`Ctrl+G` then a letter switches screen.** Every screen has one, listed in the *Go* menu, with the
+  current screen checked, and in `F1`. Focus lands where work starts on the new screen.
+- **`Ctrl+G` is *Go*: to a screen, or to a place** (a line, a definition, a scheme). It never just
+  moves focus to a pane.
+
+```
+ Go
+┌────────────────────────────────┐
+│ Next pane            F6        │
+│ Previous pane        Shift+F6  │   Menu with MenuItems
+│ ────────────────────────────── │
+│ ● Files              Ctrl+G F  │
+│   Log                Ctrl+G L  │
+└────────────────────────────────┘
+```
+
+`AppShell` is the reference implementation. The regions an app registers with `FocusTracker` are its
+panes, in the order it registers them; `F6` and `Shift+F6` follow the framework's next- and
+previous-pane keys if the user rebinds them. `AddScreen` gives a screen its `Ctrl+G` letter and a
+*Go to* command, and throws if the letter clashes with a key already bound. `GoMenu` and `GoTo` build
+the *Go* menu above, and `F1` lists it under *Moving around*. In Swatch, `F6` cycles Themes, Roles and
+Preview, and *Go › Scheme…* is a place. In the sample app *Try this theme* opens, `Ctrl+G L` shows the
+*Log* screen and `Ctrl+G F` goes back to *Files*.
 
 ### Finding keys
 

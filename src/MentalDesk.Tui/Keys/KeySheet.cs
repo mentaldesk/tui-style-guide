@@ -33,7 +33,7 @@ public sealed record KeySheet(KeyColumn? Here, KeyColumn? Everywhere)
             var ids = spec.CommandIds.Where(listed.Add).ToList();
             var rows = Rows(commands, ids.SelectMany(id => global.Where(binding => binding.CommandId == id)));
             if (rows.Count > 0)
-                groups.Add(new KeyGroup(spec.Title.Replace("_", string.Empty, StringComparison.Ordinal), rows));
+                groups.Add(new KeyGroup(spec.KeysHeading ?? spec.Title.Replace("_", string.Empty, StringComparison.Ordinal), rows));
         }
         var other = Rows(commands, global.Where(binding => !listed.Contains(binding.CommandId)));
         if (other.Count > 0)

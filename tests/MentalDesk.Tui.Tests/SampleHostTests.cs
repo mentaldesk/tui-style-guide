@@ -41,7 +41,7 @@ public class SampleHostTests : StaticConfigurationTest
             () => FocusWord == "Themes",
             () => Press(DownToDaylight),
             () => window.Showing.Theme == Themes.Daylight,
-            () => Press(way is "enter" or "click" ? [Key.G.WithCtrl, Key.P] : []),
+            () => Press(way is "enter" or "click" ? [Key.F6, Key.F6] : []),
             () => way is not ("enter" or "click") || FocusWord == "Preview",
             () =>
             {
@@ -152,7 +152,7 @@ public class SampleHostTests : StaticConfigurationTest
             () => FocusWord == "Themes",
             () => Press(Key.T.WithCtrl, Key.T),
             () => (sample = Sample) is not null,
-            () => Press(Key.F10, Key.CursorRight, Key.CursorRight, Key.CursorRight),
+            () => Press(Key.F10, Key.CursorRight, Key.CursorRight, Key.CursorRight, Key.CursorRight),
             () => sample!.Shell.Menu!.Menus.Single(menu => menu.Title == "_Theme").PopoverMenuOpen,
             () => Press(Key.D),
             () => Themes.Current == Themes.Daylight,
@@ -166,7 +166,7 @@ public class SampleHostTests : StaticConfigurationTest
             () => Press(Key.Esc),
             () => _host.App.TopRunnableView is SwatchWindow);
 
-        Assert.Equal(["● _Daylight"], marked);
+        Assert.Equal(["● _Files", "● _Daylight"], marked);
         Assert.Equal(Themes.Daylight, sample!.Shell.StatusBar.State);
         Assert.Equal(Themes.Midnight, Themes.Current);
     }
@@ -209,7 +209,7 @@ public class SampleHostTests : StaticConfigurationTest
         using var sample = new SampleWindow(shell, Themes.Current);
 
         var menus = shell.Menu!.Menus;
-        Assert.Equal(["_File", "_Edit", "_View", "_Theme", "_Help"], menus.Select(menu => menu.Title));
+        Assert.Equal(["_File", "_Edit", "_View", "_Go", "_Theme", "_Help"], menus.Select(menu => menu.Title));
         foreach (var menu in menus)
         {
             var items = menu.PopoverMenu!.Root!.SubViews.OfType<MenuItem>().ToList();
@@ -258,10 +258,10 @@ public class SampleHostTests : StaticConfigurationTest
             () => FocusWord == "Themes",
             () => Press(Key.T.WithCtrl, Key.T),
             () => Sample?.Shell.StatusBar.FocusWord == "Editor",
-            () => Titles().SequenceEqual(["_File", "_Edit", "_View", "_Theme", "_Help"]),
+            () => Titles().SequenceEqual(["_File", "_Edit", "_View", "_Go", "_Theme", "_Help"]),
             () => Press(Key.Tab.WithShift),
             () => Sample!.Shell.StatusBar.FocusWord == "Files",
-            () => Titles().SequenceEqual(["_File", "_View", "_Theme", "_Help"]),
+            () => Titles().SequenceEqual(["_File", "_View", "_Go", "_Theme", "_Help"]),
             () => Press(Key.E.WithAlt),
             () => ++ticks > 5,
             () => { openedFromFiles = Sample!.Shell.Menu!.IsOpen; },

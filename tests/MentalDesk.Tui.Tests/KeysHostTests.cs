@@ -41,7 +41,7 @@ public class KeysHostTests : StaticConfigurationTest
         _host.Run(window,
             () => FocusWord == "Themes",
             () => _host.Shell.StatusBar.Says == "Press F1 for help",
-            () => Press(Key.G.WithCtrl, Key.R),
+            () => Press(Key.F6),
             () => FocusWord == "Roles",
             () => _host.Shell.StatusBar.Says == "Press F1 for help");
     }
@@ -64,7 +64,7 @@ public class KeysHostTests : StaticConfigurationTest
                 Assert.Equal(
                     ["Use this theme for Swatch", "Delete this theme", "Remove this theme", "Close this theme"],
                     Labels(Keys.Sheet.Here));
-                Assert.Equal(["File", "Go", "Theme", "Help"], Keys.Sheet.Everywhere!.Groups.Select(group => group.Heading));
+                Assert.Equal(["File", "Moving around", "Theme", "Help"], Keys.Sheet.Everywhere!.Groups.Select(group => group.Heading));
                 Assert.Equal(" Esc Close ", Keys.CloseButton.Text);
                 Assert.DoesNotContain(Descendants(Keys), view => view.CanFocus);
             },
@@ -79,7 +79,7 @@ public class KeysHostTests : StaticConfigurationTest
 
         _host.Run(window,
             () => FocusWord == "Themes",
-            () => Press(Key.G.WithCtrl, Key.R),
+            () => Press(Key.F6),
             () => FocusWord == "Roles",
             () => Press(Key.F1),
             () => Keys is not null,
@@ -166,7 +166,7 @@ public class KeysHostTests : StaticConfigurationTest
             () => FocusWord == "Themes",
             () => Press(DownToDaylight),
             () => window.Showing.Theme == Themes.Daylight,
-            () => Press(Key.G.WithCtrl, Key.R),
+            () => Press(Key.F6),
             () => FocusWord == "Roles",
             () => Press(Key.T.WithCtrl, Key.U),
             () => ++ticks > 5,
