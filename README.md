@@ -336,8 +336,9 @@ Auto's reason beside it, and `F12` shows what Auto chose.
   to the previous and next one, wrapping at either end, and `Tab` stays inside the current one.
 - **Focus lands where work starts** when a view opens — the filter field, the summary, the first row.
 - **In a set of options, the arrows choose.** `Left`/`Right` (or `Up`/`Down`) pick the next option,
-  not just focus it, and focus enters on the chosen option. `Space` has nothing left to do. Terminal.Gui's
-  `OptionSelector` only moves focus, so call the library's
+  not just focus it, and focus enters on the chosen option. `Tab` leaves the set in one press and never
+  changes the choice. `Space` has nothing left to do. Terminal.Gui's `OptionSelector` only moves focus,
+  and `Tab` steps through its options, so call the library's
   [`SelectOnArrows()`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Fields/OptionSelectors.cs)
   on every one. Swatch's *Settings* uses it for the icon style.
 - A container `View` that hosts focusable children needs `CanFocus = true`; `SetFocus()` silently

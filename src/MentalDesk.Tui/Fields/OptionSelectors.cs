@@ -5,6 +5,7 @@ public static class OptionSelectors
     // Terminal.Gui's arrows only move focus between options, and focus enters on the first option rather than the chosen one.
     public static T SelectOnArrows<T>(this T selector) where T : OptionSelector
     {
+        selector.TabBehavior = TabBehavior.NoStop;
         foreach (var option in selector.SubViews.OfType<CheckBox>())
             Follow(option);
         selector.SubViewAdded += (_, e) =>
