@@ -30,7 +30,7 @@ public sealed class AppShell : IDisposable
         App = app;
         Cursor = cursor;
         Icons = icons ?? IconSettings.ForThisUser();
-        Clipboard = InstallClipboard(app, clipboardTools);
+        Clipboard = TerminalClipboard.Install(app, clipboardTools);
         Links = new LinkOpener(Clipboard);
         Focus = new FocusTracker(FocusedView);
         Keys = new Keymap(Commands) { FocusedScope = () => Focus.Region?.Scope ?? CommandScope.Global };
@@ -165,15 +165,6 @@ public sealed class AppShell : IDisposable
         App.Keyboard.KeyDown -= OnKeyDown;
         App.Iteration -= OnIteration;
         Clipboard.Copied -= OnCopied;
-    }
-
-    // A nested shell shares the clipboard its outer shell installed.
-    private static TerminalClipboard InstallClipboard(IApplication app, ClipboardTools tools)
-    {
-        if (app.Driver is not { } driver) return new TerminalClipboard(null, _ => { }, tools);
-        if (driver.Clipboard is not TerminalClipboard installed)
-            driver.Clipboard = installed = new TerminalClipboard(driver.Clipboard, driver.WriteRaw, tools);
-        return installed;
     }
 
     private void OnCopied(object? sender, CopyOutcome outcome)
