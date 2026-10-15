@@ -53,7 +53,7 @@ public class CopyHostTests : StaticConfigurationTest
 
         host.Run(window,
             () => FocusWord == "Themes",
-            () => Press(Key.G.WithCtrl, Key.R),
+            () => Press(Key.F6),
             () => FocusWord == "Roles",
             () => Press(Key.CursorDown, Key.CursorDown, Key.C.WithCtrl),
             () => host.Shell.StatusBar.Message is not null);

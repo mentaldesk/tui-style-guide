@@ -1,4 +1,5 @@
 using MentalDesk.Tui.Dialogs;
+using MentalDesk.Tui.Keys;
 using MentalDesk.Tui.Palette;
 using MentalDesk.Tui.Theming;
 using Swatch;
@@ -48,29 +49,29 @@ public class PickerHostTests : StaticConfigurationTest
     }
 
     [Theory]
-    [InlineData("gt")]
-    [InlineData("GT")]
+    [InlineData("tt")]
+    [InlineData("TT")]
     public void Typing_humps_lists_the_matches_with_the_first_selected(string query) =>
         InPalette(
             () => Type(query),
-            () => Shown.SequenceEqual(["Go to preview", "Go to roles", "Go to scheme…", "Go to themes"]),
+            () => Shown.SequenceEqual(["Try this theme", "Close this theme", "Delete this theme", "Remove this theme", "Settings…"]),
             () => Palette!.SubViews.OfType<ListView>().Single().SelectedItem == 0,
             () => Press(Key.Esc));
 
     [Theory]
-    [InlineData("gtt")]
-    [InlineData("gotot")]
+    [InlineData("shk")]
+    [InlineData("shok")]
     public void More_letters_narrow_to_one(string query) =>
         InPalette(
             () => Type(query),
-            () => Shown.SequenceEqual(["Go to themes"]),
+            () => Shown.SequenceEqual(["Show keys"]),
             () => Press(Key.Esc));
 
     [Fact]
     public void Letters_inside_a_word_still_find_the_command_after_the_hump_matches() =>
         InPalette(
-            () => Type("heme"),
-            () => Shown.Contains("Go to themes"),
+            () => Type("eys"),
+            () => Shown.Contains("Show keys"),
             () => Press(Key.Esc));
 
     [Fact]
@@ -110,7 +111,7 @@ public class PickerHostTests : StaticConfigurationTest
         var list = (ListView?)null;
         InPalette(
             () => { list = Palette!.SubViews.OfType<ListView>().Single(); },
-            () => Type("gt"),
+            () => Type("sho"),
             () => list!.SelectedItem == 0,
             () => Press(Key.CursorDown, Key.CursorDown),
             () => list!.SelectedItem == 2,
@@ -121,9 +122,11 @@ public class PickerHostTests : StaticConfigurationTest
             () => list!.SelectedItem == 3,
             () => Press(Key.PageUp),
             () => list!.SelectedItem == 0,
-            () => Palette!.SubViews.OfType<TextField>().Single().Text == "gt",
-            () => Press(Key.CursorDown, Key.Enter),
-            () => _host.App.TopRunnableView is SwatchWindow && FocusWord == "Roles");
+            () => Palette!.SubViews.OfType<TextField>().Single().Text == "sho",
+            () => Press(Key.CursorDown, Key.CursorDown, Key.Enter),
+            () => _host.App.TopRunnableView is KeysDialog,
+            () => Press(Key.Esc),
+            () => _host.App.TopRunnableView is SwatchWindow);
     }
 
     [Fact]

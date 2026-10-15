@@ -69,4 +69,46 @@ public class FocusTrackerTests
 
         Assert.Equal(Left, _focus.Region);
     }
+
+    [Fact]
+    public void Next_and_previous_wrap_in_the_order_regions_were_registered()
+    {
+        _focus.Focus(Left);
+
+        Assert.True(_focus.Next());
+        Assert.Equal(Right, _focus.Region);
+        Assert.True(_focus.Next());
+        Assert.Equal(Left, _focus.Region);
+        Assert.True(_focus.Previous());
+        Assert.Equal(Right, _focus.Region);
+    }
+
+    [Fact]
+    public void With_no_region_yet_next_goes_to_the_first_and_previous_to_the_last()
+    {
+        Assert.True(_focus.Next());
+        Assert.Equal(Left, _focus.Region);
+
+        var fresh = new FocusTracker(() => _focused);
+        fresh.Register(Left, () => Move("left"), view => view is "left");
+        fresh.Register(Right, () => Move("right"), view => view is "right");
+        Assert.True(fresh.Previous());
+        Assert.Equal(Right, fresh.Region);
+    }
+
+    [Fact]
+    public void A_region_that_can_t_take_focus_is_skipped()
+    {
+        var middle = new FocusRegion("Middle", CommandScope.Global);
+        var focus = new FocusTracker(() => _focused);
+        focus.Register(Left, () => Move("left"), view => view is "left");
+        focus.Register(middle, () => false, _ => false);
+        focus.Register(Right, () => Move("right"), view => view is "right");
+        focus.Focus(Left);
+
+        Assert.True(focus.Next());
+        Assert.Equal(Right, focus.Region);
+        Assert.True(focus.Previous());
+        Assert.Equal(Left, focus.Region);
+    }
 }

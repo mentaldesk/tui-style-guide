@@ -7,4 +7,6 @@ public static class ShellCommands
     public const string ShowMenu = "app.menu";
     public const string ShowDiagnostics = "app.diagnostics";
     public const string ShowKeys = "app.keys";
+    public const string NextPane = "app.nextPane";
+    public const string PreviousPane = "app.previousPane";
 }

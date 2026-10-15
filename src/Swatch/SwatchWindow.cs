@@ -88,9 +88,6 @@ internal sealed class SwatchWindow : AppWindow
     private static AppShell Register(AppShell shell)
     {
         shell.Commands
-            .Register(SwatchCommands.GoToThemes, "Go to themes", () => shell.Focus.Focus(ThemesRegion))
-            .Register(SwatchCommands.GoToRoles, "Go to roles", () => shell.Focus.Focus(RolesRegion))
-            .Register(SwatchCommands.GoToPreview, "Go to preview", () => shell.Focus.Focus(PreviewRegion))
             .Register(SwatchCommands.GoToScheme, "Go to scheme…", () => GoToScheme(shell))
             .Register(SwatchCommands.UseTheme, "Use this theme for Swatch", () => UseTheme(shell), ThemesRegion.Scope,
                 isEnabled: () => shell.App.TopRunnableView is SwatchWindow window && window.Showing.Theme != Themes.Current)
@@ -104,9 +101,6 @@ internal sealed class SwatchWindow : AppWindow
             .Register(SwatchCommands.ShowSettings, "Settings…", () => ShowSettings(shell))
             .Register(SwatchCommands.OpenGuide, "Open the guide on GitHub", () => shell.OpenLink(GuideUrl));
         shell.Keys
-            .Bind("Ctrl+G T", SwatchCommands.GoToThemes)
-            .Bind("Ctrl+G R", SwatchCommands.GoToRoles)
-            .Bind("Ctrl+G P", SwatchCommands.GoToPreview)
             .Bind("Ctrl+G S", SwatchCommands.GoToScheme)
             .Bind("Ctrl+T U", SwatchCommands.UseTheme)
             .Bind("Ctrl+T T", SwatchCommands.TryTheme)
@@ -118,12 +112,7 @@ internal sealed class SwatchWindow : AppWindow
         shell.UseMenu(
             new MenuSpec("_File", [new MenuEntry(SwatchCommands.ShowSettings, "_Settings…"), null, ShellCommands.Quit]),
             new MenuSpec("_Edit", [new MenuEntry(SwatchCommands.CopyColours, "_Copy colours")]),
-            new MenuSpec("_Go", [
-                new MenuEntry(SwatchCommands.GoToThemes, "_Themes"),
-                new MenuEntry(SwatchCommands.GoToRoles, "_Roles"),
-                new MenuEntry(SwatchCommands.GoToPreview, "_Preview"),
-                new MenuEntry(SwatchCommands.GoToScheme, "_Scheme…"),
-            ]),
+            shell.GoMenu(new MenuEntry(SwatchCommands.GoToScheme, "_Scheme…")),
             new MenuSpec("_Theme", [
                 new MenuEntry(SwatchCommands.TryTheme, "_Try it"),
                 new MenuEntry(SwatchCommands.UseTheme, "_Use for Swatch"),
