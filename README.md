@@ -59,14 +59,16 @@ copies through the library's clipboard. In Swatch, *Help › Writing a comment�
 
 It moves the caret with the keys a Mac user already knows:
 
-| To move to | Keys | On a Mac laptop |
-| --- | --- | --- |
-| Previous / next word | `Option+←/→` or `Ctrl+←/→` | — |
-| Start / end of the row you see | `Home` / `End` | `fn+←/→` |
-| Start / end of the text | `Ctrl+Home` / `Ctrl+End` | `fn+Ctrl+←/→` |
+| To move to | Keys | On a Mac laptop | With [Mac keys](#mac-keys) on |
+| --- | --- | --- | --- |
+| Previous / next word | `Option+←/→` or `Ctrl+←/→` | — | `Option+←/→` |
+| Start / end of the row you see | `Home` / `End` | `fn+←/→` | `Cmd+←/→` |
+| Start / end of the text | `Ctrl+Home` / `Ctrl+End` | `fn+Ctrl+←/→` | `Cmd+↑/↓` |
 
 Each selects as it moves with `Shift` held, and `Ctrl+A` selects all. `Option+←/→` works whether the
-terminal sends it as `Alt+←/→` (iTerm2, Ghostty) or `Esc b`/`Esc f` (Terminal.app).
+terminal sends it as `Alt+←/→` (iTerm2, Ghostty) or `Esc b`/`Esc f` (Terminal.app). With Mac keys on,
+`Cmd+⌫` and `Option+⌫` delete to the start of the line and the previous word, and `Cmd+A`, `Cmd+C`,
+`Cmd+X` and `Cmd+Z` select all, copy, cut and undo, in `MultiLineField` and `TextField` alike.
 
 `Home` and `End` go by the row you see rather than the paragraph, as in TextEdit: in a box that wraps,
 a comment is often one long paragraph, and `End` would otherwise jump to the end of all of it.
@@ -489,8 +491,59 @@ The library's [`SettingsDialog`](https://github.com/mentaldesk/tui-style-guide/b
 is the reference implementation. An app adds its own pages, each a
 [`SettingsPage`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Settings/SettingsPage.cs)
 that says whether it has changes and how to keep or put them back. Swatch's *File › Settings…* has
-an *Appearance* page (theme and icon style) and a *Swatches* page, whose *Reset to defaults…* asks
-through `ConfirmDialog` and stages the reset.
+an *Appearance* page (theme and icon style), a *Swatches* page, whose *Reset to defaults…* asks
+through `ConfirmDialog` and stages the reset, and a *Mac keys* page.
+
+### Mac keys
+
+**Cmd and Option keys are each app's own, turned on from a *Mac keys* page in its Settings.** A Mac
+terminal never passes Cmd to the app. So the library installs a small file in iTerm2, kitty or WezTerm,
+under the app's name, that turns them into keys every `TextField` and `MultiLineField` already
+handles, only while that app runs. The shell and every other app keep the terminal's own keys, and
+installing or removing one app's file never touches another's.
+
+| Keys | Does |
+| --- | --- |
+| `Cmd+←` / `Cmd+→` | Start / end of the line |
+| `Cmd+↑` / `Cmd+↓` | Start / end of the text |
+| `Option+←` / `Option+→` | Previous / next word |
+| any of those with `Shift` | Select as it moves |
+| `Cmd+⌫` / `Option+⌫` | Delete to the start of the line / the previous word |
+| `Cmd+A` `Cmd+C` `Cmd+X` `Cmd+Z` | Select all, copy, cut, undo |
+
+`Cmd+V` stays the terminal's paste, which already works.
+
+The page follows the Settings rules: ticking the box changes nothing until `Ctrl+Enter`, which installs
+(or updates an out-of-date copy), and clearing it then removes it. `Esc` leaves the terminal as it was.
+
+```
+│ Appearance    │ Terminal  kitty                                             │   Label
+│ Swatches      │ State     Installed                                         │   Label
+│ Mac keys      │                                                             │
+│               │ [x] Cmd and Option keys in Swatch                           │   CheckBox
+│               │                                                             │
+│               │ Add this line to ~/.config/kitty/kitty.conf, then reopen    │   kitty and WezTerm only,
+│               │ Swatch:                                                     │   once installed
+│               │   include swatch.conf                          ▓ C Copy ▓   │   Button (Secondary)
+│               │                                                             │
+│               │   Cmd+← / Cmd+→         Start / end of the line             │   the table above
+```
+
+- *State* reads *Not installed*, *Installed*, *Out of date · saving updates it*, or, anywhere but iTerm2,
+  kitty and WezTerm on a Mac, *Can't be installed here*. There the box is disabled and the page says
+  which keys work without it.
+- Until it's installed, the page says *Only Swatch is affected; your shell and other apps are unchanged.*
+- kitty and WezTerm need one line in the user's own config, which the library never edits, so the page
+  shows it with a *Copy* button.
+
+The library's [`MacKeys`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Keys/MacKeys.cs)
+has everything the page shows: `Here` (this terminal's integration, or null), `Terminal`, the
+integration's `State`, `ConfigLine` and `ConfigFile`, `Install()` and `Remove()`, and `MacKeys.Rows`.
+An app with `AppShell` calls `shell.UseMacKeys(new MacKeys("Swatch"))` before it creates any view, and
+the shell marks it running while `Run` runs. One without calls `keys.Activate()` and disposes what it
+returns on exit, and suspends inside `keys.WhileSuspended(...)`. Copy Swatch's
+[`MacKeysPage`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/Swatch/MacKeysPage.cs) for
+your own Settings: *File › Settings… › Mac keys*.
 
 ### Showing focus
 
