@@ -262,6 +262,29 @@ Through the terminal is the normal outcome over SSH, not a warning. For it to la
 
 In Swatch, `Ctrl+C` in *Roles*, or *Edit › Copy colours*, copies the selected role's colours.
 
+### Opening a link
+
+**A link opens locally and is copied over SSH.** Over SSH (`SSH_CONNECTION`, `SSH_CLIENT` or
+`SSH_TTY` is set) there's no browser to open it in, so it's copied the same way as any other copy.
+Only `http`, `https` and `mailto` links open; nothing the opener prints reaches the screen.
+
+**Say which, on the status bar:**
+
+| Outcome | Says | Severity |
+| --- | --- | --- |
+| Opened | `Opened https://github.com/mentaldesk/tui-style-guide` | `Info` |
+| Copied over SSH | `Copied https://github.com/mentaldesk/tui-style-guide (no browser over SSH)` | `Info` |
+| The copy failed | `Copy failed: …`, as for any copy | `Error` |
+| No opener | `Couldn't open the link: xdg-open not found` | `Error` |
+| Not a web or mail link | `Couldn't open the link: only web and mail links open` | `Error` |
+
+Never call `Link.OpenUrl` directly. An app with `AppShell` calls `shell.OpenLink(url)`, which puts the
+outcome on the status bar. One without builds a `LinkOpener` with its clipboard, calls
+`opener.Open(url)` and shows the `LinkOutcome` it returns. A `Markdown` view's `LinkClicked` is one of
+the places to call it: open the link there and set `e.Handled = true`.
+
+In Swatch, *Help › Open the guide on GitHub* opens this page.
+
 ## 4. Icons and glyphs
 
 **Use [Nerd Font](https://www.nerdfonts.com/cheat-sheet) glyphs where an icon does real work.** An
