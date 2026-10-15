@@ -439,7 +439,8 @@ The library's [`ConfirmDialog`](https://github.com/mentaldesk/tui-style-guide/bl
 is the reference implementation: give it the message and the actions with their keys. It refuses
 an action on `Enter`, a dialog without exactly one action on `Ctrl+Enter`, and focus starting on a
 Danger button. Swatch's *Theme › Delete…* (can't be undone), *Remove…* and *Close…* (Save, Don't
-save, Cancel) try every key.
+save, Cancel) try every key. An app without `AppShell` uses it too: add it, push its `Scope` (keys fed
+through `CtrlEnter.FromWindows`), and on `Closed` pop it, remove it, then run the chosen action.
 
 ### Showing focus
 

@@ -68,7 +68,7 @@ public sealed class KeysDialog : AppDialog
 
     public Button CloseButton { get; }
 
-    protected override IInputScope Scope => _scope;
+    public override IInputScope Scope => _scope;
 
     private sealed record Column(View View, int Width, int Height)
     {

@@ -12,7 +12,6 @@ public abstract class AppDialog : Dialog
 
     private readonly int _contentRows;
     private readonly ButtonsIgnoreEnter _buttonsIgnoreEnter;
-    private AppShell? _shell;
 
     protected AppDialog(string title, int width, int contentRows)
     {
@@ -26,10 +25,21 @@ public abstract class AppDialog : Dialog
         _buttonsIgnoreEnter = new ButtonsIgnoreEnter(this);
         Commands
             .Register(CancelId, "Cancel", Cancel)
-            .Register(ShellCommands.ShowKeys, "Show keys", ShowKeys);
+            .Register(ShellCommands.ShowKeys, "Show keys", ShowKeys, isEnabled: () => KeysRequested is not null);
         Keys.Bind("Esc", CancelId)
             .Bind("F1", ShellCommands.ShowKeys);
+        AddCommand(Command.Quit, () =>
+        {
+            Cancel();
+            return true;
+        });
     }
+
+    // However it closed, with Chosen and Confirmed already set.
+    public event EventHandler? Closed;
+
+    // Without a handler, F1 is left to the host.
+    public event EventHandler<KeySheet>? KeysRequested;
 
     public AlertView Alert { get; }
 
@@ -39,11 +49,12 @@ public abstract class AppDialog : Dialog
 
     protected Keymap Keys { get; }
 
-    protected virtual IInputScope Scope => _buttonsIgnoreEnter;
+    public virtual IInputScope Scope => _buttonsIgnoreEnter;
 
     public void Run(AppShell shell)
     {
-        _shell = shell;
+        EventHandler<KeySheet> showKeys = (_, sheet) => ShowKeys(shell, sheet);
+        KeysRequested += showKeys;
         shell.Scopes.Push(Scope);
         try
         {
@@ -52,7 +63,9 @@ public abstract class AppDialog : Dialog
         finally
         {
             shell.Scopes.Pop(Scope);
+            KeysRequested -= showKeys;
         }
+        Closed?.Invoke(this, EventArgs.Empty);
     }
 
     public KeySheet KeysHere() => KeySheet.ForDialog(Title, Commands, Keys);
@@ -90,21 +103,31 @@ public abstract class AppDialog : Dialog
     protected void Accept()
     {
         Confirmed = true;
-        RequestStop();
+        Close();
     }
 
     protected void Cancel()
     {
         Confirmed = false;
-        RequestStop();
+        Close();
     }
 
-    private void ShowKeys()
+    // Run raises Closed once its loop ends; a hosted dialog never stops the host's loop.
+    private void Close()
     {
-        if (_shell is null) return;
+        if (IsRunning)
+            RequestStop();
+        else
+            Closed?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ShowKeys() => KeysRequested?.Invoke(this, KeysHere());
+
+    private void ShowKeys(AppShell shell, KeySheet sheet)
+    {
         var focused = MostFocused;
-        using (var keys = new KeysDialog(KeysHere(), _shell.App.Screen.Size))
-            keys.Run(_shell);
+        using (var keys = new KeysDialog(sheet, shell.App.Screen.Size))
+            keys.Run(shell);
         focused?.SetFocus();
     }
 
