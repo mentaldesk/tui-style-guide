@@ -5,6 +5,8 @@ namespace MentalDesk.Tui.Chrome;
 
 public sealed record MenuSpec(string Title, IReadOnlyList<MenuEntry?> Items)
 {
+    public string? KeysHeading { get; init; }
+
     public IEnumerable<string> CommandIds =>
         Items.OfType<MenuEntry>().SelectMany(entry => entry.Opposite is { } opposite ? [entry.CommandId, opposite.CommandId] : new[] { entry.CommandId });
 }

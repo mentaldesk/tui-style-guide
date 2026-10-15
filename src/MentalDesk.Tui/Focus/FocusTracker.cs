@@ -32,6 +32,13 @@ public sealed class FocusTracker(Func<object?> focusedView)
         return true;
     }
 
+    public bool Owns(FocusRegion? region, object? view) =>
+        _targets.Any(target => target.Region == region && target.Owns(view));
+
+    public bool Next() => Cycle(1);
+
+    public bool Previous() => Cycle(-1);
+
     // Call every iteration and before every key: a click moves focus in between.
     public void Reconcile()
     {
@@ -40,6 +47,23 @@ public sealed class FocusTracker(Func<object?> focusedView)
             return;
         if (_targets.FirstOrDefault(target => target.Owns(focused)) is { } owner)
             Record(owner.Region);
+    }
+
+    // Registration order is reading order.
+    private bool Cycle(int step)
+    {
+        var count = _targets.Count;
+        var from = _targets.FindIndex(target => target.Region == Region);
+        if (from < 0) from = step > 0 ? -1 : count;
+        for (var i = 1; i < count + (Region is null ? 1 : 0); i++)
+        {
+            var target = _targets[((from + step * i) % count + count) % count];
+            if (!target.Move()) continue;
+            Unreachable = null;
+            Record(target.Region);
+            return true;
+        }
+        return false;
     }
 
     private void Record(FocusRegion region)

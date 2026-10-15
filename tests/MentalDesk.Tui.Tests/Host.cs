@@ -1,5 +1,6 @@
 using MentalDesk.Tui.Copying;
 using MentalDesk.Tui.Icons;
+using MentalDesk.Tui.Keys;
 using MentalDesk.Tui.Shell;
 using MentalDesk.Tui.Theming;
 using Terminal.Gui.Drivers;
@@ -11,9 +12,10 @@ internal sealed class Host : IDisposable
     private const int MaxIterations = 1000;
 
     // Tests never reach the machine's real clipboard or settings.
-    public Host(IClipboard? platform = null, FontDetection? detected = null, bool? isWindows = null)
+    public Host(IClipboard? platform = null, FontDetection? detected = null, bool? isWindows = null, params (string Name, string Value)[] terminal)
     {
         SettingsPath = Path.Combine(Path.GetTempPath(), $"mentaldesk-{Guid.NewGuid():N}", "settings.json");
+        Home = Path.Combine(Path.GetDirectoryName(SettingsPath)!, "home");
         var icons = new IconSettings(new MentalDeskSettings(SettingsPath), () => detected ?? new FontDetection(false, "a test terminal"));
         App = Application.Create();
         App.Init(driverName: DriverRegistry.Names.ANSI);
@@ -22,6 +24,7 @@ internal sealed class Host : IDisposable
         {
             IsWindows = isWindows ?? OperatingSystem.IsWindows(),
         };
+        Shell.UseMacKeys(new MacKeys("Swatch", FakeTerminal.With(Home, terminal), MacKeysWritten.Add));
     }
 
     public IApplication App { get; }
@@ -31,6 +34,10 @@ internal sealed class Host : IDisposable
     public List<string> Written { get; } = [];
 
     public string SettingsPath { get; }
+
+    public string Home { get; }
+
+    public List<string> MacKeysWritten { get; } = [];
 
     // Each step gets its own iteration, so injected keys are processed in between. A Func<bool> step is polled until true.
     public void Run(IRunnable window, params Delegate[] steps)

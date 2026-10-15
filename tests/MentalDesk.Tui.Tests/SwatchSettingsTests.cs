@@ -74,7 +74,7 @@ public class SwatchSettingsTests : StaticConfigurationTest
     {
         Run(() =>
         {
-            Assert.Equal(["Appearance", "Swatches"], Names);
+            Assert.Equal(["Appearance", "Swatches", "Mac keys"], Names);
             Assert.Equal(Themes.Names, Appearance.ThemeRows);
             Assert.Equal(0, Appearance.Theme.SelectedItem);
             Assert.Equal(0, Appearance.Icons.Value);
@@ -92,14 +92,14 @@ public class SwatchSettingsTests : StaticConfigurationTest
             () =>
             {
                 Assert.Equal(["Midnight", "Daylight  (default: Midnight)", "Turbo Pascal", "Modern Borland"], Appearance.ThemeRows);
-                Assert.Equal(["Appearance •", "Swatches"], Names);
+                Assert.Equal(["Appearance •", "Swatches", "Mac keys"], Names);
             },
             () => Press(Key.CursorUp),
             () => Themes.Current == Themes.Midnight,
             () =>
             {
                 Assert.Equal(Themes.Names, Appearance.ThemeRows);
-                Assert.Equal(["Appearance", "Swatches"], Names);
+                Assert.Equal(["Appearance", "Swatches", "Mac keys"], Names);
                 Press(Key.Esc);
             });
     }
@@ -144,7 +144,7 @@ public class SwatchSettingsTests : StaticConfigurationTest
             () => Press(Key.PageDown.WithCtrl),
             () => Swatches.ShowHexValues.HasFocus,
             () => Press(Key.Space),
-            () => Names.SequenceEqual(["Appearance •", "Swatches •"]),
+            () => Names.SequenceEqual(["Appearance •", "Swatches •", "Mac keys"]),
             () => Press(Key.Enter.WithCtrl),
             () => _host.App.TopRunnableView is SwatchWindow window && !window.ShowHexValues);
 
@@ -160,7 +160,7 @@ public class SwatchSettingsTests : StaticConfigurationTest
             Assert.Equal(Themes.Daylight, Themes.Current);
             Assert.False(restarted.ShowHexValues);
             Assert.Equal(1, Appearance.Theme.SelectedItem);
-            Assert.Equal(["Appearance", "Swatches"], Names);
+            Assert.Equal(["Appearance", "Swatches", "Mac keys"], Names);
             Press(Key.Esc);
         });
     }
@@ -211,7 +211,7 @@ public class SwatchSettingsTests : StaticConfigurationTest
             () =>
             {
                 Assert.Equal(CheckState.UnChecked, Swatches.ShowHexValues.Value);
-                Assert.Equal(["Appearance", "Swatches"], Names);
+                Assert.Equal(["Appearance", "Swatches", "Mac keys"], Names);
             },
             () => Press(Key.R),
             () => _host.App.TopRunnableView is ConfirmDialog,
@@ -219,7 +219,7 @@ public class SwatchSettingsTests : StaticConfigurationTest
             () => Dialog is not null && Swatches.ShowHexValues.Value == CheckState.Checked,
             () =>
             {
-                Assert.Equal(["Appearance", "Swatches •"], Names);
+                Assert.Equal(["Appearance", "Swatches •", "Mac keys"], Names);
                 Assert.Equal("", Swatches.HexDefault);
                 Assert.True(window.ShowHexValues);
                 Press(Key.Esc);

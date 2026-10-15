@@ -25,6 +25,8 @@ public sealed class MultiLineField : Terminal.Gui.Editor.Editor
         (Key.B.WithAlt.WithShift, Command.WordLeftExtend), (Key.F.WithAlt.WithShift, Command.WordRightExtend),
     ];
 
+    internal static readonly Key DeleteToLineStart = Key.Backspace.WithCtrl.WithShift;
+
     private readonly FocusBorder _border;
     private string? _copyFailure;
 
@@ -37,6 +39,7 @@ public sealed class MultiLineField : Terminal.Gui.Editor.Editor
             KeyBindings.Remove(key);
         foreach (var (key, command) in MacWordKeys)
             KeyBindings.ReplaceCommands(key, command);
+        KeyBindings.Add(DeleteToLineStart, Command.CutToStartOfLine);
         AddCommand(Command.LeftStart, () => MoveTo(VisibleRow().Start, extend: false));
         AddCommand(Command.RightEnd, () => MoveTo(VisibleRow().End, extend: false));
         AddCommand(Command.LeftStartExtend, () => MoveTo(VisibleRow().Start, extend: true));

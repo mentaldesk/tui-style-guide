@@ -17,6 +17,18 @@ public sealed class AppShell : IDisposable
 {
     private static readonly Command[] LineDeletes = [Command.CutToEndOfLine, Command.CutToStartOfLine];
 
+    private static readonly (Command Framework, string Id)[] PaneKeys =
+        [(Command.NextTabGroup, ShellCommands.NextPane), (Command.PreviousTabGroup, ShellCommands.PreviousPane)];
+
+    private static readonly (Key Arrow, Command Command, NavigationDirection Direction)[] Arrows =
+    [
+        (Key.CursorUp, Command.Up, NavigationDirection.Backward), (Key.CursorLeft, Command.Left, NavigationDirection.Backward),
+        (Key.CursorDown, Command.Down, NavigationDirection.Forward), (Key.CursorRight, Command.Right, NavigationDirection.Forward),
+    ];
+
+    private readonly List<(AppScreen Screen, View View, FocusRegion Start)> _screens = [];
+
+    private readonly ArrowFallback _arrowFallback;
     private bool _nested;
     private bool _deleting;
 
@@ -31,6 +43,8 @@ public sealed class AppShell : IDisposable
         Cursor = cursor;
         Icons = icons ?? IconSettings.ForThisUser();
         Clipboard = TerminalClipboard.Install(app, clipboardTools);
+        if (app.Driver is { } driver)
+            AlternateKeyCodes.Install(driver.GetInputProcessor());
         Links = new LinkOpener(Clipboard);
         Focus = new FocusTracker(FocusedView);
         Keys = new Keymap(Commands) { FocusedScope = () => Focus.Region?.Scope ?? CommandScope.Global };
@@ -42,12 +56,17 @@ public sealed class AppShell : IDisposable
             .Register(ShellCommands.ShowCommands, "Show all commands", ShowCommands)
             .Register(ShellCommands.ShowMenu, "Open the menu", () => Menu?.Open(), isEnabled: () => Menu is not null)
             .Register(ShellCommands.ShowDiagnostics, "Show diagnostics", ShowDiagnostics)
-            .Register(ShellCommands.ShowKeys, "Show keys", ShowKeys);
+            .Register(ShellCommands.ShowKeys, "Show keys", ShowKeys)
+            .Register(ShellCommands.NextPane, "Next pane", () => Focus.Next())
+            .Register(ShellCommands.PreviousPane, "Previous pane", () => Focus.Previous());
         Keys.Bind("Ctrl+Q", ShellCommands.Quit)
             .Bind("Ctrl+E", ShellCommands.ShowCommands)
             .Bind("F10", ShellCommands.ShowMenu)
             .Bind("F12", ShellCommands.ShowDiagnostics)
             .Bind("F1", ShellCommands.ShowKeys);
+        BindPaneKeys();
+        _arrowFallback = new ArrowFallback(MoveFocusOutsidePanes);
+        BindArrows();
         StatusBar.Hints.Show([("Press F1 for help", () => Commands.Execute(ShellCommands.ShowKeys))]);
 
         Focus.RegionChanged += (_, region) => StatusBar.SetFocusWord(region.Name);
@@ -55,6 +74,8 @@ public sealed class AppShell : IDisposable
         App.Keyboard.KeyDown += OnKeyDown;
         App.Iteration += OnIteration;
         Clipboard.Copied += OnCopied;
+        Application.DefaultKeyBindingsChanged += BindPaneKeys;
+        Application.DefaultKeyBindingsChanged += BindArrows;
     }
 
     public IApplication App { get; }
@@ -71,6 +92,10 @@ public sealed class AppShell : IDisposable
 
     public AppMenu? Menu { get; private set; }
 
+    public AppScreen? Screen { get; private set; }
+
+    public MacKeys? MacKeys { get; private set; }
+
     public TerminalCursor Cursor { get; }
 
     public TerminalClipboard Clipboard { get; }
@@ -84,6 +109,39 @@ public sealed class AppShell : IDisposable
     internal bool IsWindows { get; init; } = OperatingSystem.IsWindows();
 
     public AppMenu UseMenu(params MenuSpec[] layout) => Menu = new AppMenu(Commands, Keys, layout);
+
+    public MenuSpec GoMenu(params MenuEntry?[] places) =>
+        new("_Go", [ShellCommands.NextPane, ShellCommands.PreviousPane, null, .. places]) { KeysHeading = "Moving around" };
+
+    public MenuEntry GoTo(AppScreen screen) => new(screen.CommandId, screen.Name, () => Screen == screen);
+
+    // Bind the app's own Ctrl+G keys first, so a clash throws here.
+    public AppShell AddScreen(AppScreen screen, View view, FocusRegion start)
+    {
+        var chord = KeyChord.Parse(screen.Chord);
+        if (Keys.CheckConflict(chord, CommandScope.Global) is { } conflict)
+            throw new ArgumentException($"{screen.Chord} for {screen.Name} clashes with a key already bound ({conflict}).", nameof(screen));
+        Commands.Register(screen.CommandId, $"Go to {screen.Name}", () => ShowScreen(screen));
+        Keys.Bind(chord, screen.CommandId);
+        _screens.Add((screen, view, start));
+        if (Screen is null)
+            Screen = screen;
+        else
+            view.Visible = false;
+        return this;
+    }
+
+    public void ShowScreen(AppScreen screen)
+    {
+        var (_, _, start) = _screens.Single(entry => entry.Screen == screen);
+        foreach (var entry in _screens)
+            entry.View.Visible = entry.Screen == screen;
+        Screen = screen;
+        Focus.Focus(start);
+    }
+
+    // Marks the app active in the terminal while Run runs.
+    public MacKeys UseMacKeys(MacKeys keys) => MacKeys = keys;
 
     public string ApplyTheme(string theme)
     {
@@ -129,6 +187,7 @@ public sealed class AppShell : IDisposable
     public void Run(IRunnable window)
     {
         ApplyTheme(Themes.Current);
+        using var active = MacKeys?.Activate();
         try
         {
             App.Run(window);
@@ -154,6 +213,7 @@ public sealed class AppShell : IDisposable
         finally
         {
             _nested = false;
+            BindArrows();
             ApplyTheme(outerTheme);
             if (region is not null)
                 Focus.Focus(region);
@@ -165,6 +225,42 @@ public sealed class AppShell : IDisposable
         App.Keyboard.KeyDown -= OnKeyDown;
         App.Iteration -= OnIteration;
         Clipboard.Copied -= OnCopied;
+        Application.DefaultKeyBindingsChanged -= BindPaneKeys;
+        Application.DefaultKeyBindingsChanged -= BindArrows;
+        _arrowFallback.Dispose();
+    }
+
+    // Terminal.Gui moves focus on an arrow no view used; out of a pane, only F6 and Tab should.
+    private void BindArrows(object? sender = null, EventArgs? e = null)
+    {
+        foreach (var (arrow, command, _) in Arrows)
+        {
+            App.Keyboard.KeyBindings.Remove(arrow);
+            App.Keyboard.KeyBindings.Add(arrow, new Terminal.Gui.Input.KeyBinding([command], _arrowFallback));
+        }
+    }
+
+    private bool MoveFocusOutsidePanes(NavigationDirection direction) =>
+        Focus.Owns(Focus.Region, FocusedView()) || App.Navigation!.AdvanceFocus(direction, TabBehavior.TabStop);
+
+    private sealed class ArrowFallback : View
+    {
+        public ArrowFallback(Func<NavigationDirection, bool> move)
+        {
+            foreach (var (_, command, direction) in Arrows)
+                AddCommand(command, () => move(direction));
+        }
+    }
+
+    private void BindPaneKeys(object? sender = null, EventArgs? e = null)
+    {
+        foreach (var (framework, id) in PaneKeys)
+        {
+            foreach (var binding in Keys.For(id).ToList())
+                Keys.Unbind(binding.Chord, binding.Scope);
+            foreach (var key in Application.GetDefaultKeys(framework))
+                Keys.Bind([key], id);
+        }
     }
 
     private void OnCopied(object? sender, CopyOutcome outcome)
