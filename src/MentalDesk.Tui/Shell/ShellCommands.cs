@@ -9,4 +9,5 @@ public static class ShellCommands
     public const string ShowKeys = "app.keys";
     public const string NextPane = "app.nextPane";
     public const string PreviousPane = "app.previousPane";
+    public const string Find = "app.find";
 }

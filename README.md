@@ -435,6 +435,48 @@ and TuiCode's [`CamelHumps`](https://github.com/mentaldesk/tui-style-guide/blob/
 is the reference implementation. The command palette is built on it, and so is Swatch's
 *Go › Scheme…*.
 
+Filter a list to pick one thing by a name you half-remember; find in what you read (below) to look
+for words you've seen in text that stays as it is.
+
+### Finding in what you read
+
+**`Ctrl+F` opens a find bar on what you're reading**, docked at the top of that pane, never a dialog,
+so the text stays where it was. A single-line selection starts the query.
+
+- **Matching is plain text, and case never matters.** Not CamelHumps: you're looking for words you've
+  seen, not a name you half-remember (*Filtering a list* is for that).
+- **Every match is highlighted, and the current one is selected.** `Enter` goes to the next and
+  `Shift+Enter` to the previous, wrapping at either end. The bar's right edge says `3 of 12`, or
+  `No results`. Terminals without the kitty keyboard protocol send `Shift+Enter` as `Enter`, so there
+  you step forward only.
+- **A growing log keeps its place.** New lines are searched as they arrive and the count updates, but
+  the view stops following the tail while the bar has a current match, so the line you found doesn't
+  scroll away.
+- **`Esc` closes the bar**, from the bar or the text, and leaves the view scrolled to the current
+  match, with focus back in it.
+- **`F1` in the bar lists its keys** in *Help*, in the area column, headed *Find bar*.
+- *Find* sits in the *Edit* menu with `Ctrl+F`, and is dimmed wherever there's nothing to search (see
+  *Only what works here*).
+
+```
+┌─Reading a log────────────────────────────────────────────────────┐
+│ Find     retry▏                                          2 of 5  │   Label, TextField, Label
+│──────────────────────────────────────────────────────────────────│
+│ 11:02:31  restore failed: 503, ░retry░ in 5s                     │   every match highlighted
+│ 11:02:36  ▓retry▓ 1 of 3                                         │   the current one selected
+│ 11:02:37  restore ok                                             │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+The library's [`FindBar`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Finding/FindBar.cs)
+is the reference implementation, moved from TuiCode with its replace row, which readers never show. It
+searches an [`IFindTarget`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Finding/IFindTarget.cs):
+`EditorFindTarget` covers a Terminal.Gui.Editor, read-only or not, and an app writes a small one for a
+view of its own. `AppShell.FindIn` gives a region its target, and `AppShell` binds `Ctrl+F` to *Find*
+there. An app without `AppShell` binds `Ctrl+F` itself, pushes `ScopeOver` its own keys when it opens the
+bar, pops it on `Closed`, and shows the `KeysRequested` column on `F1`. Swatch's *Help › Reading a log…*
+is a log that gains a line a second, to try it on.
+
 ### Menu letters
 
 **Every item in an open menu has its own underlined letter, and pressing it runs the item**, without
