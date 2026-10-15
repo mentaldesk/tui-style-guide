@@ -54,7 +54,7 @@ public class PickerHostTests : StaticConfigurationTest
     public void Typing_humps_lists_the_matches_with_the_first_selected(string query) =>
         InPalette(
             () => Type(query),
-            () => Shown.SequenceEqual(["Try this theme", "Close this theme", "Delete this theme", "Remove this theme"]),
+            () => Shown.SequenceEqual(["Try this theme", "Close this theme", "Delete this theme", "Remove this theme", "Settings…"]),
             () => Palette!.SubViews.OfType<ListView>().Single().SelectedItem == 0,
             () => Press(Key.Esc));
 

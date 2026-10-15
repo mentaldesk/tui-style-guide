@@ -72,7 +72,7 @@ public sealed class DiagnosticsDialog : AppDialog
 
     public Button CloseButton { get; }
 
-    protected override IInputScope Scope => _scope;
+    public override IInputScope Scope => _scope;
 
     public void ShowKey(Key key)
     {

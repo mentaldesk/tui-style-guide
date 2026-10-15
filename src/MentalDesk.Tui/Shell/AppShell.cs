@@ -6,6 +6,7 @@ using MentalDesk.Tui.Diagnostics;
 using MentalDesk.Tui.Focus;
 using MentalDesk.Tui.Icons;
 using MentalDesk.Tui.Keys;
+using MentalDesk.Tui.Links;
 using MentalDesk.Tui.Palette;
 using MentalDesk.Tui.Theming;
 using Terminal.Gui;
@@ -35,6 +36,7 @@ public sealed class AppShell : IDisposable
         Cursor = cursor;
         Icons = icons ?? IconSettings.ForThisUser();
         Clipboard = InstallClipboard(app, clipboardTools);
+        Links = new LinkOpener(Clipboard);
         Focus = new FocusTracker(FocusedView);
         Keys = new Keymap(Commands) { FocusedScope = () => Focus.Region?.Scope ?? CommandScope.Global };
         Scopes.Push(Keys);
@@ -86,6 +88,10 @@ public sealed class AppShell : IDisposable
 
     public IconSettings Icons { get; }
 
+    public MentalDeskSettings Settings => Icons.File;
+
+    internal LinkOpener Links { get; set; }
+
     internal bool IsWindows { get; init; } = OperatingSystem.IsWindows();
 
     public AppMenu UseMenu(params MenuSpec[] layout) => Menu = new AppMenu(Commands, Keys, layout);
@@ -132,6 +138,13 @@ public sealed class AppShell : IDisposable
     public void ShowMessage(string message, Severity severity = Severity.Info) => StatusBar.ShowMessage(message, severity);
 
     public CopyOutcome Copy(string text) => Clipboard.Copy(text);
+
+    public LinkOutcome OpenLink(string url)
+    {
+        var outcome = Links.Open(url);
+        ShowMessage(outcome.Message, outcome.Severity);
+        return outcome;
+    }
 
     public void ShowCommands()
     {

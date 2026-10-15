@@ -4,7 +4,7 @@ using MentalDesk.Tui.Theming;
 
 namespace Swatch;
 
-internal sealed class RoleSource(Scheme scheme) : IListDataSource
+internal sealed class RoleSource(Scheme scheme, bool showHexValues = true) : IListDataSource
 {
     private const string Sample = " Aa ";
 
@@ -37,7 +37,7 @@ internal sealed class RoleSource(Scheme scheme) : IListDataSource
         listView.SetAttribute(scheme.GetAttributeForRole(role));
         listView.AddStr(Sample);
         listView.SetAttribute(text);
-        var rest = $" {Describe(scheme.GetAttributeForRole(role))}";
+        var rest = showHexValues ? $" {Describe(scheme.GetAttributeForRole(role))}" : string.Empty;
         var room = Math.Max(0, width - 12 - Sample.Length);
         listView.AddStr(rest.Length > room ? rest[..room] : rest.PadRight(room));
     }
