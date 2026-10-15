@@ -94,7 +94,7 @@ public sealed class ConfirmDialog : AppDialog
 
     public Button ButtonFor(ConfirmAction action) => _buttons[action];
 
-    protected override IInputScope Scope => _scope;
+    public override IInputScope Scope => _scope;
 
     // A letter in the label is its underlined hotkey; any other key is written before the label, as in a hint.
     private static Button Button(ConfirmAction action) => action.Kind switch
