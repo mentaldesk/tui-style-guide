@@ -192,7 +192,7 @@ public class SettingsDialogTests : StaticConfigurationTest
             () => Press(Key.Esc));
 
         Assert.Equal([1, 1, 0], [_first.Done, _second.Done, _third.Done]);
-        Assert.Equal("Here: Settings", onFirst!.Here!.Heading);
+        Assert.Equal("Settings", onFirst!.Here!.Heading);
         Assert.Null(onFirst.Everywhere);
         var rows = onFirst.Here.Groups.SelectMany(group => group.Rows).Select(row => $"{row.Keys} {row.Label}").ToList();
         Assert.Contains("Ctrl+PgDn Next page", rows);

@@ -1,4 +1,3 @@
-using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Icons;
 using MentalDesk.Tui.Theming;
 
@@ -8,6 +7,7 @@ namespace Swatch;
 internal sealed class PreviewView : View
 {
     private const string Caret = "▏";
+    private const string Help = "Press F1 for help";
 
     private static readonly (string Label, string Scheme)[] Buttons =
         [("Ctrl+Enter Delete", SchemeNames.ButtonDanger), ("Esc Cancel", SchemeNames.ButtonSecondary)];
@@ -63,7 +63,8 @@ internal sealed class PreviewView : View
 
         var status = Get(SchemeNames.StatusBar);
         Fill(0, 6, width, 1, status.Normal);
-        Put(1, 6, string.Join(HintRow.Separator, "Editor", "F1 keys"), status.Normal);
+        Put(1, 6, "Editor", status.Normal);
+        Put(Math.Max(8, width - Help.Length - 1), 6, Help, status.Normal);
 
         var dialog = Get(SchemeNames.Dialog);
         var left = Math.Min(2, width / 10);

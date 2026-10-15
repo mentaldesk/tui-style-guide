@@ -93,7 +93,8 @@ public sealed class AppMenu
     // Terminal.Gui also binds a title's bare letter, app-wide, which would swallow the app's own keys.
     private MenuBarItem Menu(MenuSpec spec)
     {
-        Slot[] slots = [.. spec.Items.Select(SlotFor)];
+        var titles = new Queue<string>(MenuLetters.Pick([.. spec.Items.OfType<MenuEntry>().SelectMany(Sharing).Select(TitleOf)]));
+        Slot[] slots = [.. spec.Items.Select(entry => SlotFor(entry, titles))];
         var menu = new MenuBarItem(spec.Title, [.. slots.Select(slot => slot.View)]);
         menu.HotKeyBindings.Remove(menu.HotKey);
         menu.HotKeyBindings.Remove(menu.HotKey.WithShift);
@@ -117,13 +118,18 @@ public sealed class AppMenu
             popover.Enabled = false;
     }
 
-    private Slot SlotFor(MenuEntry? entry) =>
-        entry is null ? new Slot(new Line()) : new Slot(Item(entry), entry.CommandId, entry.Opposite is { } opposite ? Item(opposite) : null, entry.Opposite?.CommandId);
+    private static IEnumerable<MenuEntry> Sharing(MenuEntry entry) => entry.Opposite is { } opposite ? [entry, opposite] : [entry];
 
-    private CommandMenuItem Item(MenuEntry entry)
+    private string TitleOf(MenuEntry entry) => entry.Title ?? _commands.Find(entry.CommandId)?.Label ?? entry.CommandId;
+
+    private Slot SlotFor(MenuEntry? entry, Queue<string> titles) =>
+        entry is null
+            ? new Slot(new Line())
+            : new Slot(Item(entry, titles.Dequeue()), entry.CommandId, entry.Opposite is { } opposite ? Item(opposite, titles.Dequeue()) : null, entry.Opposite?.CommandId);
+
+    private CommandMenuItem Item(MenuEntry entry, string title)
     {
-        var (id, title, isChecked) = entry;
-        title ??= Hot(_commands.Find(id)?.Label ?? id);
+        var (id, _, isChecked) = entry;
         var item = new CommandMenuItem
         {
             Title = isChecked is null ? title : Checked(title, isChecked()),
@@ -141,8 +147,6 @@ public sealed class AppMenu
     private static string Checked(string title, bool isChecked) => $"{(isChecked ? '●' : ' ')} {title}";
 
     private string KeysFor(string id) => _keys.For(id, _commands.ScopeOf(id)).FirstOrDefault()?.Display ?? string.Empty;
-
-    private static string Hot(string label) => $"_{label}";
 
     private sealed record Slot(View View, string? Id = null, CommandMenuItem? Opposite = null, string? OppositeId = null)
     {

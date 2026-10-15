@@ -18,7 +18,7 @@ public sealed class KeysDialog : AppDialog
     }
 
     private KeysDialog(KeySheet sheet, Size screen, Plan plan)
-        : base("Keys", plan.Width, plan.ContentRows(screen))
+        : base("Help", plan.Width, plan.ContentRows(screen))
     {
         Sheet = sheet;
         Stacked = plan.Stacked;
@@ -92,7 +92,7 @@ public sealed class KeysDialog : AppDialog
         }
     }
 
-    // Last is Everywhere, or Here alone in a dialog's sheet.
+    // Side by side, Everywhere comes first; stacked, Here goes on top.
     private sealed record Plan(Column? First, Column Last, bool Stacked)
     {
         public int SheetWidth => First is null ? Last.Width
@@ -110,10 +110,11 @@ public sealed class KeysDialog : AppDialog
 
         public static Plan Of(KeySheet sheet, Size screen)
         {
-            Column[] columns = [.. new[] { sheet.Here, sheet.Everywhere }.OfType<KeyColumn>().Select(Column.Of)];
-            if (columns.Length == 1) return new Plan(null, columns[0], Stacked: false);
-            var sideBySide = new Plan(columns[0], columns[1], Stacked: false);
-            return sideBySide.Width <= screen.Width ? sideBySide : sideBySide with { Stacked = true };
+            if (sheet.Here is null || sheet.Everywhere is null)
+                return new Plan(null, Column.Of(sheet.Here ?? sheet.Everywhere!), Stacked: false);
+            Column here = Column.Of(sheet.Here), everywhere = Column.Of(sheet.Everywhere);
+            var sideBySide = new Plan(everywhere, here, Stacked: false);
+            return sideBySide.Width <= screen.Width ? sideBySide : new Plan(here, everywhere, Stacked: true);
         }
     }
 

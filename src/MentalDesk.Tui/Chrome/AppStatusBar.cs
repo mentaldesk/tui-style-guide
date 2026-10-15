@@ -6,8 +6,10 @@ namespace MentalDesk.Tui.Chrome;
 public sealed class AppStatusBar : View
 {
     private readonly Label _focus = new() { X = 1, Y = 0 };
-    private readonly Label _state = new() { X = Pos.AnchorEnd() - 1, Y = 0 };
+    private readonly Label _state = new() { X = 0, Y = 0 };
     private readonly HintRow _hints;
+    private readonly View _right = new() { X = Pos.AnchorEnd() - 1, Y = 0, Width = Dim.Auto(), Height = 1, CanFocus = false };
+    private string _stateText = string.Empty;
     private readonly Label _message;
     private string? _chord;
     private (string Text, Severity Severity)? _shown;
@@ -19,9 +21,10 @@ public sealed class AppStatusBar : View
         Height = 1;
         CanFocus = false;
         SchemeName = SchemeNames.StatusBar;
-        _hints = new HintRow { X = Pos.Right(_focus), Width = Dim.Fill(2, _state) };
-        _message = new Label { X = Pos.Right(_focus), Width = Dim.Fill(2, _state), Visible = false };
-        Add(_focus, _hints, _message, _state);
+        _hints = new HintRow { X = Pos.Right(_state), Width = Dim.Auto() };
+        _right.Add(_state, _hints);
+        _message = new Label { X = Pos.Right(_focus), Width = Dim.Fill(2, _right), Visible = false };
+        Add(_focus, _message, _right);
     }
 
     public string FocusWord { get; private set; } = string.Empty;
@@ -34,8 +37,12 @@ public sealed class AppStatusBar : View
 
     public string State
     {
-        get => _state.Text;
-        set => _state.Text = value;
+        get => _stateText;
+        set
+        {
+            _stateText = value;
+            _state.Text = value.Length == 0 ? string.Empty : $"{value}{HintRow.Separator}";
+        }
     }
 
     public HintRow Hints => _hints;
@@ -43,8 +50,11 @@ public sealed class AppStatusBar : View
     public void SetFocusWord(string word)
     {
         FocusWord = word;
-        _focus.Text = word.Length == 0 ? string.Empty : $"{word}{HintRow.Separator}";
+        ShowFocusWord();
     }
+
+    private void ShowFocusWord() =>
+        _focus.Text = FocusWord.Length > 0 && _message.Visible ? $"{FocusWord}{HintRow.Separator}" : FocusWord;
 
     public void ShowMessage(string text, Severity severity = Severity.Info)
     {
@@ -78,7 +88,7 @@ public sealed class AppStatusBar : View
             _message.SchemeName = severity == Severity.Error ? SchemeNames.Error : null;
         }
         _message.Visible = _chord is not null || _shown is not null;
-        _hints.Visible = !_message.Visible;
+        ShowFocusWord();
         SetNeedsDraw();
     }
 }

@@ -10,6 +10,8 @@ namespace Swatch;
 
 internal sealed class SwatchWindow : AppWindow
 {
+    public const string GuideUrl = "https://github.com/mentaldesk/tui-style-guide";
+
     public static readonly FocusRegion ThemesRegion = new("Themes", new CommandScope("Themes"));
     public static readonly FocusRegion RolesRegion = new("Roles", new CommandScope("Roles"));
     public static readonly FocusRegion PreviewRegion = new("Preview", new CommandScope("Preview"));
@@ -99,7 +101,8 @@ internal sealed class SwatchWindow : AppWindow
             .Register(SwatchCommands.CopyColours, "Copy colours", () => CopyColours(shell), RolesRegion.Scope)
             .Register(SwatchCommands.ShowLoadingStates, "Show loading states", () => ShowLoadingStates(shell))
             .Register(SwatchCommands.WriteComment, "Write a comment", () => WriteComment(shell))
-            .Register(SwatchCommands.ShowSettings, "Settings…", () => ShowSettings(shell));
+            .Register(SwatchCommands.ShowSettings, "Settings…", () => ShowSettings(shell))
+            .Register(SwatchCommands.OpenGuide, "Open the guide on GitHub", () => shell.OpenLink(GuideUrl));
         shell.Keys
             .Bind("Ctrl+G T", SwatchCommands.GoToThemes)
             .Bind("Ctrl+G R", SwatchCommands.GoToRoles)
@@ -135,6 +138,7 @@ internal sealed class SwatchWindow : AppWindow
                 null,
                 new MenuEntry(SwatchCommands.ShowLoadingStates, "_Loading states…"),
                 new MenuEntry(SwatchCommands.WriteComment, "_Writing a comment…"),
+                new MenuEntry(SwatchCommands.OpenGuide, "Open the _guide on GitHub"),
                 new MenuEntry(ShellCommands.ShowDiagnostics, "Show _diagnostics"),
             ]));
         return shell;

@@ -15,4 +15,5 @@ internal static class SwatchCommands
     public const string ShowLoadingStates = "swatch.loadingStates";
     public const string WriteComment = "swatch.writeComment";
     public const string ShowSettings = "swatch.settings";
+    public const string OpenGuide = "swatch.openGuide";
 }

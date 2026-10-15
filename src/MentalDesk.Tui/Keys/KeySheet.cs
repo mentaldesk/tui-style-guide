@@ -23,7 +23,7 @@ public sealed record KeySheet(KeyColumn? Here, KeyColumn? Everywhere)
 
         KeyColumn? here = null;
         if (scope != CommandScope.Global && Rows(commands, bindings.Where(binding => binding.Scope == scope)) is { Count: > 0 } local)
-            here = new KeyColumn($"Here: {regionName ?? scope.Name}", [new KeyGroup(null, local)]);
+            here = new KeyColumn(regionName ?? scope.Name, [new KeyGroup(null, local)]);
 
         var global = bindings.Where(binding => binding.Scope == CommandScope.Global).ToList();
         var groups = new List<KeyGroup>();
@@ -47,7 +47,7 @@ public sealed record KeySheet(KeyColumn? Here, KeyColumn? Everywhere)
         var bindings = keys.Bindings
             .Where(binding => binding.CommandId != ShellCommands.ShowKeys && commands.IsEnabled(binding.CommandId))
             .OrderBy(binding => binding.Chord is [var key] && key == Key.Esc);
-        return new KeySheet(new KeyColumn($"Here: {title}", [new KeyGroup(null, Rows(commands, bindings))]), null);
+        return new KeySheet(new KeyColumn(title, [new KeyGroup(null, Rows(commands, bindings))]), null);
     }
 
     private static List<KeyRow> Rows(CommandRegistry commands, IEnumerable<KeyBinding> shown) =>

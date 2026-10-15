@@ -57,6 +57,20 @@ Pick the control that matches the *shape of the input*, not the one that is easi
 rules: it wraps, shows a dimmed `Placeholder` while empty, undoes and selects like an editor, and
 copies through the library's clipboard. In Swatch, *Help › Writing a comment…* has one.
 
+It moves the caret with the keys a Mac user already knows:
+
+| To move to | Keys | On a Mac laptop |
+| --- | --- | --- |
+| Previous / next word | `Option+←/→` or `Ctrl+←/→` | — |
+| Start / end of the row you see | `Home` / `End` | `fn+←/→` |
+| Start / end of the text | `Ctrl+Home` / `Ctrl+End` | `fn+Ctrl+←/→` |
+
+Each selects as it moves with `Shift` held, and `Ctrl+A` selects all. `Option+←/→` works whether the
+terminal sends it as `Alt+←/→` (iTerm2, Ghostty) or `Esc b`/`Esc f` (Terminal.app).
+
+`Home` and `End` go by the row you see rather than the paragraph, as in TextEdit: in a box that wraps,
+a comment is often one long paragraph, and `End` would otherwise jump to the end of all of it.
+
 **Style a built-in before you replace it.** Most of what looks like "we need a custom control" is a
 property: `NoDecorations`, `NoPadding`, `ShadowStyle`, `SchemeName`, `Orientation`, `TabBehavior`.
 
@@ -72,7 +86,8 @@ work out whether it is one thing or two.
 
 **Each view shows its keys in one place: on its buttons.** Never on a button and in a hint too, and
 never a mix: if one action shows its key, every action does, Cancel included. Wherever the key is
-shown, **it comes first**: `▓ Ctrl+Enter Delete ▓` on a button, `F1 keys` in the status bar's one hint.
+shown, **it comes first**: `▓ Ctrl+Enter Delete ▓`. The status bar's `Press F1 for help` is the one
+exception (see *Status bars and hints*).
 
 - **A dialog shows every action as a button**, keys on the labels, with no hint row:
   `▓ Ctrl+Enter Post ▓  ▓ Esc Cancel ▓`. That holds when the dialog is mostly a field, when it's a
@@ -104,19 +119,23 @@ Swatch's *Theme › Delete…*, *Remove…* and *Close…* are live dialogs to t
 (section 5), errors outside a dialog (section 3), and whatever describes where the user is, such as
 the selected item or the caret's row and column.
 
-**Its one hint is `F1 keys`** (section 5). Without it, no other key can be found.
+**Its one hint is `Press F1 for help`, always last at its right end** (section 5). Without it, no
+other key can be found. It's the one hint that doesn't put the key first: it's a sentence for someone
+who hasn't learned the keys yet. Anything else the status bar shows on the right, such as the theme
+name, sits just before it: `Daylight  •  Press F1 for help`.
 
 **A dialog never has a hint row.** Every action it has is a button at its foot, right-aligned, with
 its key on the label (section 2).
 
-**Every other key, in a dialog or on the main screen, is found with `F1` (its *Here*) or the command
+**Every other key, in a dialog or on the main screen, is found with `F1` (under the area's name) or the command
 palette, never on screen**: a picker's `Up/Down/PgUp/PgDn`, a control's editing keys such as undo,
 select all and `Home`/`End`.
 
 Write the status bar's hint and status text the same way:
 
-- **Key first, then a lower-case verb phrase**: `F1 keys`. The key is what the user is scanning for.
-- **Separate items with `  •  `** (two spaces, U+2022, two spaces): `Editor  •  F1 keys`.
+- **Key first, then a lower-case verb phrase**: `Ctrl+E commands`. The key is what the user is
+  scanning for. `Press F1 for help` is the one exception.
+- **Separate items with `  •  `** (two spaces, U+2022, two spaces): `Daylight  •  Press F1 for help`.
   [`HintRow`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/HintRow.cs)
   lays them out.
 - Name keys as the terminal reports them: `Ctrl+Enter`, `Esc`, `PgUp`.
@@ -143,7 +162,7 @@ The status bar itself:
   between its items, so the status bar is a plain one-row `View` in the `StatusBar` scheme instead.
 
 The library's [`AppStatusBar`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/AppStatusBar.cs),
-which `AppShell` gives `F1 keys` and nothing else, and the `StatusBar` scheme in each of its
+which `AppShell` gives `Press F1 for help` and nothing else, and the `StatusBar` scheme in each of its
 [themes](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Theming/themes.json) are the reference implementation.
 [`AppDialog`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Dialogs/AppDialog.cs)
 has no hint row, and lays out a dialog's buttons from its commands and keys. Every dialog in Swatch,
@@ -243,6 +262,29 @@ Through the terminal is the normal outcome over SSH, not a warning. For it to la
 
 In Swatch, `Ctrl+C` in *Roles*, or *Edit › Copy colours*, copies the selected role's colours.
 
+### Opening a link
+
+**A link opens locally and is copied over SSH.** Over SSH (`SSH_CONNECTION`, `SSH_CLIENT` or
+`SSH_TTY` is set) there's no browser to open it in, so it's copied the same way as any other copy.
+Only `http`, `https` and `mailto` links open; nothing the opener prints reaches the screen.
+
+**Say which, on the status bar:**
+
+| Outcome | Says | Severity |
+| --- | --- | --- |
+| Opened | `Opened https://github.com/mentaldesk/tui-style-guide` | `Info` |
+| Copied over SSH | `Copied https://github.com/mentaldesk/tui-style-guide (no browser over SSH)` | `Info` |
+| The copy failed | `Copy failed: …`, as for any copy | `Error` |
+| No opener | `Couldn't open the link: xdg-open not found` | `Error` |
+| Not a web or mail link | `Couldn't open the link: only web and mail links open` | `Error` |
+
+Never call `Link.OpenUrl` directly. An app with `AppShell` calls `shell.OpenLink(url)`, which puts the
+outcome on the status bar. One without builds a `LinkOpener` with its clipboard, calls
+`opener.Open(url)` and shows the `LinkOutcome` it returns. A `Markdown` view's `LinkClicked` is one of
+the places to call it: open the link there and set `e.Handled = true`.
+
+In Swatch, *Help › Open the guide on GitHub* opens this page.
+
 ## 4. Icons and glyphs
 
 **Use [Nerd Font](https://www.nerdfonts.com/cheat-sheet) glyphs where an icon does real work.** An
@@ -303,19 +345,22 @@ Auto's reason beside it, and `F12` shows what Auto chose.
 
 ### Finding keys
 
-**`F1` always opens the keys for here and everywhere, and never means anything else.** *Here* lists
-the keys bound to the focused region; *Everywhere* lists the global ones, grouped under the menu's
-headings. Both are read from the keymap when it opens, so they can't drift from the real bindings.
+**`F1` always opens *Help*, and never means anything else.** *Everywhere* is on the left: the
+global keys, grouped under the menu's headings. The focused area's keys are on the right, headed with
+the area's name alone (`Themes`). When the two columns don't fit side by side, the area's keys go on
+top and *Everywhere* below. Both are read from the keymap when it opens, so they can't drift from the
+real bindings.
 
-**`F1` works in dialogs too, with *Here* only.** *Here* is headed with the dialog's title
-(`Here: Commands`) and lists every key the dialog binds, its buttons' keys included. There's no
-*Everywhere*: the app's keys don't work behind a dialog (see *Only what works here*). Closing it puts
-you back in the dialog, with focus where it was.
+**`F1` works in dialogs too, with one column.** It's headed with the dialog's title (`Commands`) and
+lists every key the dialog binds, its buttons' keys included. There's no *Everywhere*: the app's keys
+don't work behind a dialog (see *Only what works here*). Closing it puts you back in the dialog, with
+focus where it was.
 
-- **The main screen's status bar always shows `F1 keys`, and no other hint** (see *Status bars and
-  hints*), so it's in the same place in every app. A dialog shows no `F1` hint: it works the same everywhere.
+- **The main screen's status bar always ends with `Press F1 for help`, and shows no other hint** (see
+  *Status bars and hints*), so it's in the same place in every app. A dialog shows no `F1` hint: it
+  works the same everywhere.
 - **A command that only works in one region belongs to that region**, and so do its keys, so they
-  show under *Here* (see *Only what works here*).
+  show under its name (see *Only what works here*).
 - It's a reference, not a runner: nothing in it takes focus, its one button is `▓ Esc Close ▓`, `F1`
   in it does nothing, and it leaves out commands that can't run here and commands with no key. The command palette has the
   second kind.
@@ -348,6 +393,21 @@ and TuiCode's [`CamelHumps`](https://github.com/mentaldesk/tui-style-guide/blob/
 is the reference implementation. The command palette is built on it, and so is Swatch's
 *Go › Scheme…*.
 
+### Menu letters
+
+**Every item in an open menu has its own underlined letter, and pressing it runs the item**, without
+`Alt`, as the menu bar's titles do with it.
+
+- **No two items in a menu share a letter.** Each takes its first letter if that's free, else the first
+  letter of a later word (*Save [a]s…*), else any letter in its label (*Se[t]tings…*, with *Export* holding `E`). First letters are
+  handed out before later words, so *Open recent* doesn't take *Run*'s `R`. An item that marks its own
+  letter keeps it.
+- **A dimmed item keeps its letter**, underlined in the dim colour, so the menu doesn't change shape.
+  Pressing it does nothing, and the menu stays open.
+
+`AppMenu` picks the letters, keeping any a `MenuEntry` title marks with `_`. The sample app's *File*
+menu has *Save*, *Save as…* and *Settings…*; Swatch's *Theme › Use for Swatch* dims with its `U`.
+
 ### Dialog buttons
 
 A dialog of buttons, such as an "are you sure?", works the same way in every app:
@@ -357,7 +417,7 @@ A dialog of buttons, such as an "are you sure?", works the same way in every app
 - **The main action's key is `Ctrl+Enter`**, Danger or not (`▓ Ctrl+Enter Delete ▓`).
 - **Every action has one key, shown on its button**, Cancel's `Esc` too: the key written before the
   label (`▓ Ctrl+Enter Save ▓`), or for any other action the underlined letter (`D` don't save). The
-  letter works without `Alt`. The dialog has no hint row (see *Status bars and hints*).
+  letter works without `Alt`, as in a menu. The dialog has no hint row (see *Status bars and hints*).
 - **`Enter` does nothing**, whichever button has focus.
 
 ```
@@ -402,7 +462,7 @@ which changes `Esc` will undo, because the answer is always "every one".
   controls. Focus starts on the page's first control.
 - **`▓ Ctrl+Enter Keep ▓` and `▓ Esc Cancel ▓`**, at the foot, and no hint row. `Keep`, not `Save`:
   the change is already on screen, and you're keeping it. A page's own action is a button on that
-  page, its key on the label, and `F1` lists every key under *Here: Settings*.
+  page, its key on the label, and `F1` lists every key under *Settings*.
 - **A page with changes not yet kept shows `•` after its name** in the list, and loses it when they're
   put back.
 - **A setting that differs from its default says so on its row**: `[ ] Show hex values  (default: on)`,
