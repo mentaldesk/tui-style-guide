@@ -20,13 +20,24 @@ public sealed class MentalDeskSettings(string path)
         get => Read()?[IconStyleKey] is JsonValue value && value.TryGetValue<string>(out var name)
             && Enum.TryParse<IconStyle>(name, out var style) && Enum.IsDefined(style)
                 ? style
-                : IconStyle.Auto;
+                : IconSettings.Default;
         set
         {
             var settings = Read() ?? [];
             settings[IconStyleKey] = value.ToString();
             Write(settings);
         }
+    }
+
+    // An app's own settings, under its name, beside the shared ones.
+    public JsonObject Section(string app) =>
+        Read()?[app] is JsonObject section ? (JsonObject)section.DeepClone() : [];
+
+    public void SaveSection(string app, JsonObject section)
+    {
+        var settings = Read() ?? [];
+        settings[app] = section;
+        Write(settings);
     }
 
     public static string DefaultPath()

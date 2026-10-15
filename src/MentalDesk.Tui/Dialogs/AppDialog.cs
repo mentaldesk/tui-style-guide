@@ -65,7 +65,7 @@ public abstract class AppDialog : Dialog
             shell.Scopes.Pop(Scope);
             KeysRequested -= showKeys;
         }
-        Closed?.Invoke(this, EventArgs.Empty);
+        RaiseClosed();
     }
 
     public KeySheet KeysHere() => KeySheet.ForDialog(Title, Commands, Keys);
@@ -90,7 +90,7 @@ public abstract class AppDialog : Dialog
         return button;
     }
 
-    protected void AddButtonRow(int y, params Button[] row)
+    protected void AddButtonRow(Pos y, params Button[] row)
     {
         for (var i = row.Length - 1; i >= 0; i--)
         {
@@ -98,6 +98,11 @@ public abstract class AppDialog : Dialog
             row[i].X = i == row.Length - 1 ? Pos.AnchorEnd() - 1 : Pos.Left(row[i + 1]) - row[i].Text.Length - ButtonGap.Length;
         }
         Add(row);
+    }
+
+    // However it closed: Esc, a button, or the close box.
+    protected virtual void OnClosed()
+    {
     }
 
     protected void Accept()
@@ -118,7 +123,13 @@ public abstract class AppDialog : Dialog
         if (IsRunning)
             RequestStop();
         else
-            Closed?.Invoke(this, EventArgs.Empty);
+            RaiseClosed();
+    }
+
+    private void RaiseClosed()
+    {
+        OnClosed();
+        Closed?.Invoke(this, EventArgs.Empty);
     }
 
     private void ShowKeys() => KeysRequested?.Invoke(this, KeysHere());

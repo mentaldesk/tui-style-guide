@@ -5,12 +5,14 @@ namespace MentalDesk.Tui.Keys;
 // Canonical (raw keycodes) is a chord's identity. Display is lossy (Ctrl+Alt+Shift++), so never parse it back.
 public static class KeyChord
 {
-    private static readonly (string Name, string Symbol)[] Arrows =
+    private static readonly (string Name, string Symbol)[] Short =
     [
         ("CursorUp", "↑"),
         ("CursorDown", "↓"),
         ("CursorLeft", "←"),
         ("CursorRight", "→"),
+        ("PageUp", "PgUp"),
+        ("PageDown", "PgDn"),
     ];
 
     public static string Canonical(IReadOnlyList<Key> chord) =>
@@ -25,7 +27,7 @@ public static class KeyChord
         var text = key.ToString();
         if (text.Length == 1 && char.IsLetter(text[0]))
             return text.ToUpperInvariant();
-        foreach (var (name, symbol) in Arrows)
+        foreach (var (name, symbol) in Short)
         {
             if (text == name) return symbol;
             if (text.EndsWith($"+{name}", StringComparison.Ordinal))

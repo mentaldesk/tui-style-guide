@@ -2,6 +2,7 @@ using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Commands;
 using MentalDesk.Tui.Dialogs;
 using MentalDesk.Tui.Focus;
+using MentalDesk.Tui.Settings;
 using MentalDesk.Tui.Shell;
 using MentalDesk.Tui.Theming;
 
@@ -21,9 +22,13 @@ internal sealed class SwatchWindow : AppWindow
     private readonly TreeView _themes = new() { Width = Dim.Fill(), Height = Dim.Fill() };
     private readonly ListView _roles = new() { Width = Dim.Fill(), Height = Dim.Fill() };
     private readonly PreviewView _preview;
+    private bool _showHexValues;
 
     public SwatchWindow(AppShell shell) : base(Register(shell))
     {
+        Settings = new SwatchSettings(shell.Settings);
+        Themes.Apply(Settings.Theme);
+        _showHexValues = Settings.ShowHexValues;
         _preview = new PreviewView(shell.Icons);
         _themesPane = Panes.Create("Themes", _themes, x: 0, width: 24);
         _themesPane.SchemeName = SchemeNames.Sidebar;
@@ -65,6 +70,21 @@ internal sealed class SwatchWindow : AppWindow
 
     public IEnumerable<string> ThemeNames => _themes.Objects?.Select(node => node.Text) ?? [];
 
+    public SwatchSettings Settings { get; }
+
+    public bool ShowHexValues
+    {
+        get => _showHexValues;
+        set
+        {
+            if (value == _showHexValues) return;
+            _showHexValues = value;
+            var selected = _roles.SelectedItem;
+            ShowRoles();
+            _roles.SelectedItem = selected;
+        }
+    }
+
     private static AppShell Register(AppShell shell)
     {
         shell.Commands
@@ -81,7 +101,7 @@ internal sealed class SwatchWindow : AppWindow
             .Register(SwatchCommands.CopyColours, "Copy colours", () => CopyColours(shell), RolesRegion.Scope)
             .Register(SwatchCommands.ShowLoadingStates, "Show loading states", () => ShowLoadingStates(shell))
             .Register(SwatchCommands.WriteComment, "Write a comment", () => WriteComment(shell))
-            .Register(SwatchCommands.ShowIcons, "Icons…", () => ShowIcons(shell))
+            .Register(SwatchCommands.ShowSettings, "Settings…", () => ShowSettings(shell))
             .Register(SwatchCommands.OpenGuide, "Open the guide on GitHub", () => shell.OpenLink(GuideUrl));
         shell.Keys
             .Bind("Ctrl+G T", SwatchCommands.GoToThemes)
@@ -96,7 +116,7 @@ internal sealed class SwatchWindow : AppWindow
             .Bind("Ctrl+T C", SwatchCommands.CloseTheme)
             .Bind("Ctrl+C", SwatchCommands.CopyColours);
         shell.UseMenu(
-            new MenuSpec("_File", [ShellCommands.Quit]),
+            new MenuSpec("_File", [new MenuEntry(SwatchCommands.ShowSettings, "_Settings…"), null, ShellCommands.Quit]),
             new MenuSpec("_Edit", [new MenuEntry(SwatchCommands.CopyColours, "_Copy colours")]),
             new MenuSpec("_Go", [
                 new MenuEntry(SwatchCommands.GoToThemes, "_Themes"),
@@ -118,7 +138,6 @@ internal sealed class SwatchWindow : AppWindow
                 null,
                 new MenuEntry(SwatchCommands.ShowLoadingStates, "_Loading states…"),
                 new MenuEntry(SwatchCommands.WriteComment, "_Writing a comment…"),
-                new MenuEntry(SwatchCommands.ShowIcons, "_Icons…"),
                 new MenuEntry(SwatchCommands.OpenGuide, "Open the _guide on GitHub"),
                 new MenuEntry(ShellCommands.ShowDiagnostics, "Show _diagnostics"),
             ]));
@@ -129,6 +148,7 @@ internal sealed class SwatchWindow : AppWindow
     {
         if (shell.App.TopRunnableView is not SwatchWindow window) return;
         var applied = shell.ApplyTheme(window.Showing.Theme);
+        window.Settings.Theme = applied;
         shell.StatusBar.State = applied;
         shell.ShowMessage($"Swatch is now in {applied}");
     }
@@ -187,12 +207,15 @@ internal sealed class SwatchWindow : AppWindow
             shell.ShowMessage("A demo: Swatch has nowhere to post it, so the comment went nowhere");
     }
 
-    private static void ShowIcons(AppShell shell)
+    private static void ShowSettings(AppShell shell)
     {
-        using var dialog = new IconsDialog(shell.Icons);
+        if (shell.App.TopRunnableView is not SwatchWindow window) return;
+        using var dialog = new SettingsDialog([
+            new AppearancePage(shell, window.Settings),
+            new SwatchesPage(shell, window.Settings, show => window.ShowHexValues = show),
+        ]);
         dialog.Run(shell);
-        if (!dialog.Confirmed)
-            shell.Icons.Revert();
+        shell.StatusBar.State = Themes.Current;
     }
 
     private static void Confirm(AppShell shell, Func<string, ConfirmDialog> open, Func<ConfirmAction, string> said)
@@ -207,15 +230,17 @@ internal sealed class SwatchWindow : AppWindow
     private void Show(Selection selection)
     {
         Showing = selection;
-        var schemes = Themes.SchemesOf(selection.Theme);
-        if (schemes.TryGetValue(selection.Scheme, out var scheme))
-        {
-            _roles.Source = new RoleSource(scheme);
-            _roles.SelectedItem = 0;
-        }
+        ShowRoles();
+        _roles.SelectedItem = 0;
         _rolesPane.Title = selection.Display;
         _previewPane.Title = $"Preview › {selection.Theme}";
         _preview.Show(selection.Theme);
+    }
+
+    private void ShowRoles()
+    {
+        if (Themes.SchemesOf(Showing.Theme).TryGetValue(Showing.Scheme, out var scheme))
+            _roles.Source = new RoleSource(scheme, _showHexValues);
     }
 
     internal sealed record Selection(string Theme, string Scheme)

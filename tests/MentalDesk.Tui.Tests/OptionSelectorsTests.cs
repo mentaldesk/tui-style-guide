@@ -40,6 +40,29 @@ public class OptionSelectorsTests : StaticConfigurationTest
         Assert.Equal([2, 1, 0], changes);
     }
 
+    [Fact]
+    public void Tab_and_Shift_Tab_leave_the_options_without_choosing()
+    {
+        using var window = new AppWindow(_host.Shell);
+        var before = new TextField { Width = 10 };
+        var options = new OptionSelector { Y = 1, Labels = ["One", "Two", "Three"], Value = 1 }.SelectOnArrows();
+        var after = new TextField { Y = 4, Width = 10 };
+        window.Add(before, options, after);
+
+        _host.Run(window,
+            () => before.SetFocus(),
+            () => Press(Key.Tab),
+            () => options.HasFocus,
+            () => Press(Key.Tab),
+            () => after.HasFocus,
+            () => Press(Key.Tab.WithShift),
+            () => options.HasFocus,
+            () => Press(Key.Tab.WithShift),
+            () => before.HasFocus);
+
+        Assert.Equal(1, options.Value);
+    }
+
     private void Press(params Key[] keys)
     {
         foreach (var key in keys)

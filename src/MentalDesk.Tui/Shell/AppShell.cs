@@ -77,6 +77,8 @@ public sealed class AppShell : IDisposable
 
     public IconSettings Icons { get; }
 
+    public MentalDeskSettings Settings => Icons.File;
+
     internal LinkOpener Links { get; set; }
 
     internal bool IsWindows { get; init; } = OperatingSystem.IsWindows();

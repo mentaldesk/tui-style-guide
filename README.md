@@ -316,8 +316,8 @@ is the shared style, read once at start (`AppShell.Icons`), with
 behind *Auto*. Each app keeps its own icons, each an `Icon` with a Nerd Font and a Plain glyph.
 [`IconField`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Icons/IconField.cs)
 draws one in its 2-cell field, in the row's hot colour over the row's background, in front of a tree
-row or anywhere else. In Swatch, *Help › Icons…* picks the style and previews it in the *Files* panes,
-and `F12` shows what Auto chose.
+row or anywhere else. In Swatch, *File › Settings…* picks the style on its *Appearance* page, with
+Auto's reason beside it, and `F12` shows what Auto chose.
 
 ## 5. Keys and focus
 
@@ -332,12 +332,15 @@ and `F12` shows what Auto chose.
 - **Every action is reachable from the keyboard.** The mouse is a convenience, never the only way.
 - **Tab moves focus, everywhere.** Terminal.Gui.Editor binds Tab to indent, so a multi-line field in
   a dialog is the library's `MultiLineField`, which leaves Tab, Esc and `Ctrl+Enter` to the dialog.
+- **Tabs and pages switch with `Ctrl+PgUp`/`Ctrl+PgDn`.** Wherever a view has tabs or pages, these go
+  to the previous and next one, wrapping at either end, and `Tab` stays inside the current one.
 - **Focus lands where work starts** when a view opens — the filter field, the summary, the first row.
 - **In a set of options, the arrows choose.** `Left`/`Right` (or `Up`/`Down`) pick the next option,
-  not just focus it, and focus enters on the chosen option. `Space` has nothing left to do. Terminal.Gui's
-  `OptionSelector` only moves focus, so call the library's
+  not just focus it, and focus enters on the chosen option. `Tab` leaves the set in one press and never
+  changes the choice. `Space` has nothing left to do. Terminal.Gui's `OptionSelector` only moves focus,
+  and `Tab` steps through its options, so call the library's
   [`SelectOnArrows()`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Fields/OptionSelectors.cs)
-  on every one. Swatch's *Help › Icons…* uses it.
+  on every one. Swatch's *Settings* uses it for the icon style.
 - A container `View` that hosts focusable children needs `CanFocus = true`; `SetFocus()` silently
   returns false when any ancestor has it off.
 
@@ -441,6 +444,53 @@ an action on `Enter`, a dialog without exactly one action on `Ctrl+Enter`, and f
 Danger button. Swatch's *Theme › Delete…* (can't be undone), *Remove…* and *Close…* (Save, Don't
 save, Cancel) try every key. An app without `AppShell` uses it too: add it, push its `Scope` (keys fed
 through `CtrlEnter.FromWindows`), and on `Closed` pop it, remove it, then run the chosen action.
+
+### Settings screens
+
+**Nothing in Settings is kept until `Ctrl+Enter`, and `Esc` undoes all of it.** A user never has to ask
+which changes `Esc` will undo, because the answer is always "every one".
+
+- **Settings holds only what the app owns.** Anything that acts on something else (GitHub, another
+  app's config, another file) is a screen or a command of its own, reached from the menu and the
+  palette, with its own Cancel. That's the test for whether something belongs in Settings.
+- **Changes preview while Settings is open.** Pick a theme and the screen is in it. Leaving any way
+  but `Ctrl+Enter` (`Esc`, *Cancel*, the close box) puts back every setting as it was saved, with no
+  "are you sure?".
+- **A dialog opened from a page stages its result.** Confirming it (`Ctrl+Enter`) changes the page;
+  its `Esc` closes only that dialog. Nothing it did is kept until `Ctrl+Enter` on Settings, and `Esc`
+  there undoes it with everything else.
+- **Pages on the left, the page on the right.** The page list never takes focus: `Ctrl+PgUp`/`Ctrl+PgDn`
+  change page, or click one, and `Tab`, `Shift+Tab` and the arrows move only among the page's
+  controls. Focus starts on the page's first control.
+- **`▓ Ctrl+Enter Keep ▓` and `▓ Esc Cancel ▓`**, at the foot, and no hint row. `Keep`, not `Save`:
+  the change is already on screen, and you're keeping it. A page's own action is a button on that
+  page, its key on the label, and `F1` lists every key under *Settings*.
+- **A page with changes not yet kept shows `•` after its name** in the list, and loses it when they're
+  put back.
+- **A setting that differs from its default says so on its row**: `[ ] Show hex values  (default: on)`,
+  `Daylight  (default: Midnight)`.
+
+```
+┌─ Settings ──────────────────────────────────────────────────────────────────┐
+│ Appearance •  │ Theme                                                       │   ListView (pages, no focus)  │ Line
+│ Swatches      │   Midnight                                                  │
+│               │   Daylight  (default: Midnight)                             │   ListView, focused, previews live
+│               │   Turbo Pascal                                              │
+│               │   Modern Borland                                            │
+│               │                                                             │
+│               │ Icons  (•) Auto  ( ) Nerd Font  ( ) Plain                   │   OptionSelector, previews live
+│               │ Auto chose Nerd Font: kitty bundles the Nerd Font symbols   │   Label, dim
+│               │                                                             │
+│               │                  ▓ Ctrl+Enter Keep ▓   ▓ Esc Cancel ▓       │   Button (Primary), Button (Secondary)
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+The library's [`SettingsDialog`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Settings/SettingsDialog.cs)
+is the reference implementation. An app adds its own pages, each a
+[`SettingsPage`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Settings/SettingsPage.cs)
+that says whether it has changes and how to keep or put them back. Swatch's *File › Settings…* has
+an *Appearance* page (theme and icon style) and a *Swatches* page, whose *Reset to defaults…* asks
+through `ConfirmDialog` and stages the reset.
 
 ### Showing focus
 

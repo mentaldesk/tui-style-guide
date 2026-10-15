@@ -62,7 +62,7 @@ public class DialogKeysTests : StaticConfigurationTest
 
         Assert.Equal("Commands", sheet!.Here!.Heading);
         Assert.Null(sheet.Everywhere);
-        Assert.Equal(["Enter Run", "↑ Previous", "↓ Next", "PageUp Page up", "PageDown Page down", "Esc Cancel"], Rows(sheet));
+        Assert.Equal(["Enter Run", "↑ Previous", "↓ Next", "PgUp Page up", "PgDn Page down", "Esc Cancel"], Rows(sheet));
     }
 
     [Fact]

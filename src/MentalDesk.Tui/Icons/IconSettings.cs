@@ -12,7 +12,11 @@ public sealed class IconSettings
         Saved = Style = file.IconStyle;
     }
 
+    public const IconStyle Default = IconStyle.Auto;
+
     public event EventHandler? Changed;
+
+    public MentalDeskSettings File => _file;
 
     public IconStyle Saved { get; private set; }
 

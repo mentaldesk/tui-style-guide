@@ -145,7 +145,7 @@ public class OpenLinkHostTests : StaticConfigurationTest
     }
 
     [Fact]
-    public void The_guide_is_in_the_Help_menu_between_Icons_and_diagnostics()
+    public void The_guide_is_in_the_Help_menu_just_before_diagnostics()
     {
         var host = _host = new Host();
         using var window = new SwatchWindow(host.Shell);
@@ -153,7 +153,7 @@ public class OpenLinkHostTests : StaticConfigurationTest
         var help = host.Shell.Menu!.Layout.Single(menu => menu.Title == "_Help").Items
             .Select(item => item?.CommandId).ToList();
 
-        Assert.Equal(help.IndexOf(SwatchCommands.ShowIcons) + 1, help.IndexOf(SwatchCommands.OpenGuide));
+        Assert.Equal(help.IndexOf(SwatchCommands.WriteComment) + 1, help.IndexOf(SwatchCommands.OpenGuide));
         Assert.Equal(help.IndexOf(SwatchCommands.OpenGuide) + 1, help.IndexOf(ShellCommands.ShowDiagnostics));
     }
 }
