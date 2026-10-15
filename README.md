@@ -356,6 +356,8 @@ bar, so moving to one redraws the window.
 
 - **`F6` / `Shift+F6` move to the next / previous pane**, in reading order, wrapping. Focus lands where
   work starts in it. Every pane is reachable this way, whatever else the app binds.
+- **The arrows never leave a pane.** At the top of a list or the end of a file, `Up` or `Down` does
+  nothing. Terminal.Gui would move focus on an arrow the view doesn't use; `AppShell` stops it.
 - **A pane the user moves to many times an hour may also have a chord of its own**, as TuiCode's
   Explorer has `Ctrl+Shift+E`. It's a second way in, never the only one. Not `Ctrl+Esc`, which Windows
   takes, and remember some terminals fold `Ctrl+Shift+letter` into `Ctrl+letter`.

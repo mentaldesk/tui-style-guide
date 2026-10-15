@@ -205,6 +205,51 @@ public class PanesAndScreensTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void Arrow_keys_at_the_ends_of_the_sample_s_log_and_editor_keep_focus_in_them()
+    {
+        using var window = new SwatchWindow(_host.Shell);
+        var ticks = 0;
+        Key[] past = [.. Enumerable.Repeat(Key.CursorUp, 5), .. Enumerable.Repeat(Key.CursorDown, 5),
+            .. Enumerable.Repeat(Key.CursorLeft, 20), .. Enumerable.Repeat(Key.CursorRight, 60)];
+
+        _host.Run(window,
+            () => FocusWord == "Themes",
+            () => Press(Key.T.WithCtrl, Key.T),
+            () => SampleFocusWord == "Editor",
+            () => Press(past),
+            () => ++ticks > 5,
+            () => SampleFocusWord == "Editor",
+            () => Press(Key.G.WithCtrl, Key.L),
+            () => SampleFocusWord == "Log",
+            () => Press(past),
+            () => ++ticks > 10,
+            () => SampleFocusWord == "Log",
+            () => Press(Key.Esc),
+            () => _host.App.TopRunnableView is SwatchWindow);
+    }
+
+    [Fact]
+    public void Arrow_keys_at_the_ends_of_Swatch_s_panes_keep_focus_in_them()
+    {
+        using var window = new SwatchWindow(_host.Shell);
+        var ticks = 0;
+        Key[] past = [.. Enumerable.Repeat(Key.CursorUp, 40), .. Enumerable.Repeat(Key.CursorLeft, 5),
+            .. Enumerable.Repeat(Key.CursorRight, 5)];
+
+        _host.Run(window,
+            () => FocusWord == "Themes",
+            () => Press(past),
+            () => ++ticks > 5,
+            () => FocusWord == "Themes",
+            () => Press([Key.F6, .. past]),
+            () => ++ticks > 10,
+            () => FocusWord == "Roles",
+            () => Press([.. Enumerable.Repeat(Key.CursorDown, 80)]),
+            () => ++ticks > 15,
+            () => FocusWord == "Roles");
+    }
+
+    [Fact]
     public void Ctrl_G_and_a_letter_switches_the_sample_s_screen_and_Go_checks_the_current_one()
     {
         using var window = new SwatchWindow(_host.Shell);

@@ -32,6 +32,9 @@ public sealed class FocusTracker(Func<object?> focusedView)
         return true;
     }
 
+    public bool Owns(FocusRegion? region, object? view) =>
+        _targets.Any(target => target.Region == region && target.Owns(view));
+
     public bool Next() => Cycle(1);
 
     public bool Previous() => Cycle(-1);

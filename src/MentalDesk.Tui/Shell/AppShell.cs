@@ -20,8 +20,15 @@ public sealed class AppShell : IDisposable
     private static readonly (Command Framework, string Id)[] PaneKeys =
         [(Command.NextTabGroup, ShellCommands.NextPane), (Command.PreviousTabGroup, ShellCommands.PreviousPane)];
 
+    private static readonly (Key Arrow, Command Command, NavigationDirection Direction)[] Arrows =
+    [
+        (Key.CursorUp, Command.Up, NavigationDirection.Backward), (Key.CursorLeft, Command.Left, NavigationDirection.Backward),
+        (Key.CursorDown, Command.Down, NavigationDirection.Forward), (Key.CursorRight, Command.Right, NavigationDirection.Forward),
+    ];
+
     private readonly List<(AppScreen Screen, View View, FocusRegion Start)> _screens = [];
 
+    private readonly ArrowFallback _arrowFallback;
     private bool _nested;
     private bool _deleting;
 
@@ -58,6 +65,8 @@ public sealed class AppShell : IDisposable
             .Bind("F12", ShellCommands.ShowDiagnostics)
             .Bind("F1", ShellCommands.ShowKeys);
         BindPaneKeys();
+        _arrowFallback = new ArrowFallback(MoveFocusOutsidePanes);
+        BindArrows();
         StatusBar.Hints.Show([("Press F1 for help", () => Commands.Execute(ShellCommands.ShowKeys))]);
 
         Focus.RegionChanged += (_, region) => StatusBar.SetFocusWord(region.Name);
@@ -66,6 +75,7 @@ public sealed class AppShell : IDisposable
         App.Iteration += OnIteration;
         Clipboard.Copied += OnCopied;
         Application.DefaultKeyBindingsChanged += BindPaneKeys;
+        Application.DefaultKeyBindingsChanged += BindArrows;
     }
 
     public IApplication App { get; }
@@ -203,6 +213,7 @@ public sealed class AppShell : IDisposable
         finally
         {
             _nested = false;
+            BindArrows();
             ApplyTheme(outerTheme);
             if (region is not null)
                 Focus.Focus(region);
@@ -215,6 +226,30 @@ public sealed class AppShell : IDisposable
         App.Iteration -= OnIteration;
         Clipboard.Copied -= OnCopied;
         Application.DefaultKeyBindingsChanged -= BindPaneKeys;
+        Application.DefaultKeyBindingsChanged -= BindArrows;
+        _arrowFallback.Dispose();
+    }
+
+    // Terminal.Gui moves focus on an arrow no view used; out of a pane, only F6 and Tab should.
+    private void BindArrows(object? sender = null, EventArgs? e = null)
+    {
+        foreach (var (arrow, command, _) in Arrows)
+        {
+            App.Keyboard.KeyBindings.Remove(arrow);
+            App.Keyboard.KeyBindings.Add(arrow, new Terminal.Gui.Input.KeyBinding([command], _arrowFallback));
+        }
+    }
+
+    private bool MoveFocusOutsidePanes(NavigationDirection direction) =>
+        Focus.Owns(Focus.Region, FocusedView()) || App.Navigation!.AdvanceFocus(direction, TabBehavior.TabStop);
+
+    private sealed class ArrowFallback : View
+    {
+        public ArrowFallback(Func<NavigationDirection, bool> move)
+        {
+            foreach (var (_, command, direction) in Arrows)
+                AddCommand(command, () => move(direction));
+        }
     }
 
     private void BindPaneKeys(object? sender = null, EventArgs? e = null)
