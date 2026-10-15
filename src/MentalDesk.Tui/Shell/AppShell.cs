@@ -84,6 +84,8 @@ public sealed class AppShell : IDisposable
 
     public AppScreen? Screen { get; private set; }
 
+    public MacKeys? MacKeys { get; private set; }
+
     public TerminalCursor Cursor { get; }
 
     public TerminalClipboard Clipboard { get; }
@@ -127,6 +129,9 @@ public sealed class AppShell : IDisposable
         Screen = screen;
         Focus.Focus(start);
     }
+
+    // Marks the app active in the terminal while Run runs.
+    public MacKeys UseMacKeys(MacKeys keys) => MacKeys = keys;
 
     public string ApplyTheme(string theme)
     {
@@ -172,6 +177,7 @@ public sealed class AppShell : IDisposable
     public void Run(IRunnable window)
     {
         ApplyTheme(Themes.Current);
+        using var active = MacKeys?.Activate();
         try
         {
             App.Run(window);

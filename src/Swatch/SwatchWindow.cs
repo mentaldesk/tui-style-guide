@@ -199,10 +199,14 @@ internal sealed class SwatchWindow : AppWindow
     private static void ShowSettings(AppShell shell)
     {
         if (shell.App.TopRunnableView is not SwatchWindow window) return;
-        using var dialog = new SettingsDialog([
+        List<SettingsPage> pages =
+        [
             new AppearancePage(shell, window.Settings),
             new SwatchesPage(shell, window.Settings, show => window.ShowHexValues = show),
-        ]);
+        ];
+        if (shell.MacKeys is { } keys)
+            pages.Add(new MacKeysPage(shell, keys));
+        using var dialog = new SettingsDialog(pages);
         dialog.Run(shell);
         shell.StatusBar.State = Themes.Current;
     }
