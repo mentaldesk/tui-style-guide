@@ -36,6 +36,8 @@ public sealed class AppShell : IDisposable
         Cursor = cursor;
         Icons = icons ?? IconSettings.ForThisUser();
         Clipboard = InstallClipboard(app, clipboardTools);
+        if (app.Driver is { } driver)
+            AlternateKeyCodes.Install(driver.GetInputProcessor());
         Links = new LinkOpener(Clipboard);
         Focus = new FocusTracker(FocusedView);
         Keys = new Keymap(Commands) { FocusedScope = () => Focus.Region?.Scope ?? CommandScope.Global };

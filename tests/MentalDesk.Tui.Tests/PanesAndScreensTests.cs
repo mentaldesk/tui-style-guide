@@ -6,6 +6,7 @@ using MentalDesk.Tui.Keys;
 using MentalDesk.Tui.Palette;
 using MentalDesk.Tui.Shell;
 using Swatch;
+using Terminal.Gui.Drivers;
 
 namespace MentalDesk.Tui.Tests;
 
@@ -49,6 +50,18 @@ public class PanesAndScreensTests : StaticConfigurationTest
             () => FocusWord == "Preview",
             () => Press(Key.F6.WithShift),
             () => FocusWord == "Roles");
+    }
+
+    [Fact]
+    public void Shift_F6_works_in_iTerm2_which_adds_empty_alternate_keys_to_it()
+    {
+        using var window = new SwatchWindow(_host.Shell);
+        var input = (InputProcessorImpl<char>)_host.App.Driver!.GetInputProcessor();
+
+        _host.Run(window,
+            () => FocusWord == "Themes",
+            () => "\e[17:0:0;2~\e[17:0:0;2:3~".ToList().ForEach(input.InputQueue.Enqueue),
+            () => FocusWord == "Preview");
     }
 
     [Fact]
