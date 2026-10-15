@@ -37,7 +37,7 @@ public class MacKeysTests : StaticConfigurationTest
 
         integration.Install();
 
-        Assert.Equal(Path.Combine(_home, path), integration.Path);
+        Assert.Equal(Path.Combine([_home, .. path.Split('/')]), integration.Path);
         Assert.True(File.Exists(integration.Path));
     }
 
