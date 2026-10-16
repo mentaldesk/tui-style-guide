@@ -21,6 +21,18 @@ public sealed class TerminalClipboard : IClipboard
         _tools = tools;
     }
 
+    /// <summary>Makes this the app's clipboard, once: call it after <c>Init</c>. <c>AppShell</c> calls it for you.</summary>
+    public static TerminalClipboard Install(IApplication app) => Install(app, ClipboardTools.ThisMachine);
+
+    // A second call, or a nested AppShell, gets the clipboard already installed.
+    internal static TerminalClipboard Install(IApplication app, ClipboardTools tools)
+    {
+        if (app.Driver is not { } driver) return new TerminalClipboard(null, _ => { }, tools);
+        if (driver.Clipboard is not TerminalClipboard installed)
+            driver.Clipboard = installed = new TerminalClipboard(driver.Clipboard, driver.WriteRaw, tools);
+        return installed;
+    }
+
     public event EventHandler<CopyOutcome>? Copied;
 
     public IClipboard? Platform { get; }

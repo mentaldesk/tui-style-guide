@@ -45,7 +45,7 @@ public sealed class AppShell : IDisposable
         App = app;
         Cursor = cursor;
         Icons = icons ?? IconSettings.ForThisUser();
-        Clipboard = InstallClipboard(app, clipboardTools);
+        Clipboard = TerminalClipboard.Install(app, clipboardTools);
         if (app.Driver is { } driver)
             AlternateKeyCodes.Install(driver.GetInputProcessor());
         Links = new LinkOpener(Clipboard);
@@ -281,15 +281,6 @@ public sealed class AppShell : IDisposable
             foreach (var key in Application.GetDefaultKeys(framework))
                 Keys.Bind([key], id);
         }
-    }
-
-    // A nested shell shares the clipboard its outer shell installed.
-    private static TerminalClipboard InstallClipboard(IApplication app, ClipboardTools tools)
-    {
-        if (app.Driver is not { } driver) return new TerminalClipboard(null, _ => { }, tools);
-        if (driver.Clipboard is not TerminalClipboard installed)
-            driver.Clipboard = installed = new TerminalClipboard(driver.Clipboard, driver.WriteRaw, tools);
-        return installed;
     }
 
     private IFindTarget? FindTarget() => Focus.Region is { } region ? _findTargets.GetValueOrDefault(region) : null;

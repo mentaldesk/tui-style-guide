@@ -245,6 +245,10 @@ sends every copy through the terminal (OSC 52) as well as to the machine's own c
 controls like `TextField` take that path with no app code. An app's own copy command calls
 `shell.Copy(text)`.
 
+An app without `AppShell` calls `TerminalClipboard.Install(app)` once after `Init`. Built-in controls then
+copy through the terminal too, and its own copy command calls `Copy(text)` on the clipboard that returns.
+It shows each `Copied` outcome on its status bar, with the message and severity the table below gives.
+
 **Say what was copied, on the status bar:**
 
 | Outcome | Says | Severity |
