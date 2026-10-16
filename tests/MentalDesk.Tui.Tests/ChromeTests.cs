@@ -202,6 +202,8 @@ public class ChromeTests : StaticConfigurationTest
     [InlineData(new[] { "Save", "Show _all", "Apply" }, new[] { "_Save", "Show _all", "A_pply" })]
     [InlineData(new[] { "Cut", "_Copy" }, new[] { "C_ut", "_Copy" })]
     [InlineData(new[] { "Turbo Pascal", "Modern Borland", "Midnight" }, new[] { "_Turbo Pascal", "_Modern Borland", "M_idnight" })]
+    [InlineData(new[] { "Go", "Go on", "Go on go" }, new[] { "_Go", "Go _on", "Go o_n go" })]
+    [InlineData(new[] { "Ab", "Ba", "Ab ba" }, new[] { "_Ab", "_Ba", "Ab ba" })]
     public void Each_menu_item_gets_a_letter_of_its_own(string[] titles, string[] picked) =>
         Assert.Equal(picked, MenuLetters.Pick(titles));
 

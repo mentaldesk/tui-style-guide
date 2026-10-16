@@ -1,7 +1,7 @@
 namespace MentalDesk.Tui.Chrome;
 
 // Gives each title its own letter: a letter it marks itself, else its first letter, a later word's, then any.
-internal static class MenuLetters
+public static class MenuLetters
 {
     public static string[] Pick(IReadOnlyList<string> titles)
     {

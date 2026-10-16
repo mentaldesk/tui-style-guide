@@ -451,7 +451,8 @@ is the reference implementation. The command palette is built on it, and so is S
 - **A dimmed item keeps its letter**, underlined in the dim colour, so the menu doesn't change shape.
   Pressing it does nothing, and the menu stays open.
 
-`AppMenu` picks the letters, keeping any a `MenuEntry` title marks with `_`. The sample app's *File*
+`AppMenu` picks the letters, keeping any a `MenuEntry` title marks with `_`. An app with menus of its own
+picks them with `MenuLetters.Pick`, passing every title the menu can show, dimmed and swapped-out ones too. The sample app's *File*
 menu has *Save*, *Save as…* and *Settings…*; Swatch's *Theme › Use for Swatch* dims with its `U`.
 
 ### Dialog buttons
