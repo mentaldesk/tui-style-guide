@@ -1,3 +1,4 @@
+using MentalDesk.Tui.Assistant;
 using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Commands;
 using MentalDesk.Tui.Dialogs;
@@ -15,6 +16,10 @@ internal sealed class SwatchWindow : AppWindow
     public static readonly FocusRegion ThemesRegion = new("Themes", new CommandScope("Themes"));
     public static readonly FocusRegion RolesRegion = new("Roles", new CommandScope("Roles"));
     public static readonly FocusRegion PreviewRegion = new("Preview", new CommandScope("Preview"));
+    public static readonly FocusRegion AssistantRegion = new("Assistant", new CommandScope("Assistant"));
+
+    private const int RolesWidth = 50;
+    private const int AssistantWidth = 48;
 
     private readonly FrameView _themesPane;
     private readonly FrameView _rolesPane;
@@ -22,9 +27,10 @@ internal sealed class SwatchWindow : AppWindow
     private readonly TreeView _themes = new() { Width = Dim.Fill(), Height = Dim.Fill() };
     private readonly ListView _roles = new() { Width = Dim.Fill(), Height = Dim.Fill() };
     private readonly PreviewView _preview;
+    private readonly AssistantController _assistantController;
     private bool _showHexValues;
 
-    public SwatchWindow(AppShell shell) : base(Register(shell))
+    public SwatchWindow(AppShell shell, IAgentLauncher? agents = null) : base(Register(shell))
     {
         Settings = new SwatchSettings(shell.Settings);
         Themes.Apply(Settings.Theme);
@@ -32,9 +38,16 @@ internal sealed class SwatchWindow : AppWindow
         _preview = new PreviewView(shell.Icons);
         _themesPane = Panes.Create("Themes", _themes, x: 0, width: 24);
         _themesPane.SchemeName = SchemeNames.Sidebar;
-        _rolesPane = Panes.Create("Roles", _roles, x: Pos.Right(_themesPane), width: 50);
+        _rolesPane = Panes.Create("Roles", _roles, x: Pos.Right(_themesPane), width: RolesWidth);
         _previewPane = Panes.Create("Preview", _preview, x: Pos.Right(_rolesPane), width: Dim.Fill());
-        Body.Add(_themesPane, _rolesPane, _previewPane);
+        _assistantController = new AssistantController(agents ?? new DemoAgent(), sessions: null, shell.App.Invoke, new Conversation());
+        _assistantController.Configure(DemoAgent.Spec);
+        _assistantController.OpenFolder(Environment.CurrentDirectory);
+        Assistant = new AssistantPane(_assistantController)
+        {
+            X = Pos.AnchorEnd(AssistantWidth), Width = AssistantWidth, Height = Dim.Fill(), Visible = false, Place = "Swatch",
+        };
+        Body.Add(_themesPane, _rolesPane, _previewPane, Assistant);
 
         foreach (var theme in Themes.Names)
         {
@@ -53,6 +66,7 @@ internal sealed class SwatchWindow : AppWindow
         Panes.Track(shell, ThemesRegion, _themesPane, _themes);
         Panes.Track(shell, RolesRegion, _rolesPane, _roles);
         Panes.Track(shell, PreviewRegion, _previewPane, _preview);
+        Assistant.Attach(shell, AssistantRegion);
         _preview.MouseEvent += (_, mouse) =>
         {
             if (!mouse.Flags.HasFlag(MouseFlags.LeftButtonClicked)) return;
@@ -65,6 +79,8 @@ internal sealed class SwatchWindow : AppWindow
     }
 
     public View Preview => _preview;
+
+    public AssistantPane Assistant { get; }
 
     public Selection Showing { get; private set; } = new(Themes.Default, SchemeNames.Base);
 
@@ -99,7 +115,8 @@ internal sealed class SwatchWindow : AppWindow
             .Register(SwatchCommands.ShowLoadingStates, "Show loading states", () => ShowLoadingStates(shell))
             .Register(SwatchCommands.WriteComment, "Write a comment", () => WriteComment(shell))
             .Register(SwatchCommands.ShowSettings, "Settings…", () => ShowSettings(shell))
-            .Register(SwatchCommands.OpenGuide, "Open the guide on GitHub", () => shell.OpenLink(GuideUrl));
+            .Register(SwatchCommands.OpenGuide, "Open the guide on GitHub", () => shell.OpenLink(GuideUrl))
+            .Register(SwatchCommands.ToggleAssistant, "Assistant", () => ToggleAssistant(shell));
         shell.Keys
             .Bind("Ctrl+G S", SwatchCommands.GoToScheme)
             .Bind("Ctrl+T U", SwatchCommands.UseTheme)
@@ -126,11 +143,29 @@ internal sealed class SwatchWindow : AppWindow
                 new MenuEntry(ShellCommands.ShowMenu, "Open the _menu"),
                 null,
                 new MenuEntry(SwatchCommands.ShowLoadingStates, "_Loading states…"),
+                new MenuEntry(SwatchCommands.ToggleAssistant, "_Assistant"),
                 new MenuEntry(SwatchCommands.WriteComment, "_Writing a comment…"),
                 new MenuEntry(SwatchCommands.OpenGuide, "Open the _guide on GitHub"),
                 new MenuEntry(ShellCommands.ShowDiagnostics, "Show _diagnostics"),
             ]));
         return shell;
+    }
+
+    // Down the right of the window in Preview's place, taking from Roles on a narrow screen; choosing it again closes it.
+    private static void ToggleAssistant(AppShell shell)
+    {
+        if (shell.App.TopRunnableView is not SwatchWindow window) return;
+        var pane = window.Assistant;
+        pane.Visible = !pane.Visible;
+        window._previewPane.Visible = !pane.Visible;
+        window._rolesPane.Width = pane.Visible ? Dim.Fill(AssistantWidth) : RolesWidth;
+        if (!pane.Visible)
+        {
+            shell.Focus.Focus(PreviewRegion);
+            return;
+        }
+        shell.Focus.Focus(AssistantRegion);
+        _ = window._assistantController.EnsureStartedAsync().ContinueWith(t => _ = t.Exception, TaskScheduler.Default);
     }
 
     private static void UseTheme(AppShell shell)
@@ -228,6 +263,7 @@ internal sealed class SwatchWindow : AppWindow
         _rolesPane.Title = selection.Display;
         _previewPane.Title = $"Preview › {selection.Theme}";
         _preview.Show(selection.Theme);
+        Assistant.NextContext = selection.Display;
     }
 
     private void ShowRoles()
