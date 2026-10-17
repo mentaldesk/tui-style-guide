@@ -124,7 +124,9 @@ the selected item or the caret's row and column.
 **Its one hint is `Press F1 for help`, always last at its right end** (section 5). Without it, no
 other key can be found. It's the one hint that doesn't put the key first: it's a sentence for someone
 who hasn't learned the keys yet. Anything else the status bar shows on the right, such as the theme
-name, sits just before it: `Daylight  •  Press F1 for help`.
+name, sits just before it: `Daylight  •  Press F1 for help`. The unread-error count `⚠ n` comes
+before those, in the `Error` scheme: `⚠ 1  •  Daylight  •  Press F1 for help` (see
+[Status messages](#status-messages)).
 
 **A dialog never has a hint row.** Every action it has is a button at its foot, right-aligned, with
 its key on the label (section 2).
@@ -201,6 +203,47 @@ Rules that matter more than the widget:
 - **Outside a dialog, errors go to the status bar** — same wording rules, one line. Don't open a
   modal to report something the user did not just ask for. A pane that failed to load is the
   exception: see [Loading and empty](#loading-and-empty).
+
+### Status messages
+
+**A message is either a reply or news.** A *reply* answers what the user just did: `Copied 3 lines`,
+`Saved`, `Opened https://…`. *News* happened by itself: `Couldn't list files…`, `notes.md changed on disk`.
+
+**A message stays for 5 seconds, except:**
+
+- **A newer message replaces it.** There's no ladder: the latest wins.
+- **A reply goes at your next key**, if that comes first, since you've seen it.
+- **An `Error` doesn't time out.** It stays until your next key; error news, until your next key after
+  its 5 seconds, so typing through it doesn't lose it.
+- **News that stops being true comes off.** A load that works after a failed one takes the failure's
+  message off the bar.
+
+The keys of a chord don't count: `Ctrl+G…` shows over the message, which comes back after it.
+
+**No error is lost.** Every `Error` news counts in `⚠ n`, a button in the `Error` scheme just before
+the theme name at the status bar's right end, until *Messages* is opened. A reply doesn't count,
+because the user is looking at it.
+
+**Messages** lists this session's messages, newest first, each with its time, and focus starts on the
+newest. It's in the *Help* menu and the command palette, and clicking `⚠ n` opens it. Errors show in
+the `Error` scheme, `Ctrl+C` copies the selected line, and `Esc` closes it. With nothing to show, it
+says `No messages yet`, dimmed.
+
+```
+ Editor  •  Couldn't list files, so these are the files from the last load     ⚠ 1  •  Daylight  •  Press F1 for help
+```
+
+The library's [`AppStatusBar`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/AppStatusBar.cs)
+is the reference implementation. `ShowMessage(…)` puts up a reply and `ShowNews(…)` news; both return
+the message, which `Withdraw(…)` takes off again if it's still showing. `AppShell` has the same two,
+counts each key that isn't part of a chord, and opens
+[`MessagesDialog`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/MessagesDialog.cs)
+from *Messages*. The copy and link outcomes it reports are replies. An app without `AppShell` calls
+`KeyPressed()` on its `AppStatusBar` before handling each key, and opens `MessagesDialog` from the
+bar's `MessagesRequested`.
+
+In Swatch's sample, type in the Editor while *View › Load files, failing* runs: the failure stays, and
+`⚠ 1` appears. *File › Save* shows a reply, and *Help › Messages…* lists them all.
 
 ### Loading and empty
 
