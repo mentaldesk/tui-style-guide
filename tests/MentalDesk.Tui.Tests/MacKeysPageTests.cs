@@ -47,7 +47,7 @@ public class MacKeysPageTests : StaticConfigurationTest
     [
         () => { Host.Shell.Commands.Execute(SwatchCommands.ShowSettings); },
         () => Dialog?.IsInitialized == true,
-        () => Dialog!.Open(2),
+        () => Dialog!.Open(3),
         () => Page.TurnedOn.HasFocus || !Page.TurnedOn.Enabled,
     ];
 
@@ -67,7 +67,7 @@ public class MacKeysPageTests : StaticConfigurationTest
             .. OpenPage(),
             () =>
             {
-                shown = [Dialog!.PageList.Source!.ToList()[2]!.ToString()!, Page.State.Text, Page.TurnedOn.Text, Page.TurnedOn.Value.ToString(), Page.Note];
+                shown = [Dialog!.PageList.Source!.ToList()[3]!.ToString()!, Page.State.Text, Page.TurnedOn.Text, Page.TurnedOn.Value.ToString(), Page.Note];
                 Press(Key.Esc);
             },
             () => Dialog is null,
@@ -89,7 +89,7 @@ public class MacKeysPageTests : StaticConfigurationTest
             () => Page.IsChanged,
             () =>
             {
-                marked = Dialog!.PageList.Source!.ToList()[2]!.ToString()!;
+                marked = Dialog!.PageList.Source!.ToList()[3]!.ToString()!;
                 Press(Key.Esc);
             },
             () => Dialog is null,

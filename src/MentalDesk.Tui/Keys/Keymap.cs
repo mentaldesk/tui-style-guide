@@ -134,10 +134,12 @@ public sealed class Keymap(CommandRegistry commands) : IInputScope
     }
 
     // Terminal.Gui reports Shift+x as a different key from x; a chord step written "X" should match either.
-    private static Key Normalize(Key key) =>
+    internal static Key Normalize(Key key) =>
         key is { IsShift: true, IsCtrl: false, IsAlt: false } && char.IsLetter((char)key.AsRune.Value)
             ? new Key(char.ToLowerInvariant((char)key.AsRune.Value))
             : key;
+
+    internal static IReadOnlyList<Key> Normalize(IReadOnlyList<Key> chord) => [.. chord.Select(Normalize)];
 
     private static IEnumerable<KeyBinding> Walk(CommandScope scope, Node node, List<Key> path)
     {
