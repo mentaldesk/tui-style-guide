@@ -395,6 +395,22 @@ public class KeysPageTests : StaticConfigurationTest
         Assert.Equal(lines, confirm.Lines);
     }
 
+    [Theory]
+    [InlineData("""{ "swatch.closeTheme": ["Ctrl+T c", "Ctrl+T x"] }""", "Close this theme", new[] { "Close this theme Ctrl+T C Themes", "Close this theme Ctrl+T X Themes (default: Ctrl+T C)" })]
+    [InlineData("""{ "swatch.closeTheme": "Ctrl+T x" }""", "Close this theme", new[] { "Close this theme Ctrl+T X Themes (default: Ctrl+T C)" })]
+    [InlineData("""{ "swatch.closeTheme": "" }""", "Close this theme", new[] { "Close this theme Themes (default: Ctrl+T C)" })]
+    [InlineData("""{ "swatch.tryTheme": [{ "key": "Enter", "where": "Preview" }] }""", "Try this theme", new[] { "Try this theme Enter Preview (default: Ctrl+T T, Enter)" })]
+    [InlineData("""{ "swatch.writeComment": "F5" }""", "Close this theme", new[] { "Close this theme Ctrl+T C Themes" })]
+    public void The_default_note_sits_on_the_keys_the_person_added(string keys, string command, string[] rows)
+    {
+        Save($$"""{ "swatch": { "keys": {{keys}} } }""");
+        Run(() =>
+        {
+            Assert.Equal(rows, Page.Rows.Where(row => row.StartsWith(command, StringComparison.Ordinal)).Select(Squeeze));
+            Press(Key.Esc);
+        });
+    }
+
     [Fact]
     public void Reset_asks_then_stages_the_defaults_and_Esc_on_Settings_puts_the_kept_keys_back()
     {
