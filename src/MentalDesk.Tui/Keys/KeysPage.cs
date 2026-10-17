@@ -348,8 +348,13 @@ public sealed class KeysPage : SettingsPage
                 yield return new Row(command, null, string.Empty, Where(command.Scope), note);
                 continue;
             }
+            var isDefault = defaults.ToHashSet(KeyOverrides.SameKey.Instance);
+            var added = mine.Where(binding => !isDefault.Contains(binding)).ToHashSet();
             for (var i = 0; i < mine.Count; i++)
-                yield return new Row(command, mine[i], mine[i].Display, Where(mine[i].Scope), i == 0 ? note : null);
+            {
+                var noted = added.Count == 0 ? i == 0 : added.Contains(mine[i]);
+                yield return new Row(command, mine[i], mine[i].Display, Where(mine[i].Scope), noted ? note : null);
+            }
         }
     }
 
