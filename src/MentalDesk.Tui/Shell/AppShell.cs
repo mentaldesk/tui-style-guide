@@ -3,6 +3,7 @@ using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Commands;
 using MentalDesk.Tui.Copying;
 using MentalDesk.Tui.Diagnostics;
+using MentalDesk.Tui.Finding;
 using MentalDesk.Tui.Focus;
 using MentalDesk.Tui.Icons;
 using MentalDesk.Tui.Keys;
@@ -27,10 +28,12 @@ public sealed class AppShell : IDisposable
     ];
 
     private readonly List<(AppScreen Screen, View View, FocusRegion Start)> _screens = [];
+    private readonly Dictionary<FocusRegion, IFindTarget> _findTargets = [];
 
     private readonly ArrowFallback _arrowFallback;
     private bool _nested;
     private bool _deleting;
+    private IInputScope? _findScope;
 
     public AppShell(IApplication app, TerminalCursor cursor, IconSettings? icons = null)
         : this(app, cursor, ClipboardTools.ThisMachine, icons)
@@ -58,12 +61,14 @@ public sealed class AppShell : IDisposable
             .Register(ShellCommands.ShowDiagnostics, "Show diagnostics", ShowDiagnostics)
             .Register(ShellCommands.ShowKeys, "Show keys", ShowKeys)
             .Register(ShellCommands.NextPane, "Next pane", () => Focus.Next())
-            .Register(ShellCommands.PreviousPane, "Previous pane", () => Focus.Previous());
+            .Register(ShellCommands.PreviousPane, "Previous pane", () => Focus.Previous())
+            .Register(ShellCommands.Find, "Find", Find, isEnabled: () => FindTarget() is not null);
         Keys.Bind("Ctrl+Q", ShellCommands.Quit)
             .Bind("Ctrl+E", ShellCommands.ShowCommands)
             .Bind("F10", ShellCommands.ShowMenu)
             .Bind("F12", ShellCommands.ShowDiagnostics)
-            .Bind("F1", ShellCommands.ShowKeys);
+            .Bind("F1", ShellCommands.ShowKeys)
+            .Bind("Ctrl+F", ShellCommands.Find);
         BindPaneKeys();
         _arrowFallback = new ArrowFallback(MoveFocusOutsidePanes);
         BindArrows();
@@ -74,6 +79,8 @@ public sealed class AppShell : IDisposable
         App.Keyboard.KeyDown += OnKeyDown;
         App.Iteration += OnIteration;
         Clipboard.Copied += OnCopied;
+        FindBar.KeysRequested += OnFindKeysRequested;
+        FindBar.Closed += OnFindClosed;
         Application.DefaultKeyBindingsChanged += BindPaneKeys;
         Application.DefaultKeyBindingsChanged += BindArrows;
     }
@@ -91,6 +98,8 @@ public sealed class AppShell : IDisposable
     public AppStatusBar StatusBar { get; } = new();
 
     public AppMenu? Menu { get; private set; }
+
+    public FindBar FindBar { get; } = new();
 
     public AppScreen? Screen { get; private set; }
 
@@ -140,6 +149,12 @@ public sealed class AppShell : IDisposable
         Focus.Focus(start);
     }
 
+    public AppShell FindIn(FocusRegion region, IFindTarget target)
+    {
+        _findTargets[region] = target;
+        return this;
+    }
+
     // Marks the app active in the terminal while Run runs.
     public MacKeys UseMacKeys(MacKeys keys) => MacKeys = keys;
 
@@ -171,9 +186,10 @@ public sealed class AppShell : IDisposable
             Commands.Execute(row.Id);
     }
 
-    public void ShowKeys()
+    public void ShowKeys() => ShowKeys(KeySheet.For(Commands, Keys, Focus.Region?.Name, Focus.Region?.Scope ?? CommandScope.Global, Menu?.Layout ?? []));
+
+    private void ShowKeys(KeySheet sheet)
     {
-        var sheet = KeySheet.For(Commands, Keys, Focus.Region?.Name, Focus.Region?.Scope ?? CommandScope.Global, Menu?.Layout ?? []);
         using var dialog = new KeysDialog(sheet, App.Screen.Size);
         dialog.Run(this);
     }
@@ -225,6 +241,10 @@ public sealed class AppShell : IDisposable
         App.Keyboard.KeyDown -= OnKeyDown;
         App.Iteration -= OnIteration;
         Clipboard.Copied -= OnCopied;
+        FindBar.KeysRequested -= OnFindKeysRequested;
+        FindBar.Closed -= OnFindClosed;
+        if (!FindBar.IsOpen)
+            FindBar.Dispose();
         Application.DefaultKeyBindingsChanged -= BindPaneKeys;
         Application.DefaultKeyBindingsChanged -= BindArrows;
         _arrowFallback.Dispose();
@@ -261,6 +281,30 @@ public sealed class AppShell : IDisposable
             foreach (var key in Application.GetDefaultKeys(framework))
                 Keys.Bind([key], id);
         }
+    }
+
+    private IFindTarget? FindTarget() => Focus.Region is { } region ? _findTargets.GetValueOrDefault(region) : null;
+
+    private void Find()
+    {
+        if (FindTarget() is not { } target) return;
+        if (_findScope is null)
+            Scopes.Push(_findScope = FindBar.ScopeOver(Keys));
+        FindBar.Open(target);
+    }
+
+    private void OnFindClosed(object? sender, EventArgs e)
+    {
+        if (_findScope is null) return;
+        Scopes.Pop(_findScope);
+        _findScope = null;
+    }
+
+    private void OnFindKeysRequested(object? sender, KeyColumn column)
+    {
+        var focused = FindBar.MostFocused;
+        ShowKeys(KeySheet.For(Commands, Keys, null, CommandScope.Global, Menu?.Layout ?? []) with { Here = column });
+        focused?.SetFocus();
     }
 
     private void OnCopied(object? sender, CopyOutcome outcome)

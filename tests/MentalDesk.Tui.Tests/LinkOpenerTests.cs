@@ -153,7 +153,7 @@ public class OpenLinkHostTests : StaticConfigurationTest
         var help = host.Shell.Menu!.Layout.Single(menu => menu.Title == "_Help").Items
             .Select(item => item?.CommandId).ToList();
 
-        Assert.Equal(help.IndexOf(SwatchCommands.WriteComment) + 1, help.IndexOf(SwatchCommands.OpenGuide));
+        Assert.Equal(help.IndexOf(SwatchCommands.ReadLog) + 1, help.IndexOf(SwatchCommands.OpenGuide));
         Assert.Equal(help.IndexOf(SwatchCommands.OpenGuide) + 1, help.IndexOf(ShellCommands.ShowDiagnostics));
     }
 }

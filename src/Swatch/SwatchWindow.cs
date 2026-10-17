@@ -98,6 +98,7 @@ internal sealed class SwatchWindow : AppWindow
             .Register(SwatchCommands.CopyColours, "Copy colours", () => CopyColours(shell), RolesRegion.Scope)
             .Register(SwatchCommands.ShowLoadingStates, "Show loading states", () => ShowLoadingStates(shell))
             .Register(SwatchCommands.WriteComment, "Write a comment", () => WriteComment(shell))
+            .Register(SwatchCommands.ReadLog, "Read a log", () => ReadLog(shell))
             .Register(SwatchCommands.ShowSettings, "Settings…", () => ShowSettings(shell))
             .Register(SwatchCommands.OpenGuide, "Open the guide on GitHub", () => shell.OpenLink(GuideUrl));
         shell.Keys
@@ -111,7 +112,7 @@ internal sealed class SwatchWindow : AppWindow
             .Bind("Ctrl+C", SwatchCommands.CopyColours);
         shell.UseMenu(
             new MenuSpec("_File", [new MenuEntry(SwatchCommands.ShowSettings, "_Settings…"), null, ShellCommands.Quit]),
-            new MenuSpec("_Edit", [new MenuEntry(SwatchCommands.CopyColours, "_Copy colours")]),
+            new MenuSpec("_Edit", [new MenuEntry(SwatchCommands.CopyColours, "_Copy colours"), new MenuEntry(ShellCommands.Find, "_Find")]),
             shell.GoMenu(new MenuEntry(SwatchCommands.GoToScheme, "_Scheme…")),
             new MenuSpec("_Theme", [
                 new MenuEntry(SwatchCommands.TryTheme, "_Try it"),
@@ -127,6 +128,7 @@ internal sealed class SwatchWindow : AppWindow
                 null,
                 new MenuEntry(SwatchCommands.ShowLoadingStates, "_Loading states…"),
                 new MenuEntry(SwatchCommands.WriteComment, "_Writing a comment…"),
+                new MenuEntry(SwatchCommands.ReadLog, "_Reading a log…"),
                 new MenuEntry(SwatchCommands.OpenGuide, "Open the _guide on GitHub"),
                 new MenuEntry(ShellCommands.ShowDiagnostics, "Show _diagnostics"),
             ]));
@@ -194,6 +196,13 @@ internal sealed class SwatchWindow : AppWindow
         dialog.Run(shell);
         if (dialog.Confirmed)
             shell.ShowMessage("A demo: Swatch has nowhere to post it, so the comment went nowhere");
+    }
+
+    private static void ReadLog(AppShell shell)
+    {
+        using var logShell = new AppShell(shell.App, shell.Cursor, shell.Icons);
+        using var log = new ReadingLogWindow(logShell);
+        shell.RunNested(logShell, log);
     }
 
     private static void ShowSettings(AppShell shell)
