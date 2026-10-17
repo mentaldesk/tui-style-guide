@@ -236,13 +236,13 @@ public class KeysPageTests : StaticConfigurationTest
 
     public static TheoryData<string, string> FixedKeys() => new()
     {
-        { "Enter", "Enter is kept: it takes the keys" },
-        { "Ctrl+Enter", "Ctrl+Enter is kept: it confirms" },
-        { "Tab", "Tab is kept: it moves focus" },
-        { "Shift+Tab", "Shift+Tab is kept: it moves focus" },
-        { "F1", "F1 is kept: it opens Help" },
-        { "F6", "F6 is kept: it moves between panes" },
-        { "Shift+F6", "Shift+F6 is kept: it moves between panes" },
+        { "Enter", "Enter is reserved: it takes the keys" },
+        { "Ctrl+Enter", "Ctrl+Enter is reserved: it confirms" },
+        { "Tab", "Tab is reserved: it moves focus" },
+        { "Shift+Tab", "Shift+Tab is reserved: it moves focus" },
+        { "F1", "F1 is reserved: it opens Help" },
+        { "F6", "F6 is reserved: it moves between panes" },
+        { "Shift+F6", "Shift+F6 is reserved: it moves between panes" },
     };
 
     [Theory]
@@ -295,7 +295,7 @@ public class KeysPageTests : StaticConfigurationTest
             () => Type("show keys"),
             () => Squeeze(Row(0)) == "Show keys F1 Everywhere",
             () => Press(Key.Delete),
-            () => Row(0).Contains("F1 is kept: it opens Help", StringComparison.Ordinal),
+            () => Row(0).Contains("F1 is reserved: it opens Help", StringComparison.Ordinal),
             () =>
             {
                 Assert.False(Page.IsChanged);

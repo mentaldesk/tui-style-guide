@@ -127,7 +127,7 @@ public sealed class KeysPage : SettingsPage
     private static string In(string where) => where == Everywhere ? "everywhere" : $"in {where}";
 
     private static string? FixedReason(Key key) =>
-        Fixed.FirstOrDefault(entry => entry.Key == key).Does is { } does ? $"{KeyChord.Display(key)} is kept: it {does}" : null;
+        Fixed.FirstOrDefault(entry => entry.Key == key).Does is { } does ? $"{KeyChord.Display(key)} is reserved: it {does}" : null;
 
     private string LabelOf(string id) => _shell.Commands.Find(id)!.Label;
 
