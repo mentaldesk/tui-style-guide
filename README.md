@@ -514,6 +514,7 @@ which changes `Esc` will undo, because the answer is always "every one".
   put back.
 - **A setting that differs from its default says so on its row**: `[ ] Show hex values  (default: on)`,
   `Daylight  (default: Midnight)`.
+- **Keys are a page in Settings**, called *Keys*, and follow these rules too (see *Changing keys*).
 
 ```
 ┌─ Settings ──────────────────────────────────────────────────────────────────┐
@@ -535,7 +536,65 @@ is the reference implementation. An app adds its own pages, each a
 [`SettingsPage`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Settings/SettingsPage.cs)
 that says whether it has changes and how to keep or put them back. Swatch's *File › Settings…* has
 an *Appearance* page (theme and icon style), a *Swatches* page, whose *Reset to defaults…* asks
-through `ConfirmDialog` and stages the reset, and a *Mac keys* page.
+through `ConfirmDialog` and stages the reset, a *Keys* page, and a *Mac keys* page.
+
+### Changing keys
+
+**Every app's keys are changed on a *Keys* page in its Settings, and saved the same way**, so a user
+who has rebound a key in one app already knows how in the next. Nothing on it is kept until
+`Ctrl+Enter`, and `Esc` undoes all of it, a reset included (see *Settings screens*).
+
+- **One row per key, and one for a command with none.** Columns *Command*, *Keys* and *Where*: *Everywhere*,
+  or the region's name as `F1` heads it. The filter above matches all three, as *Filtering a list* does.
+- **`Enter` records keys for the selected row.** The row reads `Press keys…`, each key joins the chord as
+  you press it (`Ctrl+T X`), `Enter` takes it and `Esc` stops recording without changing anything. It
+  adds a key, in the row's place; the command's other keys stay. A dim line under the list says which
+  keys do what.
+- **`Del` removes the selected key.**
+- **Keys the guide fixes can't be taken:** `Esc`, `Enter`, `Ctrl+Enter`, `Tab`, `Shift+Tab`, `F1`, and
+  `F6`/`Shift+F6` for panes. The row says why, and recording carries on. A command's fixed key can't be
+  removed either.
+- **A clash says what it clashes with.** The same chord in the same place asks through `ConfirmDialog`
+  (*`Ctrl+T D` already runs Delete this theme in Themes. Give it to Close this theme instead?*), and
+  *Replace* moves it. A chord that starts or goes on from another one there is refused on the row, naming
+  it; recording carries on. A region's key that hides one that works everywhere asks first, saying which
+  wins where.
+- **A changed command says its defaults** at the end of its first row, where a narrow screen cuts it
+  rather than the columns: `Ctrl+T X  Everywhere  (default: none)`. *Reset to
+  defaults…* (`Ctrl+R`) asks through `ConfirmDialog` and stages the reset.
+
+```
+│ Appearance    │ comment▏                                                    │   TextField (filter)
+│ Swatches      │ Command          Keys                Where                  │   Label, dim
+│ Keys •        │▓Write a comment  Press keys… Ctrl+T  Everywhere            ▓│   ListView, recording
+│ Mac keys      │                                                             │
+│               │ Enter takes the keys · Esc stops recording                  │   Label, dim
+│               │                          ▓ Ctrl+R Reset to defaults… ▓      │   Button (Secondary), page action
+│               │                  ▓ Ctrl+Enter Keep ▓   ▓ Esc Cancel ▓       │   Button (Primary), Button (Secondary)
+```
+
+**Only what differs from the defaults is saved**, by command, as key names a person can read and edit.
+A command with one key in its usual place is a string, `""` is no key, and anything more is a list,
+where a key in another place says where:
+
+```json
+"keys": {
+  "swatch.writeComment": "Ctrl+T x",
+  "app.quit": "",
+  "swatch.tryTheme": ["F5", { "key": "Enter", "where": "Preview" }]
+}
+```
+
+An entry that doesn't parse is skipped and that command keeps its defaults; the rest still load. A key
+whose name doesn't read back as itself is written as `#` and its keycode. Terminal.Gui's own key-binding
+config only holds its built-in commands, one key each, so the app's commands, chords and regions live here.
+
+The library's [`KeysPage`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Keys/KeysPage.cs)
+and [`KeyOverrides`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Keys/KeyOverrides.cs)
+are the reference implementation. Once every default key is bound, an app creates `KeyOverrides`, keeping
+it in its `MentalDeskSettings` section with `KeyOverrides.InSection` or handing it a section of its own
+file, and calls `Load()`; then it adds `new KeysPage(shell, overrides)` to its Settings. A kept key works at
+once and shows in the menu, the palette and `F1`. Swatch's *File › Settings… › Keys* is it.
 
 ### Mac keys
 

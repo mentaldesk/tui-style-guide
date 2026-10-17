@@ -2,6 +2,7 @@ using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Commands;
 using MentalDesk.Tui.Dialogs;
 using MentalDesk.Tui.Focus;
+using MentalDesk.Tui.Keys;
 using MentalDesk.Tui.Settings;
 using MentalDesk.Tui.Shell;
 using MentalDesk.Tui.Theming;
@@ -61,6 +62,8 @@ internal sealed class SwatchWindow : AppWindow
         };
         shell.StatusBar.State = Themes.Current;
         Show(new Selection(Themes.Current, SchemeNames.Base));
+        KeyOverrides = KeyOverrides.InSection(shell.Settings, SwatchSettings.Section, shell.Commands, shell.Keys);
+        KeyOverrides.Load();
         Initialized += (_, _) => shell.Focus.Focus(ThemesRegion);
     }
 
@@ -71,6 +74,8 @@ internal sealed class SwatchWindow : AppWindow
     public IEnumerable<string> ThemeNames => _themes.Objects?.Select(node => node.Text) ?? [];
 
     public SwatchSettings Settings { get; }
+
+    public KeyOverrides KeyOverrides { get; }
 
     public bool ShowHexValues
     {
@@ -203,6 +208,7 @@ internal sealed class SwatchWindow : AppWindow
         [
             new AppearancePage(shell, window.Settings),
             new SwatchesPage(shell, window.Settings, show => window.ShowHexValues = show),
+            new KeysPage(shell, window.KeyOverrides),
         ];
         if (shell.MacKeys is { } keys)
             pages.Add(new MacKeysPage(shell, keys));

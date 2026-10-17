@@ -8,7 +8,7 @@ internal sealed class SwatchSettings(MentalDeskSettings file)
 {
     public const bool DefaultShowHexValues = true;
 
-    private const string Section = "swatch";
+    public const string Section = "swatch";
     private const string ThemeKey = "theme";
     private const string ShowHexValuesKey = "showHexValues";
 
