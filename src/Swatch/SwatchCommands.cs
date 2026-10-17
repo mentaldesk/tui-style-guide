@@ -14,4 +14,5 @@ internal static class SwatchCommands
     public const string ReadLog = "swatch.readLog";
     public const string ShowSettings = "swatch.settings";
     public const string OpenGuide = "swatch.openGuide";
+    public const string ToggleAssistant = "swatch.assistant";
 }

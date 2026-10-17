@@ -18,15 +18,14 @@ public sealed class ConfirmDialog : AppDialog
     private const string Gap = "   ";
     private const string PreviousId = "dialog.previous";
     private const string NextId = "dialog.next";
-    private const string CancelCaption = "Esc Cancel";
 
     private readonly Dictionary<ConfirmAction, Button> _buttons = [];
     private readonly EnterScope _scope;
 
     public ConfirmDialog(
         string title, IReadOnlyList<string> lines, IReadOnlyList<ConfirmAction> actions,
-        ConfirmAction? focus = null, TextField? field = null)
-        : base(title, DialogWidth(title, lines, actions), contentRows: lines.Count + (field is null ? 2 : 3))
+        ConfirmAction? focus = null, TextField? field = null, string cancel = "Cancel")
+        : base(title, DialogWidth(title, lines, actions, cancel), contentRows: lines.Count + (field is null ? 2 : 3))
     {
         if (actions.Count == 0) throw new ArgumentException("A confirm needs at least one action.", nameof(actions));
         if (actions.Any(action => action.Key == Key.Enter))
@@ -66,7 +65,7 @@ public sealed class ConfirmDialog : AppDialog
             button.Accepting += (_, e) => Press(e, () => Choose(action));
             _buttons[action] = button;
         }
-        CancelButton = AppButton.Secondary(CancelCaption);
+        CancelButton = AppButton.Secondary($"Esc {cancel}");
         CancelButton.Accepting += (_, e) => Press(e, Cancel);
 
         ButtonRow = [.. actions.Select(action => _buttons[action]), CancelButton];
@@ -115,9 +114,9 @@ public sealed class ConfirmDialog : AppDialog
 
     private static string Shown(string text) => text.Replace("_", string.Empty, StringComparison.Ordinal);
 
-    private static int DialogWidth(string title, IReadOnlyList<string> lines, IReadOnlyList<ConfirmAction> actions)
+    private static int DialogWidth(string title, IReadOnlyList<string> lines, IReadOnlyList<ConfirmAction> actions, string cancel)
     {
-        var buttons = string.Join(Gap, actions.Select(action => $" {Shown(Caption(action))} ").Append($" {CancelCaption} "));
+        var buttons = string.Join(Gap, actions.Select(action => $" {Shown(Caption(action))} ").Append($" Esc {cancel} "));
         int[] widths = [title.Length + 4, .. lines.Select(line => line.Length), buttons.Length];
         return Math.Max(40, widths.Max() + 4);
     }

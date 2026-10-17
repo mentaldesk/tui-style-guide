@@ -389,6 +389,35 @@ the *Go* menu above, and `F1` lists it under *Moving around*. In Swatch, `F6` cy
 Preview, and *Go › Scheme…* is a place. In the sample app *Try this theme* opens, `Ctrl+G L` shows the
 *Log* screen and `Ctrl+G F` goes back to *Files*.
 
+### An assistant pane
+
+**An app that lets the user ask an AI agent about it does so in one pane, *Assistant*.** One command
+of that name, in the menu and the command palette, opens it down the right of the screen with focus in
+its question box, and closes it again. It stays open while the user moves between screens.
+
+- **A question carries what it's about**, so the user never has to name it. The line above the box says
+  what the next question is about, the selection, and the question's heading repeats it:
+  `You · Midnight › Base`.
+- **Answers stream in, with a `▸` line for each thing the agent looks at or does**, so a long answer
+  shows its progress.
+- **`Enter` sends, `Esc` stops the answer and keeps what arrived, `Ctrl+L` starts a new conversation.**
+  They're the pane's keys, listed under *Assistant* by `F1`.
+- **The agent asks before it acts.** It reads without asking. A command, an edit or any other tool opens
+  a dialog, *Claude Code wants to run a command*, showing the command, with `Ctrl+Enter Allow once`
+  and `Esc Deny`. Deny has focus, and `Enter` does nothing there (see *Dialog buttons*). There's no
+  *Always allow*.
+- **When the agent can't answer, the pane says why in a line**: it isn't installed, it isn't signed in
+  (with the command that signs in), or it exited.
+- **The last conversation is there after a restart**, where the agent can reopen one.
+
+The library's [`AssistantPane`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Assistant/AssistantPane.cs)
+is the reference implementation. It talks to the agent, Claude Code by default, over the
+[Agent Client Protocol](https://agentclientprotocol.com), takes its own keys so it works in an app
+without `AppShell`, and asks with
+[`AssistantPermission`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Assistant/AssistantPermission.cs).
+In Swatch, *Help › Assistant* opens it beside the Roles pane, with a demo agent that streams a canned
+answer about the selected scheme and asks to run a command.
+
 ### Finding keys
 
 **`F1` always opens *Help*, and never means anything else.** *Everywhere* is on the left: the
