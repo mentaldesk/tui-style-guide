@@ -57,14 +57,29 @@ public sealed class AppMenu
     public void Refresh()
     {
         var here = _keys.FocusedScope();
+        var rekeyed = new HashSet<View>();
         foreach (var (id, item) in _items)
         {
-            item.KeyView.Text = KeysFor(id);
+            var keys = KeysFor(id);
+            if (item.KeyView.Text != keys)
+            {
+                item.KeyView.Text = keys;
+                if (item.SuperView is { } root) rekeyed.Add(root);
+            }
             item.Dimmed = !_commands.IsAvailable(id, here);
         }
         foreach (var (isChecked, item, title) in _checks)
             item.Title = Checked(title, isChecked());
         Arrange(here);
+        foreach (var root in rekeyed)
+            Resize(root);
+    }
+
+    // Terminal.Gui sizes an item before working out how wide its keys made it, so a new key takes two passes.
+    private static void Resize(View root)
+    {
+        root.Layout();
+        root.SetNeedsLayout();
     }
 
     // Taken off the bar rather than hidden: Terminal.Gui keeps a hidden menu's place.
