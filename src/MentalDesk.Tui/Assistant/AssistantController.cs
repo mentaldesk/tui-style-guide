@@ -39,6 +39,9 @@ public sealed class AssistantController : IAgentRequests, IDisposable
     // Sent as _meta when a session opens, for options such as a system prompt.
     public JsonObject? SessionMeta { get; set; }
 
+    // The agent's permission mode for each session, where it offers it, such as Claude Code's "auto".
+    public string? SessionMode { get; set; }
+
     // A file's lines as the app has them, such as an editor's unsaved text; null reads the disk.
     public Func<string, IReadOnlyList<string>?> OpenBuffer { get; set; } = _ => null;
 
@@ -72,7 +75,7 @@ public sealed class AssistantController : IAgentRequests, IDisposable
     {
         if (_client is not null && _starting is not null) return _starting;
         if (Agent is null || _root is null) return Task.CompletedTask;
-        var client = new AcpClient(Agent, _root, _launcher, this) { SessionMeta = SessionMeta };
+        var client = new AcpClient(Agent, _root, _launcher, this) { SessionMeta = SessionMeta, Mode = SessionMode };
         _client = client;
         client.Updated += update => _post(() =>
         {

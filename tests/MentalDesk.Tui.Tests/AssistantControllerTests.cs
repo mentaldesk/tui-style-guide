@@ -76,6 +76,44 @@ public sealed class AssistantControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task The_session_switches_to_the_mode_asked_for_when_the_agent_offers_it()
+    {
+        _agent.Modes.AddRange(["default", "auto"]);
+        _controller.SessionMode = "auto";
+
+        await _controller.EnsureStartedAsync().WaitAsync(Timeout, TestContext.Current.CancellationToken);
+
+        var switched = _agent.Received("session/set_mode").Single()!;
+        Assert.Equal(("session-1", "auto"), (switched["sessionId"]!.GetValue<string>(), switched["modeId"]!.GetValue<string>()));
+    }
+
+    [Fact]
+    public async Task A_mode_the_agent_does_not_offer_is_not_asked_for()
+    {
+        _agent.Modes.AddRange(["default", "plan"]);
+        _controller.SessionMode = "auto";
+
+        await _controller.EnsureStartedAsync().WaitAsync(Timeout, TestContext.Current.CancellationToken);
+
+        Assert.Empty(_agent.Received("session/set_mode"));
+    }
+
+    [Fact]
+    public async Task A_reopened_conversation_switches_to_the_mode_too()
+    {
+        _controller.Ask("One", null);
+        await Until(() => !_controller.IsAnswering);
+        _agent.Modes.AddRange(["default", "auto"]);
+        using var reopened = New();
+        reopened.SessionMode = "auto";
+
+        await reopened.EnsureStartedAsync().WaitAsync(Timeout, TestContext.Current.CancellationToken);
+
+        Assert.Single(_agent.Received("session/load"));
+        Assert.Equal("auto", _agent.Received("session/set_mode").Single()!["modeId"]!.GetValue<string>());
+    }
+
+    [Fact]
     public async Task A_question_goes_out_with_its_context_ahead_of_it_and_the_answer_streams_in_with_a_line_per_tool_call()
     {
         _agent.OnPrompt = async (agent, _) =>
