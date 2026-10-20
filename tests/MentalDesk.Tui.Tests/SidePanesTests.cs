@@ -34,7 +34,8 @@ public class SidePanesTests : StaticConfigurationTest
 
     private void Run(SwatchWindow window, int columns, params Delegate[] steps)
     {
-        _host.App.Driver!.SetScreenSize(columns, 30);
+        // On Windows the driver polls the console and undoes SetScreenSize, so size the window instead.
+        window.Width = columns;
         _host.Run(window, [() => FocusWord == "Themes", .. steps]);
     }
 
@@ -177,7 +178,7 @@ public class SidePanesTests : StaticConfigurationTest
             () => window.PreviewPane.Frame.Width == SidePanes.MinimumMainWidth,
             () => Assert.Equal(50, window.ThemesPane.Frame.Width + window.RolesPane.Frame.Width),
             () => Assert.Equal(60, (int)Saved("Roles")!),
-            () => _host.App.Driver!.SetScreenSize(160, 30),
+            () => { window.Width = 160; },
             () => window.RolesPane.Frame.Width == 60,
             () => Assert.Equal(24, window.ThemesPane.Frame.Width),
             () => Assert.Equal(76, window.PreviewPane.Frame.Width));
