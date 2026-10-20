@@ -11,6 +11,8 @@ public class AssistantPaneTests : StaticConfigurationTest
     private readonly Host _host = new();
     private readonly FakeAgent _agent = new();
 
+    public AssistantPaneTests() => _host.App.Driver!.SetScreenSize(120, 30);
+
     public override void Dispose()
     {
         _host.Dispose();
