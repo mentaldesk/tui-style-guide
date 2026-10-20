@@ -631,8 +631,9 @@ who has rebound a key in one app already knows how in the next. Nothing on it is
   *Replace* moves it. A chord that starts or goes on from another one there is refused on the row, naming
   it; recording carries on. A region's key that hides one that works everywhere asks first, saying which
   wins where.
-- **A changed command says its defaults** at the end of its first row, where a narrow screen cuts it
-  rather than the columns: `Ctrl+T X  Everywhere  (default: none)`. *Reset to
+- **A changed command says its defaults** at the end of each key the user added, or of its first row
+  when it only lost keys, where a narrow screen cuts it rather than the columns:
+  `Ctrl+T X  Everywhere  (default: none)`. A key it has by default says nothing. *Reset to
   defaults…* (`Ctrl+R`) asks through `ConfirmDialog` and stages the reset.
 
 ```
