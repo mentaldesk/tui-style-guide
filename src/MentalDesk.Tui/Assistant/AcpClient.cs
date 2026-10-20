@@ -78,6 +78,9 @@ public sealed class AcpClient : IDisposable
     // Sent as _meta on session/new and session/load, for options an agent reads there.
     public JsonObject? SessionMeta { get; init; }
 
+    // Switched to once a session opens, if the agent offers it, such as Claude Code's "auto".
+    public string? Mode { get; init; }
+
     public Task Exited => _exited.Task;
 
     // Raised on the reading thread.
@@ -120,6 +123,7 @@ public sealed class AcpClient : IDisposable
     {
         var answer = await Connection.RequestAsync("session/new", SessionParams()).ConfigureAwait(false);
         SessionId = SessionUpdate.StringOf(answer?["sessionId"]) ?? throw new JsonRpcException(JsonRpcConnection.InternalError, "The agent didn't open a session.");
+        await SwitchModeAsync(answer).ConfigureAwait(false);
     }
 
     // Its history arrives as updates first. False when the agent can't reopen one.
@@ -129,16 +133,25 @@ public sealed class AcpClient : IDisposable
         SessionId = sessionId;
         var parameters = SessionParams();
         parameters["sessionId"] = sessionId;
+        JsonNode? answer;
         try
         {
-            await Connection.RequestAsync("session/load", parameters).ConfigureAwait(false);
-            return true;
+            answer = await Connection.RequestAsync("session/load", parameters).ConfigureAwait(false);
         }
         catch (JsonRpcException)
         {
             SessionId = null;
             return false;
         }
+        await SwitchModeAsync(answer).ConfigureAwait(false);
+        return true;
+    }
+
+    private async Task SwitchModeAsync(JsonNode? session)
+    {
+        if (Mode is null || session?["modes"] is not { } modes || SessionUpdate.StringOf(modes["currentModeId"]) == Mode) return;
+        if (modes["availableModes"] is not JsonArray available || !available.Any(mode => SessionUpdate.StringOf(mode?["id"]) == Mode)) return;
+        await Connection.RequestAsync("session/set_mode", new JsonObject { ["sessionId"] = SessionId, ["modeId"] = Mode }).ConfigureAwait(false);
     }
 
     private JsonObject SessionParams()
