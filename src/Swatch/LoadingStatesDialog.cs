@@ -24,14 +24,16 @@ internal sealed class LoadingStatesDialog : AppDialog
 
     private readonly ListView _list = new() { Width = Dim.Fill(), Height = Dim.Fill() };
     private object? _load;
+    private StatusMessage? _failure;
 
     public LoadingStatesDialog(AppShell shell, TimeSpan? loadTime = null)
         : base("Loading states", width: 68, contentRows: 9)
     {
         LoadTime = loadTime ?? TimeSpan.FromSeconds(1.5);
         Rows = new LoadStateView(_list, "Loading sample rows…") { Height = 7 };
+        Shell = shell;
         Rows.ReloadFailed += (_, message) =>
-            shell.ShowMessage($"{message}, so these are the rows from the last load", Severity.Error);
+            _failure = shell.ShowNews($"{message}, so these are the rows from the last load", Severity.Error);
         Add(Rows);
 
         Commands
@@ -58,6 +60,8 @@ internal sealed class LoadingStatesDialog : AppDialog
 
         Failure,
     }
+
+    public AppShell Shell { get; }
 
     public LoadStateView Rows { get; }
 
@@ -91,6 +95,7 @@ internal sealed class LoadingStatesDialog : AppDialog
                 _list.SetSource(new ObservableCollection<string>(SampleRows));
                 _list.SelectedItem = 0;
                 Rows.ShowContent();
+                Withdraw();
                 break;
             case Outcome.Empty:
                 _list.SetSource(new ObservableCollection<string>());
@@ -100,6 +105,13 @@ internal sealed class LoadingStatesDialog : AppDialog
                 Rows.ShowFailed("Couldn't load sample rows: failed on purpose", Step(ReloadId, "retry")!.Value);
                 break;
         }
+    }
+
+    private void Withdraw()
+    {
+        if (_failure is null) return;
+        Shell.StatusBar.Withdraw(_failure);
+        _failure = null;
     }
 
     private (string, Action)? Step(string id, string verb) =>

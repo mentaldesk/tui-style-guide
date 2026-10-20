@@ -60,6 +60,7 @@ public sealed class AppShell : IDisposable
             .Register(ShellCommands.ShowMenu, "Open the menu", () => Menu?.Open(), isEnabled: () => Menu is not null)
             .Register(ShellCommands.ShowDiagnostics, "Show diagnostics", ShowDiagnostics)
             .Register(ShellCommands.ShowKeys, "Show keys", ShowKeys)
+            .Register(ShellCommands.ShowMessages, "Messages", ShowMessages)
             .Register(ShellCommands.NextPane, "Next pane", () => Focus.Next())
             .Register(ShellCommands.PreviousPane, "Previous pane", () => Focus.Previous())
             .Register(ShellCommands.Find, "Find", Find, isEnabled: () => FindTarget() is not null);
@@ -76,6 +77,7 @@ public sealed class AppShell : IDisposable
 
         Focus.RegionChanged += (_, region) => StatusBar.SetFocusWord(region.Name);
         Scopes.ChordChanged += (_, chord) => StatusBar.SetChord(chord);
+        StatusBar.MessagesRequested += OnMessagesRequested;
         App.Keyboard.KeyDown += OnKeyDown;
         App.Iteration += OnIteration;
         Clipboard.Copied += OnCopied;
@@ -167,7 +169,9 @@ public sealed class AppShell : IDisposable
         return applied;
     }
 
-    public void ShowMessage(string message, Severity severity = Severity.Info) => StatusBar.ShowMessage(message, severity);
+    public StatusMessage ShowMessage(string message, Severity severity = Severity.Info) => StatusBar.ShowMessage(message, severity);
+
+    public StatusMessage ShowNews(string message, Severity severity = Severity.Info) => StatusBar.ShowNews(message, severity);
 
     public CopyOutcome Copy(string text) => Clipboard.Copy(text);
 
@@ -191,6 +195,12 @@ public sealed class AppShell : IDisposable
     private void ShowKeys(KeySheet sheet)
     {
         using var dialog = new KeysDialog(sheet, App.Screen.Size);
+        dialog.Run(this);
+    }
+
+    public void ShowMessages()
+    {
+        using var dialog = new MessagesDialog(StatusBar);
         dialog.Run(this);
     }
 
@@ -241,6 +251,7 @@ public sealed class AppShell : IDisposable
         App.Keyboard.KeyDown -= OnKeyDown;
         App.Iteration -= OnIteration;
         Clipboard.Copied -= OnCopied;
+        StatusBar.MessagesRequested -= OnMessagesRequested;
         FindBar.KeysRequested -= OnFindKeysRequested;
         FindBar.Closed -= OnFindClosed;
         if (!FindBar.IsOpen)
@@ -318,10 +329,16 @@ public sealed class AppShell : IDisposable
         // An open menu owns the keyboard; its own letters would otherwise run commands too.
         if (_nested || key.Handled || App.Popovers?.GetActivePopover() is not null) return;
         Focus.Reconcile();
-        StatusBar.ClearMessage();
+        var shown = StatusBar.Current;
+        var chording = Scopes.PendingChord is not null;
         if (Scopes.Handle(CtrlEnter.FromWindows(key, IsWindows)) != KeyResult.Pass || DeleteToLineEdge(key))
             key.Handled = true;
+        // Counted after handling, so a key whose command says something doesn't take its own message.
+        if (!chording && Scopes.PendingChord is null && StatusBar.Current == shown)
+            StatusBar.KeyPressed();
     }
+
+    private void OnMessagesRequested(object? sender, EventArgs e) => Commands.Execute(ShellCommands.ShowMessages);
 
     // Terminal.Gui puts what these delete on the clipboard, which would otherwise report it as copied.
     private bool DeleteToLineEdge(Key key)

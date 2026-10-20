@@ -1,3 +1,4 @@
+using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Copying;
 using MentalDesk.Tui.Shell;
 using Swatch;
@@ -61,6 +62,7 @@ public class CopyHostTests : StaticConfigurationTest
         Assert.Matches("^#[0-9A-F]{6} on #[0-9A-F]{6}$", platform.Text);
         Assert.Equal("Copied 1 line  •  18 characters", host.Shell.StatusBar.Message);
         Assert.Equal(Severity.Info, host.Shell.StatusBar.MessageSeverity);
+        Assert.Equal(MessageKind.Reply, host.Shell.StatusBar.Current!.Kind);
     }
 
     [Fact]

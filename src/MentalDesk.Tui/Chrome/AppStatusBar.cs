@@ -5,14 +5,20 @@ namespace MentalDesk.Tui.Chrome;
 // Not Terminal.Gui's StatusBar: that draws a border between items and paints in the Menu scheme.
 public sealed class AppStatusBar : View
 {
+    public static readonly TimeSpan Lifetime = TimeSpan.FromSeconds(5);
+
     private readonly Label _focus = new() { X = 1, Y = 0 };
     private readonly Label _state = new() { X = 0, Y = 0 };
+    private readonly Button _unread;
+    private readonly Label _unreadGap = new() { Y = 0, Text = HintRow.Separator, Visible = false };
     private readonly HintRow _hints;
     private readonly View _right = new() { X = Pos.AnchorEnd() - 1, Y = 0, Width = Dim.Auto(), Height = 1, CanFocus = false };
+    private readonly List<StatusMessage> _history = [];
     private string _stateText = string.Empty;
     private readonly Label _message;
     private string? _chord;
-    private (string Text, Severity Severity)? _shown;
+    private StatusMessage? _shown;
+    private ITimer? _timer;
 
     public AppStatusBar()
     {
@@ -21,17 +27,34 @@ public sealed class AppStatusBar : View
         Height = 1;
         CanFocus = false;
         SchemeName = SchemeNames.StatusBar;
+        _unread = HintRow.Button(string.Empty, () => MessagesRequested?.Invoke(this, EventArgs.Empty));
+        _unread.SchemeName = SchemeNames.Error;
+        _unread.Visible = false;
+        _unreadGap.X = Pos.Right(_unread);
         _hints = new HintRow { X = Pos.Right(_state), Width = Dim.Auto() };
-        _right.Add(_state, _hints);
+        _right.Add(_unread, _unreadGap, _state, _hints);
         _message = new Label { X = Pos.Right(_focus), Width = Dim.Fill(2, _right), Visible = false };
         Add(_focus, _message, _right);
     }
 
+    // Clicking ⚠ n.
+    public event EventHandler? MessagesRequested;
+
+    public TimeProvider Clock { get; set; } = TimeProvider.System;
+
     public string FocusWord { get; private set; } = string.Empty;
+
+    public StatusMessage? Current => _shown;
 
     public string? Message => _shown?.Text;
 
     public Severity? MessageSeverity => _shown?.Severity;
+
+    public IReadOnlyList<StatusMessage> History => _history;
+
+    public int UnreadErrors { get; private set; }
+
+    public Button UnreadButton => _unread;
 
     public string Says => _message.Visible ? _message.Text : _hints.Says;
 
@@ -56,23 +79,90 @@ public sealed class AppStatusBar : View
     private void ShowFocusWord() =>
         _focus.Text = FocusWord.Length > 0 && _message.Visible ? $"{FocusWord}{HintRow.Separator}" : FocusWord;
 
-    public void ShowMessage(string text, Severity severity = Severity.Info)
+    public StatusMessage ShowMessage(string text, Severity severity = Severity.Info) => Show(text, severity, MessageKind.Reply);
+
+    public StatusMessage ShowNews(string text, Severity severity = Severity.Info) => Show(text, severity, MessageKind.News);
+
+    public void Withdraw(StatusMessage message)
     {
-        _shown = (text, severity);
-        Refresh();
+        if (_shown == message)
+            ClearMessage();
     }
 
     public void ClearMessage()
     {
         if (_shown is null) return;
+        StopTimer();
         _shown = null;
         Refresh();
+    }
+
+    // Call before handling each key; AppShell does, skipping the keys of a chord.
+    public void KeyPressed()
+    {
+        if (_shown is { } shown && (shown.Kind == MessageKind.Reply || Clock.GetUtcNow() - shown.At >= Lifetime))
+            ClearMessage();
+    }
+
+    public void MarkRead()
+    {
+        UnreadErrors = 0;
+        ShowUnread();
     }
 
     public void SetChord(string? chord)
     {
         _chord = chord;
         Refresh();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+            StopTimer();
+        base.Dispose(disposing);
+    }
+
+    private StatusMessage Show(string text, Severity severity, MessageKind kind)
+    {
+        var message = new StatusMessage(text, severity, kind, Clock.GetLocalNow());
+        _history.Add(message);
+        StopTimer();
+        _shown = message;
+        if (severity == Severity.Info)
+            _timer = Clock.CreateTimer(_ => Expire(message), null, Lifetime, System.Threading.Timeout.InfiniteTimeSpan);
+        if (message.CountsAsUnread)
+        {
+            UnreadErrors++;
+            ShowUnread();
+        }
+        Refresh();
+        return message;
+    }
+
+    private void Expire(StatusMessage message)
+    {
+        if (App is { } app)
+            app.Invoke(() => Withdraw(message));
+        else
+            Withdraw(message);
+    }
+
+    private void StopTimer()
+    {
+        _timer?.Dispose();
+        _timer = null;
+    }
+
+    private void ShowUnread()
+    {
+        var any = UnreadErrors > 0;
+        _unread.Text = any ? $"⚠ {UnreadErrors}" : string.Empty;
+        _unread.Visible = any;
+        _unreadGap.Visible = any;
+        _state.X = any ? Pos.Right(_unreadGap) : 0;
+        _right.SetNeedsLayout();
+        SetNeedsDraw();
     }
 
     private void Refresh()
@@ -82,10 +172,10 @@ public sealed class AppStatusBar : View
             _message.Text = $"{_chord}…";
             _message.SchemeName = null;
         }
-        else if (_shown is var (text, severity))
+        else if (_shown is { } shown)
         {
-            _message.Text = text;
-            _message.SchemeName = severity == Severity.Error ? SchemeNames.Error : null;
+            _message.Text = shown.Text;
+            _message.SchemeName = shown.Severity == Severity.Error ? SchemeNames.Error : null;
         }
         _message.Visible = _chord is not null || _shown is not null;
         ShowFocusWord();

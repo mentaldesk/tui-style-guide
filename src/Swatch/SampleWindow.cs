@@ -45,6 +45,7 @@ internal sealed class SampleWindow : AppWindow
     private readonly ListView _log = new() { Width = Dim.Fill(), Height = Dim.Fill() };
     private readonly TreeNode _src;
     private object? _load;
+    private StatusMessage? _failure;
 
     public SampleWindow(AppShell shell, string theme, TimeSpan? loadTime = null) : base(Register(shell))
     {
@@ -52,7 +53,7 @@ internal sealed class SampleWindow : AppWindow
         LoadTime = loadTime ?? TimeSpan.FromSeconds(1.5);
         Files = new LoadStateView(_files, "Loading files…");
         Files.ReloadFailed += (_, message) =>
-            shell.ShowMessage($"{message}, so these are the files from the last load", Severity.Error);
+            _failure = shell.ShowNews($"{message}, so these are the files from the last load", Severity.Error);
         var filesPane = Panes.Create("Files", Files, x: 0, width: 24);
         filesPane.SchemeName = SchemeNames.Sidebar;
         var editorPane = Panes.Create("Editor", _editor, x: Pos.Right(filesPane), width: Dim.Fill());
@@ -152,6 +153,8 @@ internal sealed class SampleWindow : AppWindow
                 _files.Expand(_src);
                 _files.SelectedObject ??= _src.Children[0];
                 Files.ShowContent();
+                if (_failure is not null) Shell.StatusBar.Withdraw(_failure);
+                _failure = null;
                 break;
             case Outcome.Empty:
                 _files.ClearObjects();
@@ -207,6 +210,7 @@ internal sealed class SampleWindow : AppWindow
                 new MenuEntry(ThemeCommand(theme), theme, () => Themes.Current == theme))]),
             new MenuSpec("_Help", [
                 new MenuEntry(ShellCommands.ShowCommands, "Show all _commands"),
+                new MenuEntry(ShellCommands.ShowMessages, "Messages…"),
                 new MenuEntry(Back, "_Back to Swatch"),
             ]));
         return shell;

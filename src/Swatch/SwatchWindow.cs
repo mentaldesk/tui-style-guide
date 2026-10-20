@@ -147,6 +147,7 @@ internal sealed class SwatchWindow : AppWindow
                 new MenuEntry(ShellCommands.ShowKeys, "Show _keys"),
                 new MenuEntry(ShellCommands.ShowCommands, "Show all _commands"),
                 new MenuEntry(ShellCommands.ShowMenu, "Open the _menu"),
+                new MenuEntry(ShellCommands.ShowMessages, "Messages…"),
                 null,
                 new MenuEntry(SwatchCommands.ShowLoadingStates, "_Loading states…"),
                 new MenuEntry(SwatchCommands.ToggleAssistant, "_Assistant"),

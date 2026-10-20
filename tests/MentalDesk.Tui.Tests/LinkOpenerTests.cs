@@ -1,3 +1,4 @@
+using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Copying;
 using MentalDesk.Tui.Links;
 using MentalDesk.Tui.Shell;
@@ -124,6 +125,7 @@ public class OpenLinkHostTests : StaticConfigurationTest
         Assert.Equal([SwatchWindow.GuideUrl], browser.Opened);
         Assert.Equal($"Opened {SwatchWindow.GuideUrl}", host.Shell.StatusBar.Message);
         Assert.Equal(Severity.Info, host.Shell.StatusBar.MessageSeverity);
+        Assert.Equal(MessageKind.Reply, host.Shell.StatusBar.Current!.Kind);
     }
 
     [Fact]
