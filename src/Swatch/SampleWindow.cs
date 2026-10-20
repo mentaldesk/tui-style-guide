@@ -5,6 +5,7 @@ using MentalDesk.Tui.Focus;
 using MentalDesk.Tui.Icons;
 using MentalDesk.Tui.Keys;
 using MentalDesk.Tui.Loading;
+using MentalDesk.Tui.Paths;
 using MentalDesk.Tui.Shell;
 using MentalDesk.Tui;
 using MentalDesk.Tui.Theming;
@@ -16,6 +17,9 @@ namespace Swatch;
 // The painted preview, live: every state here is Terminal.Gui's own.
 internal sealed class SampleWindow : AppWindow
 {
+    public const string Open = "sample.open";
+    public const string OpenFolder = "sample.openFolder";
+    public const string SaveCopy = "sample.saveCopy";
     public const string SaveFile = "sample.save";
     public const string SaveTheme = "sample.saveTheme";
     public const string Settings = "sample.settings";
@@ -172,6 +176,9 @@ internal sealed class SampleWindow : AppWindow
     private static AppShell Register(AppShell shell)
     {
         shell.Commands
+            .Register(Open, "Open…", () => PickPath(shell, "Open", PathKind.File, "opened"))
+            .Register(OpenFolder, "Open folder…", () => PickPath(shell, "Open folder", PathKind.Folder, "opened"))
+            .Register(SaveCopy, "Save copy as…", () => PickPath(shell, "Save copy as", PathKind.NewFile, "saved a copy as"))
             .Register(SaveFile, "Save", () => shell.ShowMessage("A demo: this would have saved the file"))
             .Register(SaveTheme, "Save theme as…", () => SaveAs(shell))
             .Register(Settings, "Settings…", () => shell.ShowMessage("A demo: this would have opened the settings"))
@@ -181,13 +188,17 @@ internal sealed class SampleWindow : AppWindow
         foreach (var theme in Themes.Names)
             shell.Commands.Register(ThemeCommand(theme), $"Theme: {theme}", () => shell.StatusBar.State = shell.ApplyTheme(theme));
         shell.Keys
+            .Bind("Ctrl+O", Open)
             .Bind("Ctrl+S", SaveFile)
             .Bind("Delete", DeleteTheme)
             .Bind("Esc", Back);
         shell.UseMenu(
             new MenuSpec("_File", [
+                new MenuEntry(Open, "Open…"),
+                new MenuEntry(OpenFolder, "Open folder…"),
                 new MenuEntry(SaveFile, "Save"),
                 new MenuEntry(SaveTheme, "Save as…"),
+                new MenuEntry(SaveCopy, "Save copy as…"),
                 new MenuEntry(Settings, "Settings…"),
                 new MenuEntry(DeleteTheme, "Delete…"),
                 null,
@@ -227,6 +238,14 @@ internal sealed class SampleWindow : AppWindow
         dialog.Run(shell);
         if (dialog.Chosen is not null)
             shell.ShowMessage($"A demo: this would have saved \"{dialog.Field!.Text}\"");
+    }
+
+    private static void PickPath(AppShell shell, string title, PathKind kind, string verb)
+    {
+        using var picker = new PathPicker(title, kind, Environment.CurrentDirectory);
+        picker.Run(shell);
+        if (picker.PickedPath is { } path)
+            shell.ShowMessage($"A demo: this would have {verb} {path}");
     }
 
     private static void Delete(AppShell shell)
