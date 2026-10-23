@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json.Nodes;
 using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Commands;
 using MentalDesk.Tui.Copying;
@@ -16,6 +17,10 @@ namespace MentalDesk.Tui.Shell;
 
 public sealed class AppShell : IDisposable
 {
+    private const string PlaceKey = "place";
+    private const string ScreenKey = "screen";
+    private const string PaneKey = "pane";
+
     private static readonly Command[] LineDeletes = [Command.CutToEndOfLine, Command.CutToStartOfLine];
 
     private static readonly (Command Framework, string Id)[] PaneKeys =
@@ -29,11 +34,13 @@ public sealed class AppShell : IDisposable
 
     private readonly List<(AppScreen Screen, View View, FocusRegion Start)> _screens = [];
     private readonly Dictionary<FocusRegion, IFindTarget> _findTargets = [];
+    private readonly Dictionary<AppScreen, View> _leftOn = [];
 
     private readonly ArrowFallback _arrowFallback;
     private bool _nested;
     private bool _deleting;
     private IInputScope? _findScope;
+    private string? _placeSection;
 
     public AppShell(IApplication app, TerminalCursor cursor, IconSettings? icons = null)
         : this(app, cursor, ClipboardTools.ThisMachine, icons)
@@ -142,13 +149,37 @@ public sealed class AppShell : IDisposable
         return this;
     }
 
+    // Back to the control that had focus there last; to start on the first visit.
     public void ShowScreen(AppScreen screen)
     {
-        var (_, _, start) = _screens.Single(entry => entry.Screen == screen);
-        foreach (var entry in _screens)
-            entry.View.Visible = entry.Screen == screen;
-        Screen = screen;
-        Focus.Focus(start);
+        RememberFocus();
+        var (_, view, start) = _screens.Single(entry => entry.Screen == screen);
+        Switch(screen);
+        var left = _leftOn.GetValueOrDefault(screen);
+        if (left is not null && Shown(left, view) && (left.SetFocus() || left.HasFocus))
+            Focus.Reconcile();
+        else
+            Focus.Focus(start);
+    }
+
+    // Opens on the screen and pane saved in the app's settings section, and saves them there when Run ends.
+    public void Reopen(string app, FocusRegion start)
+    {
+        _placeSection = app;
+        var place = Settings.Section(app)[PlaceKey] as JsonObject;
+        if (Text(place?[ScreenKey]) is { } screenName && _screens.Count > 0)
+        {
+            if (_screens.FirstOrDefault(entry => entry.Screen.Name == screenName) is not { Screen: not null } saved)
+            {
+                Focus.Focus(start);
+                return;
+            }
+            Switch(saved.Screen);
+            start = saved.Start;
+        }
+        if (Text(place?[PaneKey]) is not { } paneName || Focus.Regions.FirstOrDefault(region => region.Name == paneName) is not { } pane
+            || !Focus.Focus(pane))
+            Focus.Focus(start);
     }
 
     public AppShell FindIn(FocusRegion region, IFindTarget target)
@@ -223,6 +254,8 @@ public sealed class AppShell : IDisposable
         finally
         {
             Cursor.Restore();
+            if (_placeSection is not null)
+                SavePlace(_placeSection);
         }
     }
 
@@ -296,6 +329,43 @@ public sealed class AppShell : IDisposable
         }
     }
 
+    private void Switch(AppScreen screen)
+    {
+        foreach (var entry in _screens)
+            entry.View.Visible = entry.Screen == screen;
+        Screen = screen;
+    }
+
+    private void SavePlace(string app)
+    {
+        var place = new JsonObject();
+        if (Screen is not null) place[ScreenKey] = Screen.Name;
+        if (Focus.Region is not null) place[PaneKey] = Focus.Region.Name;
+        var section = Settings.Section(app);
+        section[PlaceKey] = place;
+        Settings.SaveSection(app, section);
+    }
+
+    private static string? Text(JsonNode? node) => node is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
+
+    private void RememberFocus()
+    {
+        if (Screen is null || FocusedView() is not View focused) return;
+        var (_, view, _) = _screens.Single(entry => entry.Screen == Screen);
+        if (Shown(focused, view))
+            _leftOn[Screen] = focused;
+    }
+
+    private static bool Shown(View? view, View screen)
+    {
+        for (; view is not null; view = view.SuperView)
+        {
+            if (!view.Visible || !view.Enabled) return false;
+            if (view == screen) return true;
+        }
+        return false;
+    }
+
     private IFindTarget? FindTarget() => Focus.Region is { } region ? _findTargets.GetValueOrDefault(region) : null;
 
     private void Find()
@@ -331,6 +401,7 @@ public sealed class AppShell : IDisposable
         // An open menu owns the keyboard; its own letters would otherwise run commands too.
         if (_nested || key.Handled || App.Popovers?.GetActivePopover() is not null) return;
         Focus.Reconcile();
+        RememberFocus();
         var shown = StatusBar.Current;
         var chording = Scopes.PendingChord is not null;
         if (Scopes.Handle(CtrlEnter.FromWindows(key, IsWindows)) != KeyResult.Pass || DeleteToLineEdge(key))
@@ -373,6 +444,7 @@ public sealed class AppShell : IDisposable
     {
         if (_nested) return;
         Focus.Reconcile();
+        RememberFocus();
         Menu?.ShowAvailable();
     }
 

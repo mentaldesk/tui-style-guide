@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using MentalDesk.Tui.Dialogs;
 using MentalDesk.Tui.Icons;
 using MentalDesk.Tui.Palette;
@@ -26,6 +27,13 @@ public class SwatchSettingsTests : StaticConfigurationTest
     private SwatchesPage Swatches => (SwatchesPage)Dialog!.Pages[1];
 
     private SwatchSettings Saved => new(new MentalDeskSettings(_host.SettingsPath));
+
+    private void AssertOnlyThePlaceSaved()
+    {
+        var saved = JsonNode.Parse(File.ReadAllText(_host.SettingsPath))!.AsObject();
+        Assert.Equal([SwatchSettings.Section], saved.Select(entry => entry.Key));
+        Assert.Equal(["place"], saved[SwatchSettings.Section]!.AsObject().Select(entry => entry.Key));
+    }
 
     private IEnumerable<string> Names => Dialog!.PageList.Source!.ToList().Cast<string>();
 
@@ -119,7 +127,7 @@ public class SwatchSettingsTests : StaticConfigurationTest
             () => _host.App.TopRunnableView is SwatchWindow);
 
         Assert.Equal(Themes.Midnight, Themes.Current);
-        Assert.False(File.Exists(_host.SettingsPath));
+        AssertOnlyThePlaceSaved();
     }
 
     [Fact]
@@ -186,7 +194,7 @@ public class SwatchSettingsTests : StaticConfigurationTest
 
         Assert.Equal(Themes.Midnight, Themes.Current);
         Assert.Equal(IconStyle.Auto, Icons.Style);
-        Assert.False(File.Exists(_host.SettingsPath));
+        AssertOnlyThePlaceSaved();
     }
 
     [Fact]

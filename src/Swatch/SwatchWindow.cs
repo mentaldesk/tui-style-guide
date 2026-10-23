@@ -78,7 +78,7 @@ internal sealed class SwatchWindow : AppWindow
         Show(new Selection(Themes.Current, SchemeNames.Base));
         KeyOverrides = KeyOverrides.InSection(shell.Settings, SwatchSettings.Section, shell.Commands, shell.Keys);
         KeyOverrides.Load();
-        Initialized += (_, _) => shell.Focus.Focus(ThemesRegion);
+        Initialized += (_, _) => shell.Reopen(SwatchSettings.Section, ThemesRegion);
     }
 
     public View Preview => _preview;
