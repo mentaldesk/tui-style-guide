@@ -156,6 +156,88 @@ public class StatusMessagesTests : StaticConfigurationTest
         Assert.Equal("Saved", _bar.Message);
     }
 
+    [Fact]
+    public void Resting_text_shows_after_the_focus_word_in_the_bar_s_colours_while_there_s_no_message()
+    {
+        _bar.SetFocusWord("Editor");
+
+        _bar.RestingText = "src/notes.md";
+
+        Assert.Equal("src/notes.md", _bar.Says);
+        Assert.Null(_bar.Message);
+        Assert.Equal("Editor  •  ", _bar.SubViews.First().Text);
+        Assert.Null(_bar.SubViews.ElementAt(1).SchemeName);
+    }
+
+    [Fact]
+    public void A_message_and_a_chord_show_over_resting_text_which_comes_back_after_them()
+    {
+        _bar.RestingText = "src/notes.md";
+        var says = new List<string>();
+
+        _bar.ShowMessage("Couldn't save", Severity.Error);
+        says.Add(_bar.Says);
+        _bar.KeyPressed();
+        says.Add(_bar.Says);
+        _bar.SetChord("Ctrl+G");
+        says.Add(_bar.Says);
+        _bar.SetChord(null);
+        says.Add(_bar.Says);
+
+        Assert.Equal(["Couldn't save", "src/notes.md", "Ctrl+G…", "src/notes.md"], says);
+        Assert.Null(_bar.SubViews.ElementAt(1).SchemeName);
+    }
+
+    [Fact]
+    public void Clearing_resting_text_leaves_the_hints()
+    {
+        _bar.Hints.Show([("Press F1 for help", () => { })]);
+        _bar.RestingText = "src/notes.md";
+
+        _bar.RestingText = string.Empty;
+
+        Assert.Equal("Press F1 for help", _bar.Says);
+    }
+
+    [Fact]
+    public void A_recorded_message_goes_in_messages_without_showing()
+    {
+        _bar.ShowMessage("Saved");
+
+        var recorded = _bar.Record("Couldn't watch src for changes", Severity.Error);
+
+        Assert.Equal("Saved", _bar.Message);
+        Assert.Equal(MessageKind.News, recorded.Kind);
+        Assert.Same(recorded, _bar.History[^1]);
+        using var dialog = new MessagesDialog(_bar);
+        Assert.Same(recorded, dialog.Rows[0]);
+    }
+
+    [Fact]
+    public void A_recorded_error_counts_as_unread_and_a_recorded_info_does_not()
+    {
+        _bar.Record("Watching src");
+        var none = _bar.UnreadErrors;
+
+        _bar.Record("Couldn't watch src for changes", Severity.Error);
+
+        Assert.Equal(0, none);
+        Assert.Equal(1, _bar.UnreadErrors);
+        Assert.Equal("⚠ 1", _bar.UnreadButton.Text);
+    }
+
+    [Fact]
+    public void Recording_starts_no_timer_and_leaves_the_shown_message_s_alone()
+    {
+        _bar.ShowMessage("Saved");
+        _clock.Advance(TimeSpan.FromSeconds(3));
+        _bar.Record("Couldn't watch src for changes", Severity.Error);
+
+        _clock.Advance(TimeSpan.FromSeconds(2));
+
+        Assert.Null(_bar.Message);
+    }
+
     public static TheoryData<MessageKind, Severity, MessageKind, Severity> Pairings()
     {
         var data = new TheoryData<MessageKind, Severity, MessageKind, Severity>();
