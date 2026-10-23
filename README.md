@@ -520,6 +520,66 @@ is the reference implementation. The command palette is built on it, and so is S
 Filter a list to pick one thing by a name you half-remember; find in what you read (below) to look
 for words you've seen in text that stays as it is.
 
+### Picking a path
+
+**A file, a folder or a new file's name is picked in one browser**, which works as a picker does
+(see *Filtering a list*) and stays open as you move between folders.
+
+- **One folder at a time, until you type.** The line above the filter says where you are, dimmed, with
+  `~` for home (`~/code`). With the filter empty, the list is `../` (except at the root), then folders
+  ending in `/`, then files, each sorted by name. Hidden files and folders are left out.
+- **Typing searches this folder and everything below it.** Matches show their path from here
+  (`tui-style-guide/src/Swatch/`) and rank as any filter does, the shallower first on a tie. A `/` in
+  the filter matches folder by folder (`src/sw`).
+- **The search runs in the background, breadth first**, skips `.git`, `.hg`, `.svn`, `node_modules`,
+  `bin` and `obj`, and stops at 10,000 entries. The line under the filter says `Searching…` until it's
+  done, and `First 10,000 entries` if it stopped.
+- **A filter starting with `.` shows hidden files and folders**, so `.github/` is a `.gi` away.
+- **`Enter` acts on the selected row**: a folder, wherever it is, goes in, and `../` goes up.
+  **`Backspace` in an empty filter goes up too.** Going in or up empties the filter. Going in selects
+  the first row; going up selects the folder you came from.
+- **Typing a path that starts with `~` or `/` and pressing `Enter` goes there**: into it if it's a
+  folder, picking it if it's a file.
+- **Picking a file:** `Enter` on a file picks it, wherever it is in the list.
+- **Picking a folder:** `▓ Ctrl+Enter Use this folder ▓` uses the one you're in, and `Enter` still only
+  goes in. Only folders are listed.
+- **Naming a new file:** the filter is the name. While no file of that name is in this folder, the
+  first row is a dimmed `New file: notes.md`, above any matches below, and `▓ Ctrl+Enter Save here ▓`
+  uses it. Picking a file that's already there asks, with `ConfirmDialog`, whether to replace it.
+- **A folder that can't be read says why** in the list, in place of `(no matches)`, and `../` still
+  works.
+- **The path comes back as it was shown**, with `~` for home, so a setting reads the way the user saw it.
+
+```
+┌─ Open folder ────────────────────────────────────────────────┐
+│ ~/code                                                       │   Label, dim
+│ sw▏                                                          │   PlaceholderField (focused)
+│ Searching…                                                   │   Label, dim
+│▓swatch/                                                     ▓│   ListView, first row selected
+│ sentry-swift/                                                │
+│ tui-style-guide/src/Swatch/                                  │
+│                                                              │
+│ ▓ Enter Open ▓ ▓ Ctrl+Enter Use this folder ▓ ▓ Esc Cancel ▓ │   Button (Secondary), Button (Primary), Button (Secondary)
+└──────────────────────────────────────────────────────────────┘
+```
+
+```
+┌─ Save copy as ───────────────────────────────────────────────┐
+│ ~/code/swatch/themes                                         │   Label, dim
+│ solar.json▏                                                  │   PlaceholderField (focused)
+│                                                              │
+│▓New file: solar.json                                        ▓│   ListView, first row, dim
+│ old/solar.json                                               │   a match below
+│                                                              │
+│               ▓ Ctrl+Enter Save here ▓   ▓ Esc Cancel ▓      │   Button (Primary), Button (Secondary)
+└──────────────────────────────────────────────────────────────┘
+```
+
+The library's [`PathPicker`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Paths/PathPicker.cs)
+is the reference implementation, for a file, a folder or a new file. It's a `PickerDialog`, which can
+replace its rows while it's open. The sample app's *File › Open…*, *Open folder…* and *Save copy as…*
+try all three.
+
 ### Finding in what you read
 
 **`Ctrl+F` opens a find bar on what you're reading**, docked at the top of that pane, never a dialog,
