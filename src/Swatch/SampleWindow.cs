@@ -30,6 +30,8 @@ internal sealed class SampleWindow : AppWindow
     public const string LoadFailing = "sample.loadFailing";
     public const string CollapseFolders = "sample.collapseFolders";
     public const string ExpandFolders = "sample.expandFolders";
+    public const string LogWarning = "sample.logWarning";
+    public const string Warning = "Couldn't watch src for changes";
 
     public static readonly FocusRegion FilesRegion = new("Files", new CommandScope("Files"));
     public static readonly FocusRegion EditorRegion = new("Editor", new CommandScope("Editor"));
@@ -43,6 +45,7 @@ internal sealed class SampleWindow : AppWindow
     private readonly TreeView _files = new() { Width = Dim.Fill(), Height = Dim.Fill() };
     private readonly SampleEditor _editor = new() { Width = Dim.Fill(), Height = Dim.Fill() };
     private readonly ListView _log = new() { Width = Dim.Fill(), Height = Dim.Fill() };
+    private readonly ObservableCollection<string> _logLines = ["Opened the sample", "Listed the files in src"];
     private readonly TreeNode _src;
     private object? _load;
     private StatusMessage? _failure;
@@ -58,13 +61,15 @@ internal sealed class SampleWindow : AppWindow
         filesPane.SchemeName = SchemeNames.Sidebar;
         var editorPane = Panes.Create("Editor", _editor, x: Pos.Right(filesPane), width: Dim.Fill());
         var logPane = Panes.Create("Log", _log, x: 0, width: Dim.Fill());
-        _log.SetSource(new ObservableCollection<string>(["Opened the sample", "Listed the files in src"]));
+        _log.SetSource(_logLines);
         var filesScreen = Screen(filesPane, editorPane);
         var logScreen = Screen(logPane);
         Body.Add(filesScreen, logScreen);
 
         var todo = new TreeNode { Text = "todo.md" };
         _src = new TreeNode { Text = "src", Children = [new TreeNode { Text = "notes.md" }, todo] };
+        _files.SelectionChanged += (_, e) =>
+            shell.StatusBar.RestingText = e.NewValue is { } node && node != _src ? $"src/{node.Text}" : string.Empty;
         _files.DrawLine += (_, e) => IconField.Prepend(e, shell.Icons.Glyph(e.Model == _src ? SwatchIcons.Folder : SwatchIcons.File));
         shell.Icons.Changed += OnIconsChanged;
         _files.ColorGetter = node => node == todo && _files.GetScheme() is { } scheme
@@ -82,6 +87,11 @@ internal sealed class SampleWindow : AppWindow
             .Register(ReloadFiles, "Reload files", () => Load(Outcome.Files))
             .Register(LoadNoFiles, "Load no files", () => Load(Outcome.Empty))
             .Register(LoadFailing, "Load files, failing", () => Load(Outcome.Failure))
+            .Register(LogWarning, "Log a warning", () =>
+            {
+                _logLines.Add(Warning);
+                shell.Record(Warning, Severity.Error);
+            })
             .Register(CollapseFolders, "Collapse folders", () => _files.Collapse(_src), isEnabled: () => Listed && _files.IsExpanded(_src))
             .Register(ExpandFolders, "Expand folders", () => _files.Expand(_src), isEnabled: () => Listed && !_files.IsExpanded(_src));
         shell.Keys.Bind("Ctrl+R", ReloadFiles);
@@ -202,6 +212,7 @@ internal sealed class SampleWindow : AppWindow
                 new MenuEntry(ReloadFiles, "_Reload files"),
                 new MenuEntry(LoadNoFiles, "Load _no files"),
                 new MenuEntry(LoadFailing, "Load files, _failing"),
+                new MenuEntry(LogWarning, "Log a _warning"),
                 null,
                 new MenuEntry(CollapseFolders, "_Collapse folders") { Opposite = new(ExpandFolders, "_Expand folders") },
             ]),

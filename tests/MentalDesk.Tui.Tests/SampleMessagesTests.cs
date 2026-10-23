@@ -156,6 +156,31 @@ public class SampleMessagesTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void A_logged_warning_counts_as_unread_without_a_message_and_the_selected_file_rests_on_the_bar()
+    {
+        string? said = null;
+        var unread = "";
+        var resting = "";
+
+        Run(sample =>
+        [
+            () => sample.Files.State == LoadState.Loaded,
+            () => sample.Shell.Commands.Execute(SampleWindow.LogWarning),
+            () =>
+            {
+                said = sample.Shell.StatusBar.Message;
+                unread = sample.Shell.StatusBar.UnreadButton.Text;
+                resting = sample.Shell.StatusBar.Says;
+                Press(Key.Esc);
+            },
+        ]);
+
+        Assert.Null(said);
+        Assert.Equal("⚠ 1", unread);
+        Assert.Equal("src/notes.md", resting);
+    }
+
+    [Fact]
     public void Messages_is_in_the_help_menu_and_the_command_palette()
     {
         var palette = new List<string>();
