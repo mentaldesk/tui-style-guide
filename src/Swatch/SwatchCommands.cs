@@ -10,6 +10,7 @@ internal static class SwatchCommands
     public const string CloseTheme = "swatch.closeTheme";
     public const string CopyColours = "swatch.copyColours";
     public const string ShowLoadingStates = "swatch.loadingStates";
+    public const string PickIssue = "swatch.pickIssue";
     public const string WriteComment = "swatch.writeComment";
     public const string ReadLog = "swatch.readLog";
     public const string ShowSettings = "swatch.settings";
