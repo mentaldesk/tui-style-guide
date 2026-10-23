@@ -504,12 +504,19 @@ all but *Try it*, belong to the Themes pane.
 - **An empty filter says `Type to filter`**, dimmed, in the field. It goes as soon as you type.
 - **Typing never leaves the filter.** `Up/Down/PgUp/PgDn` move the selection while the cursor stays
   in the field, and the first row is selected after every keystroke, so `Enter` takes the best match.
+- **A picker whose rows are fetched opens at once and loads in its list**, as any region does (see
+  [Loading and empty](#loading-and-empty)): `Loading pull requests…`, then the rows, or the failure
+  with `R retry` under it. Until the rows are in, the pick button is dimmed and `Enter` does nothing.
+- **Rows with columns get a dimmed header** above the list, in the rows' columns.
+- **A pick that can't be done says why and stays open**, in the dialog's message block, so another
+  row can be picked. Typing clears it.
 
 The library's [`PickerDialog`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Dialogs/PickerDialog.cs),
 matching with [`ListFilter`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Filtering/ListFilter.cs)
 and TuiCode's [`CamelHumps`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Filtering/CamelHumps.cs),
-is the reference implementation. The command palette is built on it, and so is Swatch's
-*Go › Scheme…*.
+is the reference implementation. The command palette is built on it, and so are Swatch's
+*Go › Scheme…* and *Help › Picking an issue…*, whose first load fails on purpose, and where a closed
+issue can't be opened.
 
 Filter a list to pick one thing by a name you half-remember; find in what you read (below) to look
 for words you've seen in text that stays as it is.

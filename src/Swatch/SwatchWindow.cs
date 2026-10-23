@@ -118,6 +118,7 @@ internal sealed class SwatchWindow : AppWindow
             .Register(SwatchCommands.CloseTheme, "Close this theme", () => CloseTheme(shell), ThemesRegion.Scope)
             .Register(SwatchCommands.CopyColours, "Copy colours", () => CopyColours(shell), RolesRegion.Scope)
             .Register(SwatchCommands.ShowLoadingStates, "Show loading states", () => ShowLoadingStates(shell))
+            .Register(SwatchCommands.PickIssue, "Pick an issue", () => PickIssue(shell))
             .Register(SwatchCommands.WriteComment, "Write a comment", () => WriteComment(shell))
             .Register(SwatchCommands.ReadLog, "Read a log", () => ReadLog(shell))
             .Register(SwatchCommands.ShowSettings, "Settings…", () => ShowSettings(shell))
@@ -151,6 +152,7 @@ internal sealed class SwatchWindow : AppWindow
                 null,
                 new MenuEntry(SwatchCommands.ShowLoadingStates, "_Loading states…"),
                 new MenuEntry(SwatchCommands.ToggleAssistant, "_Assistant"),
+                new MenuEntry(SwatchCommands.PickIssue, "_Picking an issue…"),
                 new MenuEntry(SwatchCommands.WriteComment, "_Writing a comment…"),
                 new MenuEntry(SwatchCommands.ReadLog, "_Reading a log…"),
                 new MenuEntry(SwatchCommands.OpenGuide, "Open the _guide on GitHub"),
@@ -229,6 +231,14 @@ internal sealed class SwatchWindow : AppWindow
     {
         using var dialog = new LoadingStatesDialog(shell);
         dialog.Run(shell);
+    }
+
+    private static void PickIssue(AppShell shell)
+    {
+        using var picker = new IssuePicker();
+        picker.Run(shell);
+        if (picker.Chosen is { } issue)
+            shell.ShowMessage($"A demo: Swatch has no issues, so #{issue.Number} didn't open");
     }
 
     private static void WriteComment(AppShell shell)
