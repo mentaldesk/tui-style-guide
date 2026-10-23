@@ -438,6 +438,31 @@ the *Go* menu above, and `F1` lists it under *Moving around*. In Swatch, `F6` cy
 Preview, and *Go › Scheme…* is a place. In the sample app *Try this theme* opens, `Ctrl+G L` shows the
 *Log* screen and `Ctrl+G F` goes back to *Files*.
 
+### Resizing panes
+
+**A side pane can be resized; the main pane can't.** A side pane sits beside what the user reads or
+edits: a tree, a list, a history, the Assistant. The main pane takes what's left. The app says which
+panes are side panes; no other pane is resizable.
+
+- **Drag its inner border**, the one facing the main pane, with the mouse.
+- ***Widen pane* and *Narrow pane* resize the focused side pane by 5 columns.** They're in the command
+  palette, and only while focus is in a side pane (see *Only what works here*). They have no keys:
+  anyone who wants one gives it one on *Settings › Keys* (see *Changing keys*), and `F1` lists it.
+- **A side pane is never narrower than 15 columns, and never leaves the main pane fewer than 40.** A
+  drag stops at the limit, and *Widen pane* or *Narrow pane* there says so in the status bar.
+- **In a terminal too narrow for both, the side panes give way first**, the widest a column at a time,
+  so the main pane keeps 40 columns where it can.
+- **The width is remembered per pane** as the width the user chose. A narrow terminal shrinks what's
+  drawn, not what's remembered, so widening the terminal brings it back, and so does the next start.
+- ***Reset pane width* puts the focused pane back to the app's default.**
+
+The library's [`SidePanes`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Layout/SidePanes.cs)
+is the reference implementation. An app adds its panes in reading order, each side pane with its
+region and default width, and the main pane; it registers the three commands, makes each side pane's
+inner border `LeftResizable` or `RightResizable` for Terminal.Gui's own drag, and keeps the widths in
+the app's `MentalDeskSettings` section. In Swatch, Themes, Roles and the Assistant are side panes and
+Preview is the main pane; while the Assistant is open in Preview's place, Roles takes what's left.
+
 ### An assistant pane
 
 **An app that lets the user ask an AI agent about it does so in one pane, *Assistant*.** One command
