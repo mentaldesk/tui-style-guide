@@ -165,7 +165,7 @@ public class PathPickerTests : StaticConfigurationTest
         using var picker = Picker(cap: 6);
         Type(picker, "s");
 
-        Assert.Equal("First 6 entries", picker.State);
+        Assert.Equal("First 6 entries", picker.SearchStatus);
         Assert.DoesNotContain(picker.Labels, label => label.Count(c => c == '/') > 1);
     }
 
@@ -175,7 +175,7 @@ public class PathPickerTests : StaticConfigurationTest
         using var picker = Picker();
         Type(picker, "s");
 
-        Assert.Equal("", picker.State);
+        Assert.Equal("", picker.SearchStatus);
         Assert.False(picker.IsSearching);
     }
 

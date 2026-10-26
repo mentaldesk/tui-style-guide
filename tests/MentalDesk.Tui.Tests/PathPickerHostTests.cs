@@ -49,7 +49,7 @@ public class PathPickerHostTests : StaticConfigurationTest
             () => !picker.IsSearching && picker.Labels.Count == 1,
             () =>
             {
-                state = picker.State;
+                state = picker.SearchStatus;
                 Press(Key.Enter);
             },
             () => _host.App.TopRunnableView is SwatchWindow);

@@ -89,7 +89,7 @@ public sealed class PathPicker : PickerDialog<PathRow>
 
     public string Where => _where.Text;
 
-    public string State => _state.Text;
+    public string SearchStatus => _state.Text;
 
     public bool IsSearching => _search is { Done: false };
 
