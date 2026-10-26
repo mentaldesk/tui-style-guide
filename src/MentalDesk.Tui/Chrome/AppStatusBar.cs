@@ -15,6 +15,7 @@ public sealed class AppStatusBar : View
     private readonly View _right = new() { X = Pos.AnchorEnd() - 1, Y = 0, Width = Dim.Auto(), Height = 1, CanFocus = false };
     private readonly List<StatusMessage> _history = [];
     private string _stateText = string.Empty;
+    private string _restingText = string.Empty;
     private readonly Label _message;
     private string? _chord;
     private StatusMessage? _shown;
@@ -70,6 +71,17 @@ public sealed class AppStatusBar : View
 
     public HintRow Hints => _hints;
 
+    // Shown in the message's place while there's no message or chord, like the active file's path.
+    public string RestingText
+    {
+        get => _restingText;
+        set
+        {
+            _restingText = value;
+            Refresh();
+        }
+    }
+
     public void SetFocusWord(string word)
     {
         FocusWord = word;
@@ -82,6 +94,14 @@ public sealed class AppStatusBar : View
     public StatusMessage ShowMessage(string text, Severity severity = Severity.Info) => Show(text, severity, MessageKind.Reply);
 
     public StatusMessage ShowNews(string text, Severity severity = Severity.Info) => Show(text, severity, MessageKind.News);
+
+    // For what the app logs rather than shows: it goes in Messages, and an Error counts in ⚠ n.
+    public StatusMessage Record(string text, Severity severity = Severity.Info)
+    {
+        var message = new StatusMessage(text, severity, MessageKind.News, Clock.GetLocalNow());
+        Add(message);
+        return message;
+    }
 
     public void Withdraw(StatusMessage message)
     {
@@ -126,18 +146,21 @@ public sealed class AppStatusBar : View
     private StatusMessage Show(string text, Severity severity, MessageKind kind)
     {
         var message = new StatusMessage(text, severity, kind, Clock.GetLocalNow());
-        _history.Add(message);
+        Add(message);
         StopTimer();
         _shown = message;
         if (severity == Severity.Info)
             _timer = Clock.CreateTimer(_ => Expire(message), null, Lifetime, System.Threading.Timeout.InfiniteTimeSpan);
-        if (message.CountsAsUnread)
-        {
-            UnreadErrors++;
-            ShowUnread();
-        }
         Refresh();
         return message;
+    }
+
+    private void Add(StatusMessage message)
+    {
+        _history.Add(message);
+        if (!message.CountsAsUnread) return;
+        UnreadErrors++;
+        ShowUnread();
     }
 
     private void Expire(StatusMessage message)
@@ -177,7 +200,12 @@ public sealed class AppStatusBar : View
             _message.Text = shown.Text;
             _message.SchemeName = shown.Severity == Severity.Error ? SchemeNames.Error : null;
         }
-        _message.Visible = _chord is not null || _shown is not null;
+        else
+        {
+            _message.Text = _restingText;
+            _message.SchemeName = null;
+        }
+        _message.Visible = _chord is not null || _shown is not null || _restingText.Length > 0;
         ShowFocusWord();
         SetNeedsDraw();
     }

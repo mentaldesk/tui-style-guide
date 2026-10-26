@@ -220,9 +220,13 @@ Rules that matter more than the widget:
 
 The keys of a chord don't count: `Ctrl+G…` shows over the message, which comes back after it.
 
+**With nothing to say, the bar can rest on something useful**, like the active file's path, in its
+normal colours. A message or a chord shows over it.
+
 **No error is lost.** Every `Error` news counts in `⚠ n`, a button in the `Error` scheme just before
 the theme name at the status bar's right end, until *Messages* is opened. A reply doesn't count,
-because the user is looking at it.
+because the user is looking at it. What the app logs rather than shows, like a folder it couldn't
+watch, goes in *Messages* too, and counts in `⚠ n` if it's an `Error`.
 
 **Messages** lists this session's messages, newest first, each with its time, and focus starts on the
 newest. It's in the *Help* menu and the command palette, and clicking `⚠ n` opens it. Errors show in
@@ -235,15 +239,17 @@ says `No messages yet`, dimmed.
 
 The library's [`AppStatusBar`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/AppStatusBar.cs)
 is the reference implementation. `ShowMessage(…)` puts up a reply and `ShowNews(…)` news; both return
-the message, which `Withdraw(…)` takes off again if it's still showing. `AppShell` has the same two,
-counts each key that isn't part of a chord, and opens
+the message, which `Withdraw(…)` takes off again if it's still showing. `Record(…)` adds a message to
+*Messages* without showing it, and `RestingText` is what the bar shows between messages. `AppShell` has
+those three methods too, counts each key that isn't part of a chord, and opens
 [`MessagesDialog`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/MessagesDialog.cs)
 from *Messages*. The copy and link outcomes it reports are replies. An app without `AppShell` calls
 `KeyPressed()` on its `AppStatusBar` before handling each key, and opens `MessagesDialog` from the
 bar's `MessagesRequested`.
 
 In Swatch's sample, type in the Editor while *View › Load files, failing* runs: the failure stays, and
-`⚠ 1` appears. *File › Save* shows a reply, and *Help › Messages…* lists them all.
+`⚠ 1` appears. *View › Log a warning* adds to `⚠ n` without a message, the selected file rests on the
+bar, *File › Save* shows a reply, and *Help › Messages…* lists them all.
 
 ### Loading and empty
 
@@ -504,12 +510,19 @@ all but *Try it*, belong to the Themes pane.
 - **An empty filter says `Type to filter`**, dimmed, in the field. It goes as soon as you type.
 - **Typing never leaves the filter.** `Up/Down/PgUp/PgDn` move the selection while the cursor stays
   in the field, and the first row is selected after every keystroke, so `Enter` takes the best match.
+- **A picker whose rows are fetched opens at once and loads in its list**, as any region does (see
+  [Loading and empty](#loading-and-empty)): `Loading pull requests…`, then the rows, or the failure
+  with `R retry` under it. Until the rows are in, the pick button is dimmed and `Enter` does nothing.
+- **Rows with columns get a dimmed header** above the list, in the rows' columns.
+- **A pick that can't be done says why and stays open**, in the dialog's message block, so another
+  row can be picked. Typing clears it.
 
 The library's [`PickerDialog`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Dialogs/PickerDialog.cs),
 matching with [`ListFilter`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Filtering/ListFilter.cs)
 and TuiCode's [`CamelHumps`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Filtering/CamelHumps.cs),
-is the reference implementation. The command palette is built on it, and so is Swatch's
-*Go › Scheme…*.
+is the reference implementation. The command palette is built on it, and so are Swatch's
+*Go › Scheme…* and *Help › Picking an issue…*, whose first load fails on purpose, and where a closed
+issue can't be opened.
 
 Filter a list to pick one thing by a name you half-remember; find in what you read (below) to look
 for words you've seen in text that stays as it is.
