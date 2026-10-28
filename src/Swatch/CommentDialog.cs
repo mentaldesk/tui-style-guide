@@ -12,15 +12,19 @@ internal sealed class CommentDialog : AppDialog
         Body = new MultiLineField { X = 1, Y = 3, Width = Dim.Fill(1), Height = 6, Placeholder = "Leave a comment…" };
         PostButton = AppButton.Primary("Ctrl+Enter Post");
         PostButton.IsDefault = false;
-        PostButton.Accepting += (_, e) => Press(e, Accept);
+        PostButton.Accepting += (_, e) => Press(e, Post);
         CancelButton = AppButton.Secondary("Esc Cancel");
         CancelButton.Accepting += (_, e) => Press(e, Cancel);
         CancelButton.X = Pos.AnchorEnd() - 1;
         PostButton.X = Pos.Left(CancelButton) - PostButton.Text.Length - 3;
         PostButton.Y = CancelButton.Y = 10;
-        Add(new Label { Text = "Title", X = 1, Y = 0 }, TitleField, Body, PostButton, CancelButton);
+        var titleLabel = new Label { Text = "Title", X = 1, Y = 0 };
+        var bodyLabel = new Label { Text = "Comment", X = 1, Y = 2 };
+        Add(titleLabel, TitleField, bodyLabel, Body, PostButton, CancelButton);
+        Check(TitleField, titleLabel, () => string.IsNullOrWhiteSpace(TitleField.Text) ? "Title is needed" : null);
+        Check(Body, bodyLabel, () => string.IsNullOrWhiteSpace(Body.Text) ? "Comment is needed" : null);
 
-        Commands.Register(PostId, "Post", Accept);
+        Commands.Register(PostId, "Post", Post);
         Keys.Bind("Ctrl+Enter", PostId);
         Initialized += (_, _) => Body.SetFocus();
     }
@@ -32,6 +36,12 @@ internal sealed class CommentDialog : AppDialog
     public Button PostButton { get; }
 
     public Button CancelButton { get; }
+
+    private void Post()
+    {
+        if (Checked())
+            Accept();
+    }
 
     private static void Press(CommandEventArgs e, Action choice)
     {
