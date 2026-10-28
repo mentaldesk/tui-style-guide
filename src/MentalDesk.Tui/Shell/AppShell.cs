@@ -204,6 +204,8 @@ public sealed class AppShell : IDisposable
 
     public StatusMessage ShowNews(string message, Severity severity = Severity.Info) => StatusBar.ShowNews(message, severity);
 
+    public StatusMessage Record(string message, Severity severity = Severity.Info) => StatusBar.Record(message, severity);
+
     public CopyOutcome Copy(string text) => Clipboard.Copy(text);
 
     public LinkOutcome OpenLink(string url)
