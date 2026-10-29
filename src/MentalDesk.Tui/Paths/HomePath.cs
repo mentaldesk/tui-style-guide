@@ -10,7 +10,8 @@ public static class HomePath
         home = Path.TrimEndingDirectorySeparator(home);
         if (home.Length == 0) return path;
         if (string.Equals(path, home, PathComparison)) return "~";
-        return path.StartsWith(home + Path.DirectorySeparatorChar, PathComparison)
+        return path.StartsWith(home, PathComparison) && path.Length > home.Length
+            && (path[home.Length] == Path.DirectorySeparatorChar || path[home.Length] == Path.AltDirectorySeparatorChar)
             ? "~" + path[home.Length..]
             : path;
     }
