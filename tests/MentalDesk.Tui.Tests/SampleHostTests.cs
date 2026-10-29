@@ -216,7 +216,7 @@ public class SampleHostTests : StaticConfigurationTest
             Assert.DoesNotContain(Key.Empty, items.Select(item => item.HotKey));
             Assert.Equal(items.Count, items.Select(item => item.HotKey).Distinct().Count());
         }
-        Assert.Equal(["_Save", "Save _as…", "Se_ttings…", "_Delete…", "_Export"],
+        Assert.Equal(["_Open…", "Open _folder…", "_Save", "Save _as…", "Save _copy as…", "Se_ttings…", "_Delete…", "_Export"],
             menus[0].PopoverMenu!.Root!.SubViews.OfType<MenuItem>().Select(item => item.Title));
         shell.Menu.Refresh();
         Assert.True(shell.Menu.IsDimmed(SampleWindow.Export));

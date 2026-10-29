@@ -49,6 +49,9 @@ public abstract class AppDialog : Dialog
 
     protected CommandRegistry Commands { get; } = new();
 
+    // Set while Run runs it, so it can open a dialog of its own.
+    protected AppShell? RunningIn { get; private set; }
+
     protected Keymap Keys { get; }
 
     public virtual IInputScope Scope => _buttonsIgnoreEnter;
@@ -58,12 +61,14 @@ public abstract class AppDialog : Dialog
         EventHandler<KeySheet> showKeys = (_, sheet) => ShowKeys(shell, sheet);
         KeysRequested += showKeys;
         shell.Scopes.Push(Scope);
+        RunningIn = shell;
         try
         {
             shell.App.Run(this);
         }
         finally
         {
+            RunningIn = null;
             shell.Scopes.Pop(Scope);
             KeysRequested -= showKeys;
         }
