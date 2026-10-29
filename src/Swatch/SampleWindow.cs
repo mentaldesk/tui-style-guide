@@ -244,7 +244,7 @@ internal sealed class SampleWindow : AppWindow
     {
         using var dialog = new ConfirmDialog(
             "Save theme", [$"Save a copy of \"{Themes.Current}\" as"], [Save],
-            field: new TextField { Text = "Solar" });
+            field: new TextField { Text = "Solar" }, check: NameRefusal);
         dialog.Initialized += (_, _) => dialog.ShowAlert("Couldn't write themes.json", Severity.Error);
         dialog.Run(shell);
         if (dialog.Chosen is not null)
@@ -258,6 +258,11 @@ internal sealed class SampleWindow : AppWindow
         if (picker.PickedPath is { } path)
             shell.ShowMessage($"A demo: this would have {verb} {path}");
     }
+
+    private static string? NameRefusal(string name) =>
+        string.IsNullOrWhiteSpace(name) ? "Name is needed"
+        : Themes.Names.Contains(name.Trim(), StringComparer.OrdinalIgnoreCase) ? $"There's already a theme named {name.Trim()}"
+        : null;
 
     private static void Delete(AppShell shell)
     {

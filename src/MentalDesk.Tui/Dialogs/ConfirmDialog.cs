@@ -24,7 +24,7 @@ public sealed class ConfirmDialog : AppDialog
 
     public ConfirmDialog(
         string title, IReadOnlyList<string> lines, IReadOnlyList<ConfirmAction> actions,
-        ConfirmAction? focus = null, TextField? field = null, string cancel = "Cancel")
+        ConfirmAction? focus = null, TextField? field = null, string cancel = "Cancel", Func<string, string?>? check = null)
         : base(title, DialogWidth(title, lines, actions, cancel), contentRows: lines.Count + (field is null ? 2 : 3))
     {
         if (actions.Count == 0) throw new ArgumentException("A confirm needs at least one action.", nameof(actions));
@@ -32,12 +32,14 @@ public sealed class ConfirmDialog : AppDialog
             throw new ArgumentException("Enter never confirms a dialog: Ctrl+Enter does.", nameof(actions));
         if (actions.Count(action => action.Key == CtrlEnter.Key) != 1)
             throw new ArgumentException("Ctrl+Enter is bound to exactly one action.", nameof(actions));
+        if (check is not null && (field is null || lines.Count == 0))
+            throw new ArgumentException("A check needs a field, and a prompt line to mark.", nameof(check));
         if (focus is { Kind: ButtonKind.Danger })
             throw new ArgumentException("Focus never starts on a Danger button.", nameof(focus));
 
         Lines = lines;
-        for (var i = 0; i < lines.Count; i++)
-            Add(new Label { X = 1, Y = i, Text = lines[i] });
+        var labels = lines.Select((line, i) => new Label { X = 1, Y = i, Text = line }).ToArray();
+        Add(labels);
         Field = field;
         if (field is not null)
         {
@@ -45,6 +47,8 @@ public sealed class ConfirmDialog : AppDialog
             field.Y = lines.Count;
             field.Width = Dim.Fill(1);
             Add(field);
+            if (labels.Length > 0)
+                Check(field, labels[^1], () => check?.Invoke(field.Text));
         }
         var buttonsY = lines.Count + (field is null ? 1 : 2);
 
@@ -129,6 +133,7 @@ public sealed class ConfirmDialog : AppDialog
 
     private void Choose(ConfirmAction action)
     {
+        if (action.Key == CtrlEnter.Key && !Checked()) return;
         Chosen = action;
         Accept();
     }

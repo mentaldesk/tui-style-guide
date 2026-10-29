@@ -204,6 +204,48 @@ Rules that matter more than the widget:
   modal to report something the user did not just ask for. A pane that failed to load is the
   exception: see [Loading and empty](#loading-and-empty).
 
+### Checking what's typed
+
+**Check on confirm, not before.** A field the user hasn't reached yet isn't wrong, so nothing is marked
+until `Ctrl+Enter`. Not as you type, and not on leaving a field.
+
+- **The confirm stays enabled.** Pressing it is how the user finds out what's missing. It's disabled only
+  while busy, as above.
+- **A refused confirm marks every field that's wrong, at once.** Its label turns to the `Error` scheme,
+  and focus goes to the first. No error row under the field, no icon, no glyph.
+- **The message block speaks for the focused field, and names it**: `Title is needed  •  1 more to fix`.
+  `Tab` to another marked field and the message follows.
+- **Marks clear as the user fixes them.** After a refusal, a marked field re-checks as it changes, and its
+  mark goes when it passes. The message clears with the last mark, and the dialog shrinks back.
+- **Empty never cancels.** Confirming an empty field says what's needed. Only `Esc` cancels.
+- **Mark the optional field, not the required one**: `Folder (optional)`. No asterisks.
+- **A refusal from disk or a server about one field works the same way.** `There's already a theme named
+  Midnight` marks that field, focuses it, and keeps what was typed.
+
+```
+┌─ Writing a comment ──────────────────────────────────────┐
+│ Title                                                    │   Label, Error scheme
+│ [▏                                                     ] │   TextField, focused (first marked)
+│ Comment                                                  │   Label, Error scheme
+│ ┌──────────────────────────────────────────────────────┐ │
+│ │ Leave a comment…                                     │ │   MultiLineField
+│ └──────────────────────────────────────────────────────┘ │
+│                      ▓ Ctrl+Enter Post ▓  ▓ Esc Cancel ▓ │   Primary, Secondary
+│ Title is needed  •  1 more to fix                        │   AlertView (Error), for the focused field
+└──────────────────────────────────────────────────────────┘
+```
+
+[`AppDialog`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Dialogs/AppDialog.cs)
+is the reference implementation. `Check(field, label, refusal)` registers a field with its label and a
+function that returns why it's refused, or null. A dialog's confirm starts with `Checked()`, which marks,
+focuses and says, and returns false on any refusal. `Refuse(field, message)` does the same for a no that
+comes back later. `ConfirmDialog` takes a `check` for its field, run before its `Ctrl+Enter` action, and
+marks its prompt line.
+
+In Swatch, *Help › Writing a comment…* and `Ctrl+Enter` with both fields empty marks both; fix them one at
+a time and watch the marks go. In the sample *Try it* opens, *File › Save as…* refuses an empty name and
+`Midnight`.
+
 ### Status messages
 
 **A message is either a reply or news.** A *reply* answers what the user just did: `Copied 3 lines`,
@@ -437,6 +479,31 @@ previous-pane keys if the user rebinds them. `AddScreen` gives a screen its `Ctr
 the *Go* menu above, and `F1` lists it under *Moving around*. In Swatch, `F6` cycles Themes, Roles and
 Preview, and *Go › Scheme…* is a place. In the sample app *Try this theme* opens, `Ctrl+G L` shows the
 *Log* screen and `Ctrl+G F` goes back to *Files*.
+
+### Resizing panes
+
+**A side pane can be resized; the main pane can't.** A side pane sits beside what the user reads or
+edits: a tree, a list, a history, the Assistant. The main pane takes what's left. The app says which
+panes are side panes; no other pane is resizable.
+
+- **Drag its inner border**, the one facing the main pane, with the mouse.
+- ***Widen pane* and *Narrow pane* resize the focused side pane by 5 columns.** They're in the command
+  palette, and only while focus is in a side pane (see *Only what works here*). They have no keys:
+  anyone who wants one gives it one on *Settings › Keys* (see *Changing keys*), and `F1` lists it.
+- **A side pane is never narrower than 15 columns, and never leaves the main pane fewer than 40.** A
+  drag stops at the limit, and *Widen pane* or *Narrow pane* there says so in the status bar.
+- **In a terminal too narrow for both, the side panes give way first**, the widest a column at a time,
+  so the main pane keeps 40 columns where it can.
+- **The width is remembered per pane** as the width the user chose. A narrow terminal shrinks what's
+  drawn, not what's remembered, so widening the terminal brings it back, and so does the next start.
+- ***Reset pane width* puts the focused pane back to the app's default.**
+
+The library's [`SidePanes`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Layout/SidePanes.cs)
+is the reference implementation. An app adds its panes in reading order, each side pane with its
+region and default width, and the main pane; it registers the three commands, makes each side pane's
+inner border `LeftResizable` or `RightResizable` for Terminal.Gui's own drag, and keeps the widths in
+the app's `MentalDeskSettings` section. In Swatch, Themes, Roles and the Assistant are side panes and
+Preview is the main pane; while the Assistant is open in Preview's place, Roles takes what's left.
 
 ### An assistant pane
 
@@ -990,7 +1057,7 @@ carries the layout; the control names carry the behaviour.
 ```
 
 Sketch conventions: `[x]` / `[ ]` checkbox, `(•)` / `( )` option, `[ 2 ▲▼]` numeric up/down,
-`▓ Button ▓` button (say which: Primary, Danger or Secondary), `▸` collapsed tree node, `…` placeholder text, `▲` `█` `▼` down the right edge
+`▓ Button ▓` button (say which: Primary, Danger or Secondary), `[text▏   ]` text field with its caret, `▸` collapsed tree node, `…` placeholder text, `▲` `█` `▼` down the right edge
 a vertical scroll bar.
 
 Then say, in prose:
@@ -1000,6 +1067,8 @@ Then say, in prose:
 - **Where focus starts**, and what `Enter` and `Esc` do.
 - **What happens when it fails.** Which message, shown where, and what survives. A requirement that
   only describes the happy path gets an error path invented in review.
+- **What each field refuses, and the words that say so**, naming the field: `Title is needed`. See
+  [Checking what's typed](#checking-whats-typed).
 - **Which state is remembered** across opens, if any.
 
 ---

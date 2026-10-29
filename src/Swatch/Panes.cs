@@ -5,11 +5,11 @@ namespace Swatch;
 
 internal static class Panes
 {
-    public static FrameView Create(string title, View content, Pos x, Dim width)
+    public static FrameView Create(string title, View content, Pos? x = null, Dim? width = null)
     {
         var pane = new FrameView
         {
-            Title = title, X = x, Width = width, Height = Dim.Fill(), CanFocus = true, BorderStyle = LineStyle.Single,
+            Title = title, X = x ?? 0, Width = width ?? Dim.Fill(), Height = Dim.Fill(), CanFocus = true, BorderStyle = LineStyle.Single,
             TabStop = TabBehavior.TabStop,
         };
         pane.Add(content);

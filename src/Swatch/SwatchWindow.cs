@@ -4,6 +4,7 @@ using MentalDesk.Tui.Commands;
 using MentalDesk.Tui.Dialogs;
 using MentalDesk.Tui.Focus;
 using MentalDesk.Tui.Keys;
+using MentalDesk.Tui.Layout;
 using MentalDesk.Tui.Settings;
 using MentalDesk.Tui.Shell;
 using MentalDesk.Tui.Theming;
@@ -19,6 +20,7 @@ internal sealed class SwatchWindow : AppWindow
     public static readonly FocusRegion PreviewRegion = new("Preview", new CommandScope("Preview"));
     public static readonly FocusRegion AssistantRegion = new("Assistant", new CommandScope("Assistant"));
 
+    private const int ThemesWidth = 24;
     private const int RolesWidth = 50;
     private const int AssistantWidth = 48;
 
@@ -37,18 +39,23 @@ internal sealed class SwatchWindow : AppWindow
         Themes.Apply(Settings.Theme);
         _showHexValues = Settings.ShowHexValues;
         _preview = new PreviewView(shell.Icons);
-        _themesPane = Panes.Create("Themes", _themes, x: 0, width: 24);
+        _themesPane = Panes.Create("Themes", _themes);
         _themesPane.SchemeName = SchemeNames.Sidebar;
-        _rolesPane = Panes.Create("Roles", _roles, x: Pos.Right(_themesPane), width: RolesWidth);
-        _previewPane = Panes.Create("Preview", _preview, x: Pos.Right(_rolesPane), width: Dim.Fill());
+        _rolesPane = Panes.Create("Roles", _roles);
+        _previewPane = Panes.Create("Preview", _preview);
         _assistantController = new AssistantController(agents ?? new DemoAgent(), sessions: null, shell.App.Invoke, new Conversation());
         _assistantController.Configure(DemoAgent.Spec);
         _assistantController.OpenFolder(Environment.CurrentDirectory);
         Assistant = new AssistantPane(_assistantController)
         {
-            X = Pos.AnchorEnd(AssistantWidth), Width = AssistantWidth, Height = Dim.Fill(), Visible = false, Place = "Swatch",
+            Height = Dim.Fill(), Visible = false, Place = "Swatch",
         };
         Body.Add(_themesPane, _rolesPane, _previewPane, Assistant);
+        SidePanes = new SidePanes(shell, Body, SwatchSettings.Section)
+            .AddSide(_themesPane, ThemesRegion, ThemesWidth)
+            .AddSide(_rolesPane, RolesRegion, RolesWidth)
+            .AddMain(_previewPane)
+            .AddSide(Assistant, AssistantRegion, AssistantWidth);
 
         foreach (var theme in Themes.Names)
         {
@@ -83,7 +90,15 @@ internal sealed class SwatchWindow : AppWindow
 
     public View Preview => _preview;
 
+    public View ThemesPane => _themesPane;
+
+    public View RolesPane => _rolesPane;
+
+    public View PreviewPane => _previewPane;
+
     public AssistantPane Assistant { get; }
+
+    public SidePanes SidePanes { get; }
 
     public Selection Showing { get; private set; } = new(Themes.Default, SchemeNames.Base);
 
@@ -161,14 +176,14 @@ internal sealed class SwatchWindow : AppWindow
         return shell;
     }
 
-    // Down the right of the window in Preview's place, taking from Roles on a narrow screen; choosing it again closes it.
+    // Down the right of the window in Preview's place, with Roles taking what's left; choosing it again closes it.
     private static void ToggleAssistant(AppShell shell)
     {
         if (shell.App.TopRunnableView is not SwatchWindow window) return;
         var pane = window.Assistant;
         pane.Visible = !pane.Visible;
         window._previewPane.Visible = !pane.Visible;
-        window._rolesPane.Width = pane.Visible ? Dim.Fill(AssistantWidth) : RolesWidth;
+        window.SidePanes.Main = pane.Visible ? window._rolesPane : window._previewPane;
         if (!pane.Visible)
         {
             shell.Focus.Focus(PreviewRegion);

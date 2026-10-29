@@ -1,6 +1,7 @@
 using MentalDesk.Tui.Commands;
 using MentalDesk.Tui.Keys;
 using MentalDesk.Tui.Shell;
+using MentalDesk.Tui.Theming;
 
 namespace MentalDesk.Tui.Dialogs;
 
@@ -12,6 +13,7 @@ public abstract class AppDialog : Dialog
 
     private readonly int _contentRows;
     private readonly ButtonsIgnoreEnter _buttonsIgnoreEnter;
+    private readonly List<FieldCheck> _checks = [];
 
     protected AppDialog(string title, int width, int contentRows)
     {
@@ -81,6 +83,44 @@ public abstract class AppDialog : Dialog
         SetNeedsLayout();
     }
 
+    // For a no that comes back later, such as from disk or a server.
+    public void Refuse(View field, string message)
+    {
+        var check = _checks.Find(check => check.Field == field)
+            ?? throw new ArgumentException("Refuse a field registered with Check.", nameof(field));
+        check.Mark(message);
+        field.SetFocus();
+        SayRefusals();
+    }
+
+    // A field is checked as it changes only once refused.
+    protected void Check(View field, View label, Func<string?> refusal)
+    {
+        var check = new FieldCheck(field, label, refusal);
+        _checks.Add(check);
+        field.TextChanged += (_, _) => Recheck(check);
+        if (field is Terminal.Gui.Editor.Editor editor)
+            editor.ContentChanged += (_, _) => Recheck(check);
+        field.HasFocusChanged += (_, e) =>
+        {
+            if (e.NewValue && _checks.Any(c => c.Refusal is not null))
+                SayRefusals();
+        };
+    }
+
+    // A confirm starts with this.
+    protected bool Checked()
+    {
+        foreach (var check in _checks)
+            check.Mark(check.Refuses());
+        var first = _checks.Find(check => check.Refusal is not null);
+        if (first is null)
+            return true;
+        first.Field.SetFocus();
+        SayRefusals();
+        return false;
+    }
+
     // The key is on the label, so the button never takes focus from where the user is typing.
     protected Button CommandButton(ButtonKind kind, string commandId)
     {
@@ -137,6 +177,26 @@ public abstract class AppDialog : Dialog
         Closed?.Invoke(this, EventArgs.Empty);
     }
 
+    private void Recheck(FieldCheck check)
+    {
+        if (check.Refusal is null) return;
+        check.Mark(check.Refuses());
+        SayRefusals();
+    }
+
+    private void SayRefusals()
+    {
+        var refused = _checks.Where(check => check.Refusal is not null).ToList();
+        if (refused.Count == 0)
+        {
+            Alert.Clear();
+            SetNeedsLayout();
+            return;
+        }
+        var said = refused.Find(check => check.Field.HasFocus) ?? refused[0];
+        ShowAlert(refused.Count == 1 ? said.Refusal! : $"{said.Refusal}  •  {refused.Count - 1} more to fix", Severity.Error);
+    }
+
     private void ShowKeys() => KeysRequested?.Invoke(this, KeysHere());
 
     private void ShowKeys(AppShell shell, KeySheet sheet)
@@ -145,6 +205,23 @@ public abstract class AppDialog : Dialog
         using (var keys = new KeysDialog(sheet, shell.App.Screen.Size))
             keys.Run(shell);
         focused?.SetFocus();
+    }
+
+    private sealed class FieldCheck(View field, View label, Func<string?> refuses)
+    {
+        private readonly string? _labelScheme = label.SchemeName;
+
+        public View Field { get; } = field;
+
+        public string? Refusal { get; private set; }
+
+        public string? Refuses() => refuses();
+
+        public void Mark(string? refusal)
+        {
+            Refusal = refusal;
+            label.SchemeName = refusal is null ? _labelScheme : SchemeNames.Error;
+        }
     }
 
     // A focused Button presses on Enter, and Enter never confirms a dialog.

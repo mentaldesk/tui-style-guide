@@ -77,7 +77,13 @@ public class MultiLineFieldTests : StaticConfigurationTest
     public void Clicking_Post_posts()
     {
         Run(
-            () => { Dialog!.PostButton.InvokeCommand(Command.Accept); },
+            () => Type("a"),
+            () => Field.Text == "a",
+            () =>
+            {
+                Dialog!.TitleField.Text = "Title";
+                Dialog.PostButton.InvokeCommand(Command.Accept);
+            },
             () => Dialog is null);
 
         Assert.Equal("A demo: Swatch has nowhere to post it, so the comment went nowhere", Host.Shell.StatusBar.Message);
@@ -112,6 +118,7 @@ public class MultiLineFieldTests : StaticConfigurationTest
             () =>
             {
                 text = Field.Text;
+                Dialog!.TitleField.Text = "Title";
                 Press(Key.Enter.WithCtrl);
             },
             () => Dialog is null);
