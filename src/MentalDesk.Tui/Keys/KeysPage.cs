@@ -35,7 +35,10 @@ public sealed class KeysPage : SettingsPage
         (Key.F6.WithShift, "moves between panes"),
     ];
 
-    private readonly AppShell _shell;
+    private readonly CommandRegistry _commands;
+    private readonly InputScopes _scopes;
+    private readonly Func<CommandScope, string?> _regionName;
+    private readonly Action<ConfirmDialog> _confirm;
     private readonly KeyOverrides _overrides;
     private readonly PlaceholderField _filter;
     private readonly Label _header;
@@ -54,9 +57,21 @@ public sealed class KeysPage : SettingsPage
     private (Row Row, string Text)? _note;
     private IRunnable? _host;
 
-    public KeysPage(AppShell shell, KeyOverrides overrides) : base("Keys")
+    public KeysPage(AppShell shell, KeyOverrides overrides)
+        : this(shell.Commands, shell.Scopes, overrides,
+            scope => shell.Focus.Regions.FirstOrDefault(region => region.Scope == scope)?.Name, confirm => confirm.Run(shell))
     {
-        _shell = shell;
+    }
+
+    // For an app without an AppShell: keys reach the page through scopes, and confirm runs its questions.
+    public KeysPage(
+        CommandRegistry commands, InputScopes scopes, KeyOverrides overrides, Func<CommandScope, string?> regionName,
+        Action<ConfirmDialog> confirm) : base("Keys")
+    {
+        _commands = commands;
+        _scopes = scopes;
+        _regionName = regionName;
+        _confirm = confirm;
         _overrides = overrides;
         _kept = [.. overrides.Current];
         _staged = [.. _kept];
@@ -129,11 +144,11 @@ public sealed class KeysPage : SettingsPage
     private static string? FixedReason(Key key) =>
         Fixed.FirstOrDefault(entry => entry.Key == key).Does is { } does ? $"{KeyChord.Display(key)} is reserved: it {does}" : null;
 
-    private string LabelOf(string id) => _shell.Commands.Find(id)!.Label;
+    private string LabelOf(string id) => _commands.Find(id)!.Label;
 
     private string Where(CommandScope scope) =>
         scope == CommandScope.Global ? Everywhere
-            : _shell.Focus.Regions.FirstOrDefault(region => region.Scope == scope)?.Name ?? scope.Name;
+            : _regionName(scope) ?? scope.Name;
 
     private Row? Selected => _list.SelectedItem is { } index && index < _rows.Count ? _rows[index] : null;
 
@@ -165,7 +180,7 @@ public sealed class KeysPage : SettingsPage
         _recording = row;
         _typed.Clear();
         _note = null;
-        _shell.Scopes.Push(_capture);
+        _scopes.Push(_capture);
         _host = Ancestors().OfType<IRunnable>().FirstOrDefault();
         if (_host is not null) _host.IsRunningChanging += OnHostClosing;
         _hint.Text = RecordingHint;
@@ -177,7 +192,7 @@ public sealed class KeysPage : SettingsPage
         if (_recording is null) return;
         _recording = null;
         _typed.Clear();
-        _shell.Scopes.Pop(_capture);
+        _scopes.Pop(_capture);
         if (_host is not null) _host.IsRunningChanging -= OnHostClosing;
         _host = null;
         _hint.Text = BrowsingHint;
@@ -247,7 +262,7 @@ public sealed class KeysPage : SettingsPage
         if (replaced is not null)
         {
             using var confirm = ReplaceConfirm(display, LabelOf(replaced.CommandId), Where(scope), command.Label);
-            confirm.Run(_shell);
+            _confirm(confirm);
             if (confirm.Chosen is null) return;
         }
         else if (Hidden(adding) is { } hidden)
@@ -255,7 +270,7 @@ public sealed class KeysPage : SettingsPage
             var addingLocal = scope != CommandScope.Global;
             var (global, local) = addingLocal ? (hidden, adding) : (adding, hidden);
             using var confirm = HideConfirm(display, LabelOf(global.CommandId), LabelOf(local.CommandId), Where(local.Scope), addingLocal);
-            confirm.Run(_shell);
+            _confirm(confirm);
             if (confirm.Chosen is null) return;
         }
 
@@ -298,7 +313,7 @@ public sealed class KeysPage : SettingsPage
     {
         StopRecording();
         using var confirm = ResetConfirm();
-        confirm.Run(_shell);
+        _confirm(confirm);
         if (confirm.Chosen is null) return;
         _staged = [.. _overrides.Defaults];
         Show(selectFirst: true);
@@ -336,7 +351,7 @@ public sealed class KeysPage : SettingsPage
 
     private IEnumerable<Row> Build()
     {
-        foreach (var command in _shell.Commands.All.OrderBy(command => command.Label, StringComparer.CurrentCultureIgnoreCase))
+        foreach (var command in _commands.All.OrderBy(command => command.Label, StringComparer.CurrentCultureIgnoreCase))
         {
             var mine = _staged.Where(binding => binding.CommandId == command.Id)
                 .OrderBy(binding => binding.Scope != CommandScope.Global).ThenBy(binding => binding.Chord.Count).ToList();
