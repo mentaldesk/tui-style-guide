@@ -457,7 +457,8 @@ bar, so moving to one redraws the window.
   Explorer has `Ctrl+Shift+E`. It's a second way in, never the only one. Not `Ctrl+Esc`, which Windows
   takes, and remember some terminals fold `Ctrl+Shift+letter` into `Ctrl+letter`.
 - **`Ctrl+G` then a letter switches screen.** Every screen has one, listed in the *Go* menu, with the
-  current screen checked, and in `F1`. Focus lands where work starts on the new screen.
+  current screen checked, and in `F1`. Going back to a screen puts focus where you left it there (see
+  *Coming back*); only the first visit lands where work starts.
 - **`Ctrl+G` is *Go*: to a screen, or to a place** (a line, a definition, a scheme). It never just
   moves focus to a pane.
 
@@ -479,6 +480,29 @@ previous-pane keys if the user rebinds them. `AddScreen` gives a screen its `Ctr
 the *Go* menu above, and `F1` lists it under *Moving around*. In Swatch, `F6` cycles Themes, Roles and
 Preview, and *Go › Scheme…* is a place. In the sample app *Try this theme* opens, `Ctrl+G L` shows the
 *Log* screen and `Ctrl+G F` goes back to *Files*.
+
+### Coming back
+
+**Leaving part of an app and coming back, or quitting and reopening it, puts you where you were.**
+
+- **Going back to a screen puts you where you left it**: the same pane, the same control, the same
+  selected row, scrolled the same way. Focus lands where work starts only the first time you visit a
+  screen in a session.
+- **Reopening the app opens the screen you left**, on the pane you were in. If that pane opens only on
+  request, like an assistant pane, it starts closed and focus lands where work starts.
+- **Whatever an app brings back inside a pane, it finds again by what it is, not where it was**: a
+  card's issue number, a file's path, a row's key. If it's gone, select the item that's now in its
+  place, or the last one, and never the first by default.
+- **Never bring back a dialog, a filter you typed, or a half-finished edit.** Coming back gives you your
+  place, not your last action.
+
+`AppShell` does the screen and pane part. `ShowScreen`, and so each screen's `Ctrl+G` key and its *Go*
+menu entry, goes back to the control that last had focus on that screen, or to the screen's start if
+it hasn't had focus yet or that control is gone. `Reopen` opens on the screen and pane saved in the
+app's section of the settings file, and saves them there again when the app quits; a screen or pane
+that no longer exists opens the app as if nothing was saved. What an app brings back inside a pane is
+its own. In the sample app, select `todo.md` in *Files*, then `Ctrl+G L` and `Ctrl+G F`: focus is back
+on `todo.md`. In Swatch, quit with focus in *Roles* and reopen: focus is in *Roles*.
 
 ### Resizing panes
 
@@ -1069,7 +1093,7 @@ Then say, in prose:
   only describes the happy path gets an error path invented in review.
 - **What each field refuses, and the words that say so**, naming the field: `Title is needed`. See
   [Checking what's typed](#checking-whats-typed).
-- **Which state is remembered** across opens, if any.
+- **Anything it brings back** beyond what *Coming back* covers.
 
 ---
 
