@@ -8,6 +8,7 @@ public static class HomePath
     public static string Show(string path, string home)
     {
         home = Path.TrimEndingDirectorySeparator(home);
+        if (home.Length == 0) return path;
         if (string.Equals(path, home, PathComparison)) return "~";
         return path.StartsWith(home + Path.DirectorySeparatorChar, PathComparison)
             ? "~" + path[home.Length..]
