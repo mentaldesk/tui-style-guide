@@ -13,6 +13,7 @@ public abstract class StaticConfigurationTest : IDisposable
 
     protected StaticConfigurationTest()
     {
+        Swatch.SampleSchemes.Register();
         MentalDesk.Tui.Theming.Themes.Load();
         _theme = ThemeManager.Theme;
     }

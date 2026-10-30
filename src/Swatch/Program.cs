@@ -4,6 +4,7 @@ using MentalDesk.Tui.Theming;
 using Swatch;
 
 using var flowControl = new TerminalFlowControl();
+SampleSchemes.Register();
 Themes.Load();
 using var app = Application.Create();
 app.Init();

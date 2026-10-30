@@ -62,6 +62,10 @@ internal sealed class SwatchWindow : AppWindow
             var node = new TreeNode { Text = theme, Tag = new Selection(theme, SchemeNames.Base) };
             foreach (var scheme in SchemeNames.All)
                 node.Children.Add(new TreeNode { Text = scheme, Tag = new Selection(theme, scheme) });
+            var sample = new TreeNode { Text = "Sample app's own" };
+            foreach (var scheme in SampleSchemes.All)
+                sample.Children.Add(new TreeNode { Text = SampleSchemes.Label(scheme), Tag = new Selection(theme, scheme) });
+            node.Children.Add(sample);
             _themes.AddObject(node);
         }
         _themes.SelectionChanged += (_, e) =>
@@ -69,7 +73,7 @@ internal sealed class SwatchWindow : AppWindow
             if (e.NewValue?.Tag is Selection selection) Show(selection);
         };
         _themes.SelectedObject = _themes.Objects?.FirstOrDefault();
-        _themes.Expand();
+        _themes.ExpandAll(_themes.SelectedObject);
 
         Panes.Track(shell, ThemesRegion, _themesPane, _themes);
         Panes.Track(shell, RolesRegion, _rolesPane, _roles);
@@ -309,12 +313,13 @@ internal sealed class SwatchWindow : AppWindow
 
     private void ShowRoles()
     {
-        if (Themes.SchemesOf(Showing.Theme).TryGetValue(Showing.Scheme, out var scheme))
+        if (Themes.SchemesOf(Showing.Theme).TryGetValue(Showing.Scheme, out var scheme)
+            || Themes.AppSchemesOf(Showing.Theme).TryGetValue(Showing.Scheme, out scheme))
             _roles.Source = new RoleSource(scheme, _showHexValues);
     }
 
     internal sealed record Selection(string Theme, string Scheme)
     {
-        public string Display => $"{Theme} › {Scheme}";
+        public string Display => $"{Theme} › {Scheme.Replace(".", " › ")}";
     }
 }

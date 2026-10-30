@@ -6,7 +6,7 @@ namespace MentalDesk.Tui.Tests;
 
 public class SampleHostTests : StaticConfigurationTest
 {
-    private static readonly Key[] DownToDaylight = [.. Enumerable.Repeat(Key.CursorDown, SchemeNames.All.Count + 1)];
+    private static readonly Key[] DownToDaylight = [.. Enumerable.Repeat(Key.CursorDown, SchemeNames.All.Count + Swatch.SampleSchemes.All.Count + 2)];
 
     private readonly Host _host = new();
 

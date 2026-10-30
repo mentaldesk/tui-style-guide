@@ -278,7 +278,7 @@ internal sealed class SampleWindow : AppWindow
     {
         public SampleEditor()
         {
-            Text = "Hello, world\nread only\n⚠ changed on disk";
+            Text = "Hello, world\n- Goodbye\n+ See you soon\nread only\n⚠ changed on disk";
             TabKeyAddsTab = false;
         }
 
@@ -287,9 +287,15 @@ internal sealed class SampleWindow : AppWindow
             switch (idxRow)
             {
                 case 1:
-                    SetAttribute(GetAttributeForRole(VisualRole.ReadOnly));
+                    SetAttribute(SchemeManager.GetScheme(SampleSchemes.Removed).Normal);
                     break;
                 case 2:
+                    SetAttribute(SchemeManager.GetScheme(SampleSchemes.Added).Normal);
+                    break;
+                case 3:
+                    SetAttribute(GetAttributeForRole(VisualRole.ReadOnly));
+                    break;
+                case 4:
                     SetAttribute(SchemeManager.GetScheme(SchemeNames.Warning).Normal);
                     break;
                 default:
