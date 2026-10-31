@@ -669,11 +669,16 @@ for words you've seen in text that stays as it is.
 - **Picking a file:** `Enter` on a file picks it, wherever it is in the list.
 - **Picking a folder:** `▓ Ctrl+Enter Use this folder ▓` uses the one you're in, and `Enter` still only
   goes in. Only folders are listed.
+- **Picking a file or the folder you're in**, where either will do (an editor's *Open*): `Enter` on a
+  file picks it, and a `Ctrl+Enter` button named for what happens (`▓ Ctrl+Enter Open this folder ▓`)
+  uses the folder. `▓ Enter Open ▓` stays the primary button.
 - **Naming a new file:** the filter is the name. While no file of that name is in this folder, the
   first row is a dimmed `New file: notes.md`, above any matches below, and `▓ Ctrl+Enter Save here ▓`
   uses it. Picking a file that's already there asks, with `ConfirmDialog`, whether to replace it.
 - **A folder that can't be read says why** in the list, in place of `(no matches)`, and `../` still
   works.
+- **Where the app marks files and folders with icons elsewhere, the rows do too**, in the same 2-cell
+  field (see *Icons and glyphs*), and none at all when the app shows none.
 - **The path comes back as it was shown**, with `~` for home, so a setting reads the way the user saw it.
 
 ```
@@ -702,9 +707,10 @@ for words you've seen in text that stays as it is.
 ```
 
 The library's [`PathPicker`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Paths/PathPicker.cs)
-is the reference implementation, for a file, a folder or a new file. It's a `PickerDialog`, which can
-replace its rows while it's open. The sample app's *File › Open…*, *Open folder…* and *Save copy as…*
-try all three.
+is the reference implementation, for a file, a folder or a new file; its `useFolder` names the folder
+button, and a file picker has one only when given it. It's a `PickerDialog`, which can replace its rows
+while it's open and draws each row's `Icon` with `IconField`. The sample app's *File › Open…* (which
+also opens the folder you're in), *Open folder…* and *Save copy as…* try all three.
 
 ### Finding in what you read
 

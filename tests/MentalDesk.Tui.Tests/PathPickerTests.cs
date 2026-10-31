@@ -249,6 +249,62 @@ public class PathPickerTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void A_file_picker_can_also_use_the_folder_you_are_in_under_its_own_name()
+    {
+        using var picker = new PathPicker("Open", PathKind.File, At("code"), _home, useFolder: "Open this folder");
+        Assert.Equal([" Enter Open ", " Ctrl+Enter Open this folder ", " Esc Cancel "],
+            picker.SubViews.OfType<Button>().Where(button => button.SuperView == picker).Select(button => button.Text));
+        Assert.Contains("a.md", picker.Labels);
+
+        Type(picker, "swa");
+        Press(picker, Key.Enter);
+        Assert.False(picker.Confirmed);
+        Press(picker, CtrlEnter.Key);
+
+        Assert.True(picker.Confirmed);
+        Assert.Equal(PathRowKind.Folder, picker.Chosen!.Kind);
+        Assert.Equal("~/code/swatch", picker.PickedPath!.Replace('\\', '/'));
+    }
+
+    [Fact]
+    public void A_file_picker_without_a_folder_action_ignores_Ctrl_Enter()
+    {
+        using var picker = Picker();
+
+        Assert.Equal(KeyResult.Pass, picker.Scope.Handle(CtrlEnter.Key));
+        Assert.False(picker.Confirmed);
+    }
+
+    [Fact]
+    public void A_new_files_picker_has_no_folder_to_use() =>
+        Assert.Throws<ArgumentException>(() => new PathPicker("Save", PathKind.NewFile, At("code"), _home, useFolder: "Use this folder"));
+
+    [Fact]
+    public void Open_folder_can_name_its_folder_action()
+    {
+        using var picker = new PathPicker("Open folder", PathKind.Folder, At("code"), _home, useFolder: "Open as workspace");
+
+        Assert.Contains(" Ctrl+Enter Open as workspace ",
+            picker.SubViews.OfType<Button>().Where(button => button.SuperView == picker).Select(button => button.Text));
+    }
+
+    [Fact]
+    public void Its_rows_take_the_icon_for_their_kind()
+    {
+        using var picker = Picker();
+        List<PathRowKind> asked = [];
+
+        picker.Icon = row =>
+        {
+            asked.Add(row.Kind);
+            return row.Kind == PathRowKind.File ? "f" : "d";
+        };
+
+        Assert.Equal([PathRowKind.Up, PathRowKind.Folder, PathRowKind.Folder, PathRowKind.Folder, PathRowKind.Folder, PathRowKind.File, PathRowKind.File], asked);
+        Assert.Equal(["../", "app/", "sentry-swift/", "swatch/", "tui-style-guide/", "a.md", "b.md"], picker.Labels);
+    }
+
+    [Fact]
     public void A_new_name_is_offered_first_and_dim_until_a_file_of_that_name_is_here()
     {
         using var picker = Picker(PathKind.NewFile, start: "code/swatch");
