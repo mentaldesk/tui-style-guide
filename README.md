@@ -80,6 +80,34 @@ property: `NoDecorations`, `NoPadding`, `ShadowStyle`, `SchemeName`, `Orientatio
 could not do. TuiCode's `LogView` is custom only because `TextView` cannot scroll without moving its
 cursor; that sentence is the whole bar to clear.
 
+### An app's own colours
+
+**An app's own colours are worked out from the shared schemes, never copied from `themes.json`.**
+A diff line, a log level or a Markdown heading needs a colour the shared themes don't have. Register a
+function with `Themes.AddAppSchemes` before `Themes.Load`: given a theme's name and its shared schemes,
+it returns the app's own, and the library runs it every time a theme is applied, *Try it* included.
+A theme the library adds or fixes later then reaches the app without a change to it.
+
+```csharp
+Themes.AddAppSchemes((theme, shared) => new Dictionary<string, Scheme>
+{
+    ["Diff.Removed"] = shared[SchemeNames.Base] with { Normal = shared[SchemeNames.Error].Normal },
+});
+Themes.Load(settings.Theme);
+```
+
+- **Key a colour on the theme's name only when no derivation gives a good one in every theme.**
+  A colour picked by hand for each theme is a copy again, and a new theme has none.
+- **The shared names are the library's.** An app scheme named `Warning` or `Base` is refused at
+  start-up, and an app can't change a shared scheme's colours: that's what a theme is for.
+- **A colour a second app needs is a candidate for the shared set**, through a pull request here.
+
+Swatch's [sample app](https://github.com/mentaldesk/tui-style-guide/blob/main/src/Swatch/SampleSchemes.cs)
+is the reference implementation: its editor marks a removed and an added line in two schemes of its
+own, tinted from `Error`'s background and kept readable against the editor's. *Theme › Try it*, then
+switch themes from its *Theme* menu, and they change with it; Swatch's Themes pane lists them under
+each theme, in *Sample app's own*.
+
 ## 2. One affordance per action
 
 **Never give the same action two affordances in the same view.** A dialog with a `Submit` button
