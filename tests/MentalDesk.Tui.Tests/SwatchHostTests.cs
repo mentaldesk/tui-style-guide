@@ -408,7 +408,7 @@ public class SwatchHostTests : StaticConfigurationTest
             () => Press(Key.T.WithCtrl, Key.C),
             () => (dialog = _host.App.TopRunnableView as ConfirmDialog) is not null,
             () => dialog!.CancelButton.HasFocus,
-            () => dialog!.ButtonRow.Select(button => button.Text).SequenceEqual([" Ctrl+Enter Save ", " _Don't save ", " Esc Cancel "]),
+            () => dialog!.ButtonRow.Select(button => button.Text).SequenceEqual([" Ctrl+Enter Save ", " _Discard ", " Esc Cancel "]),
             () => Press(keys),
             () => ++ticks > 5,
             () => _host.App.TopRunnableView is SwatchWindow == (said is not null),

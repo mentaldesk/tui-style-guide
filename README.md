@@ -769,7 +769,7 @@ A dialog of buttons, such as an "are you sure?", works the same way in every app
 - **`Left`/`Right` (and `Tab`) move between the buttons, and `Space` presses the focused one.**
 - **The main action's key is `Ctrl+Enter`**, Danger or not (`▓ Ctrl+Enter Delete ▓`).
 - **Every action has one key, shown on its button**, Cancel's `Esc` too: the key written before the
-  label (`▓ Ctrl+Enter Save ▓`), or for any other action the underlined letter (`D` don't save). The
+  label (`▓ Ctrl+Enter Save ▓`), or for any other action the underlined letter (`D` discard). The
   letter works without `Alt`, as in a menu. The dialog has no hint row (see *Status bars and hints*).
 - **`Enter` does nothing**, whichever button has focus.
 
@@ -793,9 +793,45 @@ undone**.
 The library's [`ConfirmDialog`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Dialogs/ConfirmDialog.cs)
 is the reference implementation: give it the message and the actions with their keys. It refuses
 an action on `Enter`, a dialog without exactly one action on `Ctrl+Enter`, and focus starting on a
-Danger button. Swatch's *Theme › Delete…* (can't be undone), *Remove…* and *Close…* (Save, Don't
-save, Cancel) try every key. An app without `AppShell` uses it too: add it, push its `Scope` (keys fed
+Danger button. Swatch's *Theme › Delete…* (can't be undone), *Remove…* and *Close…* (Save, Discard,
+Cancel) try every key. An app without `AppShell` uses it too: add it, push its `Scope` (keys fed
 through `CtrlEnter.FromWindows`), and on `Closed` pop it, remove it, then run the chosen action.
+
+### Leaving unsaved work
+
+**Leaving something the user wrote or asked for asks first, and only then.**
+
+- **Ask before throwing away anything the user wrote or asked for**: closing a tab, a dialog or a
+  screen, switching folder, quitting. If nothing would be lost, don't ask.
+- **Name what would be lost**: the file, *your comment*, *2 writes still queued*. Up to four names,
+  then *and n more*.
+- **Offer to keep it when you can.** If it can be saved or sent from here, the main action does that
+  (`Ctrl+Enter Save`, `Ctrl+Enter Post`) and throwing it away is `D Discard` (Danger). If it can't,
+  `Ctrl+Enter Discard` (Danger) is the only action. `Esc` always goes back to the work.
+- **Quit asks once**, listing everything the app would lose, never one prompt per item, and never
+  quits silently over unsaved work.
+
+```
+┌─ Unsaved changes ──────────────────────────────────────────┐
+│ 2 files have unsaved changes:                              │
+│ notes.md, plan.md                                          │
+│ Save them before quitting?                                 │
+│                                                            │
+│  ▓ Ctrl+Enter Save all ▓   ▓ Discard ▓   ▓ Esc Cancel ▓    │   Button (Primary), Button (Danger, key D), Button (Secondary)
+└────────────────────────────────────────────────────────────┘
+```
+
+*Save all* is offered only when every item can be saved; with any that can't, the prompt says which
+and offers Discard alone. Which label `Esc` gets (*Cancel*, *Keep writing*, *Stay*) is up to the app.
+
+The app, and each of its screens, tells `AppShell` what it would lose with `ReportUnsaved`, as
+[`UnsavedItem`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Dialogs/UnsavedPrompt.cs)s
+with a way to save each where there is one. `AppShell` asks before its window stops, however it
+stops, `Ctrl+Q` and Terminal.Gui's own Quit binding included, and quits at once when nothing's
+reported. A save that throws keeps the app open and says which item failed and why. `UnsavedPrompt`
+builds the same prompt for closing one thing. In the sample app, *View › Leave two files unsaved*
+then `Ctrl+Q`; *Leave a file that won't save* and *Leave an untitled file* try a failed save and the
+Discard-only prompt. In Swatch, type in *Help › Writing a comment…* and press `Esc`.
 
 ### Settings screens
 
