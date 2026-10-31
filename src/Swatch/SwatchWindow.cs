@@ -242,9 +242,9 @@ internal sealed class SwatchWindow : AppWindow
         Confirm(shell, ThemeConfirms.RemoveTheme, _ => "A demo: Swatch's themes are built in, so nothing was removed");
 
     private static void CloseTheme(AppShell shell) =>
-        Confirm(shell, ThemeConfirms.CloseTheme, chosen => chosen == ThemeConfirms.Save
-            ? "A demo: Swatch has no unsaved changes, so nothing was saved"
-            : "A demo: Swatch has no unsaved changes, so nothing was lost");
+        Confirm(shell, ThemeConfirms.CloseTheme, chosen => chosen == UnsavedPrompt.Discard
+            ? "A demo: Swatch has no unsaved changes, so nothing was lost"
+            : "A demo: Swatch has no unsaved changes, so nothing was saved");
 
     private static void ShowLoadingStates(AppShell shell)
     {
