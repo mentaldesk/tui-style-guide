@@ -1107,6 +1107,31 @@ and [`TerminalCursors`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiC
 are the reference implementation. A dialog's field gets this by reusing them, not by writing a
 second caret — which is also how it stays one shape.
 
+### The terminal title
+
+**The tab says what it's open on, then the app:** `tui-style-guide — TuiCode`. The tab bar is the
+only part of a terminal you can see from another tab, so it's how you tell windows apart.
+
+- **What it's open on is short and changes rarely**: a folder's name, a team's name, a theme's. Never
+  a full path or the current file: a tab cuts off the end, and a title that changes with every file
+  flickers in the tab bar. The place goes first, so a narrow tab keeps the part that differs.
+- **What's waiting on you goes first**, so a cut-off tab still shows it: `⚠ n` for errors you haven't
+  seen (the status bar's count), then `(n)` for the app's own things waiting on you, if it has any:
+  `⚠ 1 (3) src — Swatch sample`. Nothing when there's nothing.
+- **Give the terminal its title back** on exit, and before handing the terminal to another program
+  (a shell, an editor); set it again on return, as with the caret's colour. Push the terminal's own
+  title with `CSI 22;0t` before setting it and pop it with `CSI 23;0t`, as Vim does. Where a terminal
+  has no title stack, most shells set their own at the next prompt.
+
+The library's [`TerminalTitle`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Shell/TerminalTitle.cs)
+writes the title and pushes and pops the terminal's own, and works without `AppShell`. Its `TakeOver`
+stops Terminal.Gui 2.5 writing each window's and dialog's own `Title` to the tab, which it does by default. `AppShell`
+drives it as `Shell.Title`: the app sets `App`, `Place` and `Waiting`, the shell adds `⚠ n`, saves the
+terminal's title around `Run`, and puts the outer app's title back after `RunNested`. Swatch's tab
+reads `Midnight — Swatch`, after the theme you're editing. In the sample app that *Try it* opens, it
+reads `src — Swatch sample`; *View › Load files, failing* adds `⚠ 1` until *Help › Messages…* is
+opened, and *View › Three things waiting* toggles `(3)`.
+
 ## 6. Scrolling
 
 **Anything that scrolls shows a scroll bar while its content doesn't fit.** It is the one cue that

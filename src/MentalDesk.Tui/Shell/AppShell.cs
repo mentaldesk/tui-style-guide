@@ -39,6 +39,7 @@ public sealed class AppShell : IDisposable
     private readonly List<Func<IEnumerable<UnsavedItem>>> _unsaved = [];
 
     private readonly ArrowFallback _arrowFallback;
+    private readonly IDisposable _titleTakeOver;
     private bool _nested;
     private bool _deleting;
     private IInputScope? _findScope;
@@ -53,6 +54,8 @@ public sealed class AppShell : IDisposable
     {
         App = app;
         Cursor = cursor;
+        Title = new TerminalTitle(cursor.Write);
+        _titleTakeOver = TerminalTitle.TakeOver(app);
         Icons = icons ?? IconSettings.ForThisUser();
         Clipboard = TerminalClipboard.Install(app, clipboardTools);
         if (app.Driver is { } driver)
@@ -87,6 +90,7 @@ public sealed class AppShell : IDisposable
         Focus.RegionChanged += (_, region) => StatusBar.SetFocusWord(region.Name);
         Scopes.ChordChanged += (_, chord) => StatusBar.SetChord(chord);
         StatusBar.MessagesRequested += OnMessagesRequested;
+        StatusBar.UnreadErrorsChanged += OnUnreadErrorsChanged;
         App.Keyboard.KeyDown += OnKeyDown;
         App.Iteration += OnIteration;
         Clipboard.Copied += OnCopied;
@@ -117,6 +121,8 @@ public sealed class AppShell : IDisposable
     public MacKeys? MacKeys { get; private set; }
 
     public TerminalCursor Cursor { get; }
+
+    public TerminalTitle Title { get; }
 
     public TerminalClipboard Clipboard { get; }
 
@@ -258,6 +264,8 @@ public sealed class AppShell : IDisposable
         ApplyTheme(Themes.Current);
         using var active = MacKeys?.Activate();
         window.IsRunningChanging += OnStopping;
+        Title.Save();
+        Title.Show();
         try
         {
             App.Run(window);
@@ -265,6 +273,7 @@ public sealed class AppShell : IDisposable
         finally
         {
             window.IsRunningChanging -= OnStopping;
+            Title.Restore();
             Cursor.Restore();
             if (_placeSection is not null)
                 SavePlace(_placeSection);
@@ -277,6 +286,7 @@ public sealed class AppShell : IDisposable
         var outerTheme = Themes.Current;
         var region = Focus.Region;
         _nested = true;
+        Title.Hold();
         try
         {
             if (theme is not null)
@@ -288,6 +298,7 @@ public sealed class AppShell : IDisposable
             _nested = false;
             BindArrows();
             ApplyTheme(outerTheme);
+            Title.Show();
             if (region is not null)
                 Focus.Focus(region);
         }
@@ -299,6 +310,7 @@ public sealed class AppShell : IDisposable
         App.Iteration -= OnIteration;
         Clipboard.Copied -= OnCopied;
         StatusBar.MessagesRequested -= OnMessagesRequested;
+        StatusBar.UnreadErrorsChanged -= OnUnreadErrorsChanged;
         FindBar.KeysRequested -= OnFindKeysRequested;
         FindBar.Closed -= OnFindClosed;
         if (!FindBar.IsOpen)
@@ -306,6 +318,7 @@ public sealed class AppShell : IDisposable
         Application.DefaultKeyBindingsChanged -= BindPaneKeys;
         Application.DefaultKeyBindingsChanged -= BindArrows;
         _arrowFallback.Dispose();
+        _titleTakeOver.Dispose();
     }
 
     // Terminal.Gui moves focus on an arrow no view used; out of a pane, only F6 and Tab should.
@@ -431,6 +444,8 @@ public sealed class AppShell : IDisposable
     }
 
     private void OnMessagesRequested(object? sender, EventArgs e) => Commands.Execute(ShellCommands.ShowMessages);
+
+    private void OnUnreadErrorsChanged(object? sender, EventArgs e) => Title.UnseenErrors = StatusBar.UnreadErrors;
 
     // Terminal.Gui puts what these delete on the clipboard, which would otherwise report it as copied.
     private bool DeleteToLineEdge(Key key)

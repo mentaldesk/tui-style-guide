@@ -31,11 +31,14 @@ internal sealed class SwatchWindow : AppWindow
     private readonly ListView _roles = new() { Width = Dim.Fill(), Height = Dim.Fill() };
     private readonly PreviewView _preview;
     private readonly AssistantController _assistantController;
+    private readonly TerminalTitle _title;
     private bool _showHexValues;
 
     public SwatchWindow(AppShell shell, IAgentLauncher? agents = null) : base(Register(shell))
     {
         Settings = new SwatchSettings(shell.Settings);
+        _title = shell.Title;
+        _title.App = "Swatch";
         Themes.Apply(Settings.Theme);
         _showHexValues = Settings.ShowHexValues;
         _preview = new PreviewView(shell.Icons);
@@ -303,6 +306,7 @@ internal sealed class SwatchWindow : AppWindow
     private void Show(Selection selection)
     {
         Showing = selection;
+        _title.Place = selection.Theme;
         ShowRoles();
         _roles.SelectedItem = 0;
         _rolesPane.Title = selection.Display;

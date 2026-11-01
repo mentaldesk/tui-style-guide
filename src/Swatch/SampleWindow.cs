@@ -35,6 +35,7 @@ internal sealed class SampleWindow : AppWindow
     public const string CollapseFolders = "sample.collapseFolders";
     public const string ExpandFolders = "sample.expandFolders";
     public const string LogWarning = "sample.logWarning";
+    public const string ThreeWaiting = "sample.threeWaiting";
     public const string LeaveUnsaved = "sample.leaveUnsaved";
     public const string LeaveFailing = "sample.leaveFailing";
     public const string LeaveUntitled = "sample.leaveUntitled";
@@ -106,6 +107,8 @@ internal sealed class SampleWindow : AppWindow
             .Register(CollapseFolders, "Collapse folders", () => _files.Collapse(_src), isEnabled: () => Listed && _files.IsExpanded(_src))
             .Register(ExpandFolders, "Expand folders", () => _files.Expand(_src), isEnabled: () => Listed && !_files.IsExpanded(_src));
         shell.Keys.Bind("Ctrl+R", ReloadFiles);
+        shell.Title.App = "Swatch sample";
+        shell.Title.Place = _src.Text;
         shell.ReportUnsaved(() => _unsaved);
         shell.StatusBar.State = theme;
         Initialized += (_, _) =>
@@ -215,6 +218,7 @@ internal sealed class SampleWindow : AppWindow
             .Register(Settings, "Settings…", () => shell.ShowMessage("A demo: this would have opened the settings"))
             .Register(DeleteTheme, "Delete theme…", () => Delete(shell), FilesRegion.Scope)
             .Register(Export, "Export", () => { }, isEnabled: () => false)
+            .Register(ThreeWaiting, "Three things waiting", () => shell.Title.Waiting = shell.Title.Waiting == 0 ? 3 : 0)
             .Register(Back, "Back to Swatch", () => shell.App.RequestStop());
         foreach (var theme in Themes.Names)
             shell.Commands.Register(ThemeCommand(theme), $"Theme: {theme}", () => shell.StatusBar.State = shell.ApplyTheme(theme));
@@ -245,6 +249,7 @@ internal sealed class SampleWindow : AppWindow
                 new MenuEntry(LoadNoFiles, "Load _no files"),
                 new MenuEntry(LoadFailing, "Load files, _failing"),
                 new MenuEntry(LogWarning, "Log a _warning"),
+                new MenuEntry(ThreeWaiting, "T_hree things waiting"),
                 null,
                 new MenuEntry(LeaveUnsaved, "Leave two files _unsaved"),
                 new MenuEntry(LeaveFailing, "Leave a file that won't _save"),

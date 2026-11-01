@@ -202,7 +202,7 @@ public class SwatchHostTests : StaticConfigurationTest
             () => Press(Key.CursorUp),
             () => _host.Shell.StatusBar.Message is null);
 
-        Assert.Equal(["\x1b]12;#1F2328\x07", "\x1b]112\x07"], _host.Written[^2..]);
+        Assert.Equal(["\x1b]12;#1F2328\x07", "\x1b]112\x07"], _host.Written.Where(written => written.StartsWith("\x1b]1")).ToArray()[^2..]);
     }
 
     [Fact]
