@@ -4,6 +4,7 @@ using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Commands;
 using MentalDesk.Tui.Copying;
 using MentalDesk.Tui.Diagnostics;
+using MentalDesk.Tui.Dialogs;
 using MentalDesk.Tui.Finding;
 using MentalDesk.Tui.Focus;
 using MentalDesk.Tui.Icons;
@@ -35,6 +36,7 @@ public sealed class AppShell : IDisposable
     private readonly List<(AppScreen Screen, View View, FocusRegion Start)> _screens = [];
     private readonly Dictionary<FocusRegion, IFindTarget> _findTargets = [];
     private readonly Dictionary<AppScreen, View> _leftOn = [];
+    private readonly List<Func<IEnumerable<UnsavedItem>>> _unsaved = [];
 
     private readonly ArrowFallback _arrowFallback;
     private bool _nested;
@@ -120,6 +122,8 @@ public sealed class AppShell : IDisposable
 
     public IconSettings Icons { get; }
 
+    public IReadOnlyList<UnsavedItem> Unsaved => [.. _unsaved.SelectMany(report => report())];
+
     public MentalDeskSettings Settings => Icons.File;
 
     internal LinkOpener Links { get; set; }
@@ -180,6 +184,12 @@ public sealed class AppShell : IDisposable
         if (Text(place?[PaneKey]) is not { } paneName || Focus.Regions.FirstOrDefault(region => region.Name == paneName) is not { } pane
             || !Focus.Focus(pane))
             Focus.Focus(start);
+    }
+
+    public AppShell ReportUnsaved(Func<IEnumerable<UnsavedItem>> unsaved)
+    {
+        _unsaved.Add(unsaved);
+        return this;
     }
 
     public AppShell FindIn(FocusRegion region, IFindTarget target)
@@ -247,12 +257,14 @@ public sealed class AppShell : IDisposable
     {
         ApplyTheme(Themes.Current);
         using var active = MacKeys?.Activate();
+        window.IsRunningChanging += OnStopping;
         try
         {
             App.Run(window);
         }
         finally
         {
+            window.IsRunningChanging -= OnStopping;
             Cursor.Restore();
             if (_placeSection is not null)
                 SavePlace(_placeSection);
@@ -409,6 +421,13 @@ public sealed class AppShell : IDisposable
         // Counted after handling, so a key whose command says something doesn't take its own message.
         if (!chording && Scopes.PendingChord is null && StatusBar.Current == shown)
             StatusBar.KeyPressed();
+    }
+
+    // Every way out ends here, Terminal.Gui's own Quit binding included.
+    private void OnStopping(object? sender, CancelEventArgs<bool> e)
+    {
+        if (!e.NewValue && !UnsavedPrompt.Leave(this, Unsaved, "quitting"))
+            e.Cancel = true;
     }
 
     private void OnMessagesRequested(object? sender, EventArgs e) => Commands.Execute(ShellCommands.ShowMessages);

@@ -74,17 +74,17 @@ public class DialogKeysTests : StaticConfigurationTest
             () => Press(Key.T.WithCtrl, Key.C),
             () => (dialog = _host.App.TopRunnableView as ConfirmDialog) is not null,
             () => Press(Key.CursorLeft),
-            () => dialog!.ButtonFor(ThemeConfirms.DontSave).HasFocus,
+            () => dialog!.ButtonFor(UnsavedPrompt.Discard).HasFocus,
             () => Press(Key.F1),
             () => Keys is not null,
             () => { sheet = Keys!.Sheet; },
             () => Press(Key.Esc),
             () => _host.App.TopRunnableView == dialog,
-            () => dialog!.ButtonFor(ThemeConfirms.DontSave).HasFocus,
+            () => dialog!.ButtonFor(UnsavedPrompt.Discard).HasFocus,
             () => Press(Key.Esc));
 
         Assert.Equal("Unsaved changes", sheet!.Here!.Heading);
-        Assert.Equal(["← Previous button", "→ Next button", "Ctrl+Enter Save", "D Don't save", "Esc Cancel"], Rows(sheet));
+        Assert.Equal(["← Previous button", "→ Next button", "Ctrl+Enter Save", "D Discard", "Esc Cancel"], Rows(sheet));
     }
 
     [Fact]

@@ -156,8 +156,12 @@ public abstract class AppDialog : Dialog
         Close();
     }
 
+    // Esc, the close box or a Cancel button; false keeps the dialog open.
+    protected virtual bool MayCancel() => true;
+
     protected void Cancel()
     {
+        if (!MayCancel()) return;
         Confirmed = false;
         Close();
     }

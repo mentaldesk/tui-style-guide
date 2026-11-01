@@ -35,6 +35,9 @@ internal sealed class SampleWindow : AppWindow
     public const string CollapseFolders = "sample.collapseFolders";
     public const string ExpandFolders = "sample.expandFolders";
     public const string LogWarning = "sample.logWarning";
+    public const string LeaveUnsaved = "sample.leaveUnsaved";
+    public const string LeaveFailing = "sample.leaveFailing";
+    public const string LeaveUntitled = "sample.leaveUntitled";
     public const string Warning = "Couldn't watch src for changes";
 
     public static readonly FocusRegion FilesRegion = new("Files", new CommandScope("Files"));
@@ -50,6 +53,7 @@ internal sealed class SampleWindow : AppWindow
     private readonly SampleEditor _editor = new() { Width = Dim.Fill(), Height = Dim.Fill() };
     private readonly ListView _log = new() { Width = Dim.Fill(), Height = Dim.Fill() };
     private readonly ObservableCollection<string> _logLines = ["Opened the sample", "Listed the files in src"];
+    private readonly List<UnsavedItem> _unsaved = [];
     private readonly TreeNode _src;
     private object? _load;
     private StatusMessage? _failure;
@@ -96,9 +100,13 @@ internal sealed class SampleWindow : AppWindow
                 _logLines.Add(Warning);
                 shell.Record(Warning, Severity.Error);
             })
+            .Register(LeaveUnsaved, "Leave two files unsaved", () => Leave("notes.md", "plan.md"))
+            .Register(LeaveFailing, "Leave a file that won't save", () => Leave("todo.md"))
+            .Register(LeaveUntitled, "Leave an untitled file", () => Leave($"Untitled-{_unsaved.Count(item => item.Save is null) + 1}"))
             .Register(CollapseFolders, "Collapse folders", () => _files.Collapse(_src), isEnabled: () => Listed && _files.IsExpanded(_src))
             .Register(ExpandFolders, "Expand folders", () => _files.Expand(_src), isEnabled: () => Listed && !_files.IsExpanded(_src));
         shell.Keys.Bind("Ctrl+R", ReloadFiles);
+        shell.ReportUnsaved(() => _unsaved);
         shell.StatusBar.State = theme;
         Initialized += (_, _) =>
         {
@@ -135,6 +143,19 @@ internal sealed class SampleWindow : AppWindow
         }
         base.Dispose(disposing);
     }
+
+    private void Leave(params string[] names)
+    {
+        foreach (var name in names.Where(name => !_unsaved.Exists(item => item.Name == name)))
+            _unsaved.Add(Unsaved(name));
+    }
+
+    private UnsavedItem Unsaved(string name) => name switch
+    {
+        "todo.md" => new(name, "file", () => throw new IOException("it's read-only")),
+        _ when name.StartsWith("Untitled", StringComparison.Ordinal) => new(name, "file"),
+        _ => new(name, "file", () => _unsaved.RemoveAll(item => item.Name == name)),
+    };
 
     private static View Screen(params View[] panes)
     {
@@ -224,6 +245,10 @@ internal sealed class SampleWindow : AppWindow
                 new MenuEntry(LoadNoFiles, "Load _no files"),
                 new MenuEntry(LoadFailing, "Load files, _failing"),
                 new MenuEntry(LogWarning, "Log a _warning"),
+                null,
+                new MenuEntry(LeaveUnsaved, "Leave two files _unsaved"),
+                new MenuEntry(LeaveFailing, "Leave a file that won't _save"),
+                new MenuEntry(LeaveUntitled, "Leave an un_titled file"),
                 null,
                 new MenuEntry(CollapseFolders, "_Collapse folders") { Opposite = new(ExpandFolders, "_Expand folders") },
             ]),

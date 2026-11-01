@@ -1,11 +1,14 @@
 using MentalDesk.Tui.Dialogs;
 using MentalDesk.Tui.Fields;
+using MentalDesk.Tui.Keys;
 
 namespace Swatch;
 
 internal sealed class CommentDialog : AppDialog
 {
     private const string PostId = "comment.post";
+
+    private static readonly ConfirmAction PostAction = new("Post", ButtonKind.Primary, CtrlEnter.Key);
 
     public CommentDialog() : base("Writing a comment", width: 60, contentRows: 11)
     {
@@ -36,6 +39,17 @@ internal sealed class CommentDialog : AppDialog
     public Button PostButton { get; }
 
     public Button CancelButton { get; }
+
+    protected override bool MayCancel()
+    {
+        if (RunningIn is null || (TitleField.Text.Length == 0 && Body.Text.Length == 0)) return true;
+        using var prompt = new ConfirmDialog(
+            "Discard your comment?", ["What you've written hasn't been posted."], [PostAction, UnsavedPrompt.Discard]);
+        prompt.Run(RunningIn);
+        if (prompt.Chosen == PostAction)
+            Post();
+        return prompt.Chosen == UnsavedPrompt.Discard;
+    }
 
     private void Post()
     {
