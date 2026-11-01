@@ -12,6 +12,8 @@ public sealed class TerminalCursor(Action<string> write)
 
     public CursorReport Report { get; private set; } = CursorReport.NotAsked;
 
+    internal Action<string> Write => write;
+
     public static TerminalCursor ForConsole() => new(sequence =>
     {
         Console.Out.Write(sequence);

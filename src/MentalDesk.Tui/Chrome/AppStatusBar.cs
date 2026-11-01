@@ -41,6 +41,8 @@ public sealed class AppStatusBar : View
     // Clicking ⚠ n.
     public event EventHandler? MessagesRequested;
 
+    public event EventHandler? UnreadErrorsChanged;
+
     public TimeProvider Clock { get; set; } = TimeProvider.System;
 
     public string FocusWord { get; private set; } = string.Empty;
@@ -186,6 +188,7 @@ public sealed class AppStatusBar : View
         _state.X = any ? Pos.Right(_unreadGap) : 0;
         _right.SetNeedsLayout();
         SetNeedsDraw();
+        UnreadErrorsChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void Refresh()
