@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Fields;
 using MentalDesk.Tui.Filtering;
+using MentalDesk.Tui.Icons;
 using MentalDesk.Tui.Loading;
 
 namespace MentalDesk.Tui.Dialogs;
@@ -25,6 +26,7 @@ public class PickerDialog<T> : AppDialog
     private IReadOnlyList<T> _shown;
     private string? _noteText;
     private Action? _retry;
+    private Func<T, string?>? _icon;
 
     public PickerDialog(
         string title, int width, int contentRows, IReadOnlyList<T> rows, Func<T, string> text, string verb,
@@ -116,6 +118,16 @@ public class PickerDialog<T> : AppDialog
     public event EventHandler<PickingEventArgs<T>>? Picking;
 
     public T? Chosen { get; private set; }
+
+    public Func<T, string?>? Icon
+    {
+        get => _icon;
+        set
+        {
+            _icon = value;
+            Filter(Selected);
+        }
+    }
 
     public IReadOnlyList<T> Shown => _shown;
 
@@ -218,7 +230,9 @@ public class PickerDialog<T> : AppDialog
         }
         var loaded = State == LoadState.Loaded;
         _shown = loaded ? Match(_filter.Text ?? string.Empty, _all) : [];
-        _list.Source = new ListWrapper<string>(new ObservableCollection<string>(_shown.Select(_display)));
+        _list.Source = _icon is { } icon
+            ? new IconListSource([.. _shown.Select(_display)], [.. _shown.Select(icon)])
+            : new ListWrapper<string>(new ObservableCollection<string>(_shown.Select(_display)));
         var at = select is null ? -1 : _shown.ToList().IndexOf(select);
         _list.SelectedItem = _shown.Count > 0 ? Math.Max(at, 0) : null;
         _note.Text = _noteText ?? NoMatchesText;

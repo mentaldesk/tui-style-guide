@@ -186,7 +186,7 @@ internal sealed class SampleWindow : AppWindow
     private static AppShell Register(AppShell shell)
     {
         shell.Commands
-            .Register(Open, "Open…", () => PickPath(shell, "Open", PathKind.File, "opened"))
+            .Register(Open, "Open…", () => PickPath(shell, "Open", PathKind.File, "opened", useFolder: "Open this folder"))
             .Register(OpenFolder, "Open folder…", () => PickPath(shell, "Open folder", PathKind.Folder, "opened"))
             .Register(SaveCopy, "Save copy as…", () => PickPath(shell, "Save copy as", PathKind.NewFile, "saved a copy as"))
             .Register(SaveFile, "Save", () => shell.ShowMessage("A demo: this would have saved the file"))
@@ -251,9 +251,12 @@ internal sealed class SampleWindow : AppWindow
             shell.ShowMessage($"A demo: this would have saved \"{dialog.Field!.Text}\"");
     }
 
-    private static void PickPath(AppShell shell, string title, PathKind kind, string verb)
+    private static void PickPath(AppShell shell, string title, PathKind kind, string verb, string? useFolder = null)
     {
-        using var picker = new PathPicker(title, kind, Environment.CurrentDirectory);
+        using var picker = new PathPicker(title, kind, Environment.CurrentDirectory, useFolder: useFolder)
+        {
+            Icon = row => shell.Icons.Glyph(row.Kind is PathRowKind.File or PathRowKind.NewFile ? SwatchIcons.File : SwatchIcons.Folder),
+        };
         picker.Run(shell);
         if (picker.PickedPath is { } path)
             shell.ShowMessage($"A demo: this would have {verb} {path}");

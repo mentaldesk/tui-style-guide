@@ -45,10 +45,14 @@ public sealed class PathPicker : PickerDialog<PathRow>
     private readonly bool _ready;
     private Search? _search;
 
-    public PathPicker(string title, PathKind kind, string start, string? home = null, int searchCap = PathSearch.Cap)
+    // useFolder names the Ctrl+Enter button that picks the folder you're in; a file picker has none without it.
+    public PathPicker(
+        string title, PathKind kind, string start, string? home = null, int searchCap = PathSearch.Cap, string? useFolder = null)
         : base(title, width: 76, contentRows: 18, [], row => row.Label, verb: "Open", display: null, linesAbove: 1,
             kind == PathKind.File ? ButtonKind.Primary : ButtonKind.Secondary)
     {
+        if (kind == PathKind.NewFile && useFolder is not null)
+            throw new ArgumentException("A new file's picker has no folder to use.", nameof(useFolder));
         _kind = kind;
         Home = Path.TrimEndingDirectorySeparator(home ?? HomePath.Default);
         SearchCap = searchCap;
@@ -60,13 +64,14 @@ public sealed class PathPicker : PickerDialog<PathRow>
         Keys.Bind("Backspace", UpId);
         switch (kind)
         {
-            case PathKind.File:
+            case PathKind.File when useFolder is null:
                 AddButtonRow(17, PickButton, CancelButton);
                 break;
+            case PathKind.File:
+                AddButtonRow(17, PickButton, UseFolderButton(useFolder, ButtonKind.Secondary), CancelButton);
+                break;
             case PathKind.Folder:
-                Commands.Register(UseFolderId, "Use this folder", () => Done(new PathRow(PathRowKind.Folder, Folder, Folder)));
-                Keys.Bind([CtrlEnter.Key], UseFolderId);
-                AddButtonRow(17, PickButton, CommandButton(ButtonKind.Primary, UseFolderId), CancelButton);
+                AddButtonRow(17, PickButton, UseFolderButton(useFolder ?? "Use this folder", ButtonKind.Primary), CancelButton);
                 break;
             case PathKind.NewFile:
                 Commands.Register(SaveHereId, "Save here", SaveHere, isEnabled: () => Named() is not null);
@@ -154,6 +159,13 @@ public sealed class PathPicker : PickerDialog<PathRow>
     {
         if (disposing) _search?.Cancel();
         base.Dispose(disposing);
+    }
+
+    private Button UseFolderButton(string label, ButtonKind kind)
+    {
+        Commands.Register(UseFolderId, label, () => Done(new PathRow(PathRowKind.Folder, Folder, Folder)));
+        Keys.Bind([CtrlEnter.Key], UseFolderId);
+        return CommandButton(kind, UseFolderId);
     }
 
     private static string? Parent(string folder) => Path.GetDirectoryName(folder);
