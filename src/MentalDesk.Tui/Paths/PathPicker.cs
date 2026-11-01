@@ -102,7 +102,7 @@ public sealed class PathPicker : PickerDialog<PathRow>
 
     public string? PickedPath => Chosen is null ? null : HomePath.Show(Chosen.FullPath, Home);
 
-    public Func<string, bool>? ConfirmReplace { get; set; }
+    public Func<PathRow, bool>? ConfirmReplace { get; set; }
 
     protected override IReadOnlyList<PathRow> Match(string query, IReadOnlyList<PathRow> rows)
     {
@@ -140,7 +140,7 @@ public sealed class PathPicker : PickerDialog<PathRow>
                 GoTo(row.FullPath);
                 break;
             case PathRowKind.File when _kind == PathKind.NewFile:
-                if (Replacing(row.FullPath)) Done(row);
+                if (Replacing(row)) Done(row);
                 break;
             case PathRowKind.File:
             case PathRowKind.NewFile:
@@ -230,14 +230,14 @@ public sealed class PathPicker : PickerDialog<PathRow>
     private void SaveHere()
     {
         if (Named() is not { } path) return;
-        if (!File.Exists(path) || Replacing(path))
-            Done(new PathRow(PathRowKind.NewFile, path, path));
+        var row = new PathRow(PathRowKind.NewFile, path, path);
+        if (!File.Exists(path) || Replacing(row)) Done(row);
     }
 
-    private bool Replacing(string path)
+    private bool Replacing(PathRow row)
     {
-        var shown = HomePath.Show(path, Home);
-        if (ConfirmReplace is { } ask) return ask(shown);
+        if (ConfirmReplace is { } ask) return ask(row);
+        var shown = HomePath.Show(row.FullPath, Home);
         if (RunningIn is not { } shell) return false;
         using var confirm = new ConfirmDialog(
             "Replace file", [$"{shown} is already there.", "Replace it? This can't be undone."], [ReplaceAction]);

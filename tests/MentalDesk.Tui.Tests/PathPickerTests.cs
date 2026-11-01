@@ -335,9 +335,9 @@ public class PathPickerTests : StaticConfigurationTest
     {
         using var picker = Picker(PathKind.NewFile, start: "code/swatch");
         var asked = new List<string>();
-        picker.ConfirmReplace = path =>
+        picker.ConfirmReplace = row =>
         {
-            asked.Add(path.Replace('\\', '/'));
+            asked.Add(HomePath.Show(row.FullPath, picker.Home).Replace('\\', '/'));
             return replace;
         };
         Type(picker, "notes.md");
