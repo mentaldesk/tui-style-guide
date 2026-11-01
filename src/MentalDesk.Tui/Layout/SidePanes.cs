@@ -15,23 +15,42 @@ public sealed class SidePanes
     public const int MinimumMainWidth = 40;
     public const string Section = "paneWidths";
 
-    private readonly AppShell _shell;
     private readonly View _row;
-    private readonly string _app;
+    private readonly Func<FocusRegion?> _focused;
+    private readonly Action<string> _say;
+    private readonly Func<JsonObject?> _read;
+    private readonly Action<JsonObject> _write;
     private readonly List<Pane> _panes = [];
     private Pane? _main;
 
     // Widths are kept in the app's settings section.
     public SidePanes(AppShell shell, View row, string app)
+        : this(row, () => shell.Focus.Region, message => shell.ShowMessage(message),
+            () => shell.Settings.Section(app)[Section] as JsonObject,
+            widths =>
+            {
+                var section = shell.Settings.Section(app);
+                section[Section] = widths;
+                shell.Settings.SaveSection(app, section);
+            })
     {
-        _shell = shell;
-        _row = row;
-        _app = app;
         shell.Commands
-            .Register(WidenId, "Widen pane", () => Resize(Step), isEnabled: () => Focused() is not null)
-            .Register(NarrowId, "Narrow pane", () => Resize(-Step), isEnabled: () => Focused() is not null)
-            .Register(ResetId, "Reset pane width", Reset, isEnabled: () => Focused() is not null);
+            .Register(WidenId, "Widen pane", Widen, isEnabled: () => CanResize)
+            .Register(NarrowId, "Narrow pane", Narrow, isEnabled: () => CanResize)
+            .Register(ResetId, "Reset pane width", Reset, isEnabled: () => CanResize);
     }
+
+    // For an app without an AppShell: it registers Widen, Narrow and Reset itself, and keeps the widths where it likes.
+    public SidePanes(View row, Func<FocusRegion?> focused, Action<string> say, Func<JsonObject?> read, Action<JsonObject> write)
+    {
+        _row = row;
+        _focused = focused;
+        _say = say;
+        _read = read;
+        _write = write;
+    }
+
+    public bool CanResize => Focused() is not null;
 
     public View? Main
     {
@@ -126,6 +145,16 @@ public sealed class SidePanes
         return _row.Viewport.Width - others - (_main?.View.Visible == true ? MinimumMainWidth : 0);
     }
 
+    public void Widen() => Resize(Step);
+
+    public void Narrow() => Resize(-Step);
+
+    public void Reset()
+    {
+        if (Focused() is not { } pane) return;
+        Choose(pane, pane.Default);
+    }
+
     private void Resize(int step)
     {
         if (Focused() is not { } pane) return;
@@ -133,40 +162,32 @@ public sealed class SidePanes
         var width = step > 0 ? Math.Min(shown + step, Math.Max(shown, Widest(pane))) : Math.Max(shown + step, Math.Min(shown, MinimumWidth));
         if (width == shown)
         {
-            _shell.ShowMessage($"{pane.Region!.Name} is as {(step > 0 ? "wide" : "narrow")} as it can be");
+            _say($"{pane.Region!.Name} is as {(step > 0 ? "wide" : "narrow")} as it can be");
             return;
         }
         Choose(pane, width);
-    }
-
-    private void Reset()
-    {
-        if (Focused() is not { } pane) return;
-        Choose(pane, pane.Default);
     }
 
     private void Choose(Pane pane, int width)
     {
         pane.Chosen = width;
         _row.SetNeedsLayout();
-        var section = _shell.Settings.Section(_app);
-        var widths = section[Section] as JsonObject ?? [];
+        var widths = _read()?.DeepClone() as JsonObject ?? [];
         if (width == pane.Default)
             widths.Remove(pane.Region!.Name);
         else
             widths[pane.Region!.Name] = width;
-        section[Section] = widths;
-        _shell.Settings.SaveSection(_app, section);
+        _write(widths);
     }
 
     private int? Saved(FocusRegion region) =>
-        _shell.Settings.Section(_app)[Section]?[region.Name] is JsonValue value && value.TryGetValue<int>(out var width)
+        _read()?[region.Name] is JsonValue value && value.TryGetValue<int>(out var width)
             && width >= MinimumWidth
             ? width
             : null;
 
     private Pane? Focused() =>
-        _panes.FirstOrDefault(pane => pane.Region is not null && pane.Region == _shell.Focus.Region && pane != _main && pane.View.Visible);
+        _panes.FirstOrDefault(pane => pane.Region is not null && pane.Region == _focused() && pane != _main && pane.View.Visible);
 
     private sealed class Pane(View view, FocusRegion? region, int defaultWidth)
     {

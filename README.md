@@ -554,7 +554,9 @@ The library's [`SidePanes`](https://github.com/mentaldesk/tui-style-guide/blob/m
 is the reference implementation. An app adds its panes in reading order, each side pane with its
 region and default width, and the main pane; it registers the three commands, makes each side pane's
 inner border `LeftResizable` or `RightResizable` for Terminal.Gui's own drag, and keeps the widths in
-the app's `MentalDeskSettings` section. In Swatch, Themes, Roles and the Assistant are side panes and
+the app's `MentalDeskSettings` section. An app without `AppShell` hands it the focused region, a way to
+show a message and a place to keep the widths, and registers `Widen`, `Narrow` and `Reset` itself, offered
+while `CanResize`. In Swatch, Themes, Roles and the Assistant are side panes and
 Preview is the main pane; while the Assistant is open in Preview's place, Roles takes what's left.
 
 ### An assistant pane
