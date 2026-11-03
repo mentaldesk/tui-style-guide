@@ -36,7 +36,7 @@ internal sealed class PaintedCaret
         if (!_field.HasFocus || _drawnAt is not { } screen || _field.App?.Driver?.Contents is not { } contents) return;
         var at = _field.ScreenToViewport(screen);
         if (at.X < 0 || at.Y < 0 || at.X >= _field.Viewport.Width || at.Y >= _field.Viewport.Height
-            || screen.Y >= contents.GetLength(0) || screen.X >= contents.GetLength(1)) return;
+            || screen.X < 0 || screen.Y < 0 || screen.Y >= contents.GetLength(0) || screen.X >= contents.GetLength(1)) return;
         var grapheme = contents[screen.Y, screen.X].Grapheme;
         _field.SetAttribute(Block());
         _field.AddStr(at.X, at.Y, string.IsNullOrEmpty(grapheme) ? " " : grapheme);

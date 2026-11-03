@@ -153,4 +153,14 @@ public class PaintedCaretTests : StaticConfigurationTest
             () => { _host.Shell.ApplyTheme(Themes.Bundled[1]); },
             () => CaretAt(_line, 2, 0, " "));
     }
+
+    [Fact]
+    public void A_field_hanging_off_the_top_left_of_the_screen_draws_without_a_caret_there()
+    {
+        _line.X = -3;
+        _line.Y = -1;
+        Run(
+            () => Type("ab"),
+            () => _line.Text == "ab");
+    }
 }
