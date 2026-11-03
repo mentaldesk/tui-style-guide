@@ -1080,57 +1080,28 @@ app that *Try it* opens, *Edit* leaves the bar while the Files pane has focus, a
 
 ### The caret
 
-**The caret is the terminal's own cursor.** Colour it from the theme with `OSC 12` whenever the
-theme is applied (the theme's `Cursor` scheme, which nothing draws with) and restore the terminal's
-own with `OSC 112` on exit. Terminals that don't support it ignore the sequence.
+**Every text box paints its own caret.** A terminal can lose the cursor colour the app asks for
+(iTerm2 puts a profile's colours back over `OSC 12` whenever it switches the session to that profile)
+or ignore it, and then the caret can vanish against the theme's background. A painted caret can't.
 
-**Paint a caret only where the terminal cannot draw one** — a second caret, say, in a terminal
-without [kitty's multiple cursors protocol](https://sw.kovidgoyal.net/kitty/multiple-cursors-protocol/).
-Then three rules, all of them things that have come back in review:
+- **A caret is a solid block over the character at the insertion point,** in the theme's `Cursor`
+  scheme: the block in its `Normal` foreground, the character under it in its `Normal` background, so
+  it stays readable. At the end of a line it covers the empty cell after the last character. A bar
+  can't share a cell with the character it's before, so a painted bar would hide it.
+- **It doesn't read as a selection.** A selection is a run of cells in the selection colour; the caret
+  is one cell in its own.
+- **Only the focused box has a caret, and the terminal cursor is hidden while it does.** One painted
+  caret beside one real one is two different-looking things on screen claiming to be the same thing.
+- **It doesn't blink.** A blink is a redraw on a timer for every box, and more bytes over SSH.
+- **Redraw whenever the caret moves.** A painted caret only moves when the view redraws. A caret that
+  snaps into place only once the user types is a missing `SetNeedsDraw()`, not a drawing bug — the
+  terminal cursor hid this, because the framework moves that one without a repaint.
 
-- **Paint every caret and hide the terminal cursor.** One painted caret beside one real one is two
-  different-looking things on screen claiming to be the same thing.
-- **A caret is a bar before the insertion point, everywhere.** The terminal cursor is a bar, so a
-  painted one is a bar too — the shape a user sees must not depend on which terminal they have, on
-  how many carets are on screen, or on whether they are in the editor or a dialog. An underline
-  vanishes under an underscore; a reversed cell reads as a selection.
-- **Invalidate the view whenever a caret moves.** A painted caret only moves when the view redraws.
-  A caret that snaps into place only once the user types is a missing `SetNeedsDraw()`, not a
-  drawing bug — the terminal cursor hid this, because the framework moves that one without a
-  repaint.
-
-The library's [`TerminalCursor`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Theming/TerminalCursor.cs) sets, restores and reads back the
-cursor colour, and the Diagnostics dialog shows what was asked for beside what the terminal reports.
-Painted carets aren't in the library: TuiCode's
-[`EditorTextView.Carets.cs`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Editor/EditorTextView.Carets.cs)
-and [`TerminalCursors`](https://github.com/mentaldesk/TuiCode/blob/main/src/TuiCode.Editor/TerminalCursors.cs)
-are the reference implementation. A dialog's field gets this by reusing them, not by writing a
-second caret — which is also how it stays one shape.
-
-### The terminal title
-
-**The tab says what it's open on, then the app:** `tui-style-guide — TuiCode`. The tab bar is the
-only part of a terminal you can see from another tab, so it's how you tell windows apart.
-
-- **What it's open on is short and changes rarely**: a folder's name, a team's name, a theme's. Never
-  a full path or the current file: a tab cuts off the end, and a title that changes with every file
-  flickers in the tab bar. The place goes first, so a narrow tab keeps the part that differs.
-- **What's waiting on you goes first**, so a cut-off tab still shows it: `⚠ n` for errors you haven't
-  seen (the status bar's count), then `(n)` for the app's own things waiting on you, if it has any:
-  `⚠ 1 (3) src — Swatch sample`. Nothing when there's nothing.
-- **Give the terminal its title back** on exit, and before handing the terminal to another program
-  (a shell, an editor); set it again on return, as with the caret's colour. Push the terminal's own
-  title with `CSI 22;0t` before setting it and pop it with `CSI 23;0t`, as Vim does. Where a terminal
-  has no title stack, most shells set their own at the next prompt.
-
-The library's [`TerminalTitle`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Shell/TerminalTitle.cs)
-writes the title and pushes and pops the terminal's own, and works without `AppShell`. Its `TakeOver`
-stops Terminal.Gui 2.5 writing each window's and dialog's own `Title` to the tab, which it does by default. `AppShell`
-drives it as `Shell.Title`: the app sets `App`, `Place` and `Waiting`, the shell adds `⚠ n`, saves the
-terminal's title around `Run`, and puts the outer app's title back after `RunNested`. Swatch's tab
-reads `Midnight — Swatch`, after the theme you're editing. In the sample app that *Try it* opens, it
-reads `src — Swatch sample`; *View › Load files, failing* adds `⚠ 1` until *Help › Messages…* is
-opened, and *View › Three things waiting* toggles `(3)`.
+`PlaceholderField` and `MultiLineField` do all of this, so use them for every text box rather than a
+plain `TextField` or `TextView`. Keep colouring the terminal cursor with `OSC 12` when the theme is
+applied, and restoring it with `OSC 112` on exit, for anything still on the terminal's cursor; the
+library's [`TerminalCursor`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Theming/TerminalCursor.cs)
+does it, and the Diagnostics dialog shows what was asked for beside what the terminal reports.
 
 ## 6. Scrolling
 
