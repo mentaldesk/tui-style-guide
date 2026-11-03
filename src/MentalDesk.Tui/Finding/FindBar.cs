@@ -1,4 +1,5 @@
 using MentalDesk.Tui.Commands;
+using MentalDesk.Tui.Fields;
 using MentalDesk.Tui.Keys;
 using MentalDesk.Tui.Shell;
 
@@ -21,10 +22,10 @@ public sealed class FindBar : View
     private static readonly CommandScope InReplacement = new("Replacement");
 
     private readonly Label _queryLabel = new() { X = 1, Y = 0, Text = "Find" };
-    private readonly TextField _query = new() { X = LabelWidth, Y = 0, Width = Dim.Fill(SideWidth) };
+    private readonly PlaceholderField _query = new() { X = LabelWidth, Y = 0, Width = Dim.Fill(SideWidth) };
     private readonly Label _status = new() { X = Pos.AnchorEnd(SideWidth), Y = 0, Width = SideWidth - 1, TextAlignment = Alignment.End };
     private readonly Label _replaceLabel = new() { X = 1, Y = 1, Text = "Replace", Visible = false };
-    private readonly TextField _replacement = new() { X = LabelWidth, Y = 1, Width = Dim.Fill(SideWidth), Visible = false };
+    private readonly PlaceholderField _replacement = new() { X = LabelWidth, Y = 1, Width = Dim.Fill(SideWidth), Visible = false };
     private readonly CommandRegistry _commands = new();
     private readonly Keymap _keys;
     private IReadOnlyList<TextMatch> _matches = [];

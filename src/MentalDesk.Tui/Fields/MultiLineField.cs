@@ -28,6 +28,7 @@ public sealed class MultiLineField : Terminal.Gui.Editor.Editor
     internal static readonly Key DeleteToLineStart = Key.Backspace.WithCtrl.WithShift;
 
     private readonly FocusBorder _border;
+    private readonly PaintedCaret _caret;
     private string? _copyFailure;
 
     public MultiLineField()
@@ -56,6 +57,7 @@ public sealed class MultiLineField : Terminal.Gui.Editor.Editor
             return true;
         });
         _border = new FocusBorder(this);
+        _caret = new PaintedCaret(this);
     }
 
     public string Placeholder { get; set; } = string.Empty;
@@ -70,8 +72,7 @@ public sealed class MultiLineField : Terminal.Gui.Editor.Editor
             AddStr(Placeholder.Length > Viewport.Width ? Placeholder[..Viewport.Width] : Placeholder);
             SetAttribute(GetAttributeForRole(VisualRole.Normal));
         }
-        if (Cursor.Position is not null && !OverwriteMode)
-            Cursor = Cursor with { Style = CursorStyle.SteadyBar };
+        _caret.Paint();
         return true;
     }
 

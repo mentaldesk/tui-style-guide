@@ -32,7 +32,7 @@ internal sealed class CommentDialog : AppDialog
         Initialized += (_, _) => Body.SetFocus();
     }
 
-    public TextField TitleField { get; } = new() { X = 1, Y = 1, Width = Dim.Fill(1) };
+    public TextField TitleField { get; } = new PlaceholderField { X = 1, Y = 1, Width = Dim.Fill(1) };
 
     public MultiLineField Body { get; }
 

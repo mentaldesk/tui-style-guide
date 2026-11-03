@@ -1,5 +1,6 @@
 using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Commands;
+using MentalDesk.Tui.Fields;
 using MentalDesk.Tui.Dialogs;
 using MentalDesk.Tui.Focus;
 using MentalDesk.Tui.Icons;
@@ -274,7 +275,7 @@ internal sealed class SampleWindow : AppWindow
     {
         using var dialog = new ConfirmDialog(
             "Save theme", [$"Save a copy of \"{Themes.Current}\" as"], [Save],
-            field: new TextField { Text = "Solar" }, check: NameRefusal);
+            field: new PlaceholderField { Text = "Solar" }, check: NameRefusal);
         dialog.Initialized += (_, _) => dialog.ShowAlert("Couldn't write themes.json", Severity.Error);
         dialog.Run(shell);
         if (dialog.Chosen is not null)

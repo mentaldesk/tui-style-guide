@@ -244,19 +244,6 @@ public class MultiLineFieldTests : StaticConfigurationTest
     }
 
     [Fact]
-    public void The_caret_is_a_bar()
-    {
-        CursorStyle? style = null;
-        Run(() =>
-        {
-            style = Field.Cursor.Style;
-            Press(Key.Esc);
-        });
-
-        Assert.Equal(CursorStyle.SteadyBar, style);
-    }
-
-    [Fact]
     public void Ctrl_Z_undoes_and_Ctrl_Y_redoes()
     {
         var texts = new List<string>();

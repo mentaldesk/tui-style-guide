@@ -6,7 +6,6 @@ namespace Swatch;
 // Custom: real widgets would take focus and hot keys from the app around it.
 internal sealed class PreviewView : View
 {
-    private const string Caret = "▏";
     private const string Help = "Press F1 for help";
 
     private static readonly (string Label, string Scheme)[] Buttons =
@@ -57,7 +56,7 @@ internal sealed class PreviewView : View
         Box(split, 1, width - split, 5, "Editor", @base.Focus, heavy: true);
         Put(split + 1, 2, "Hello, ", @base.Editable);
         Put(split + 8, 2, "world", @base.Highlight);
-        Put(split + 13, 2, Caret, Get(SchemeNames.Cursor).Normal with { Background = @base.Editable.Background });
+        Put(split + 13, 2, " ", Caret());
         Put(split + 1, 3, "read only", @base.ReadOnly);
         Put(split + 1, 4, "⚠ changed on disk", Get(SchemeNames.Warning).Normal);
 
@@ -73,7 +72,7 @@ internal sealed class PreviewView : View
         Box(left, 8, dialogWidth, 6, "Save theme", dialog.Normal, heavy: false);
         Put(left + 1, 9, "Name ", dialog.Normal);
         Put(left + 6, 9, "Solar".PadRight(Math.Max(0, dialogWidth - 8)), dialog.Editable);
-        Put(left + 11, 9, Caret, Get(SchemeNames.Cursor).Normal with { Background = dialog.Editable.Background });
+        Put(left + 11, 9, " ", Caret());
         Put(left + dialogWidth - 33, 11, " Ctrl+Enter Save ", Get(SchemeNames.ButtonPrimary).Normal);
         Put(left + dialogWidth - 13, 11, " Esc Cancel ", Get(SchemeNames.ButtonSecondary).Normal);
         Put(left + 1, 12, " Couldn't write themes.json".PadRight(Math.Max(0, dialogWidth - 2)), Get(SchemeNames.Error).Normal);
@@ -106,6 +105,12 @@ internal sealed class PreviewView : View
 
     private Scheme Get(string name) =>
         _schemes.TryGetValue(name, out var scheme) ? scheme : _schemes[SchemeNames.Base];
+
+    private Attribute Caret()
+    {
+        var cursor = Get(SchemeNames.Cursor).Normal;
+        return new Attribute(cursor.Background, cursor.Foreground);
+    }
 
     private void Put(int x, int y, string text, Attribute attribute)
     {

@@ -14,7 +14,7 @@ public static class SchemeNames
     public const string ButtonDanger = "ButtonDanger";
     public const string ButtonSecondary = "ButtonSecondary";
 
-    // Not drawn with: its Normal foreground is the terminal cursor's colour.
+    // Normal's foreground is the caret's colour, and its background the colour of the character under it.
     public const string Cursor = "Cursor";
 
     public static IReadOnlyList<string> All { get; } =
