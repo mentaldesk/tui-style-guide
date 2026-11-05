@@ -572,6 +572,10 @@ its question box, and closes it again. It stays open while the user moves betwee
   shows its progress.
 - **`Enter` sends, `Esc` stops the answer and keeps what arrived, `Ctrl+L` starts a new conversation.**
   They're the pane's keys, listed under *Assistant* by `F1`.
+- **In an app where `Esc` takes you back to the main work from anywhere, it does that from the pane
+  too, and `Ctrl+H` (*halt*) stops the answer.** The answer keeps arriving while you're away, and the
+  status bar says so. While no answer is coming, `Ctrl+H` in the pane does nothing, whatever it means
+  elsewhere. The pane's hint names the stop key: `Ctrl+H stop · Ctrl+L clear`.
 - **The agent asks before it acts.** It reads without asking. A command, an edit or any other tool opens
   a dialog, *Claude Code wants to run a command*, showing the command, with `Ctrl+Enter Allow once`
   and `Esc Deny`. Deny has focus, and `Enter` does nothing there (see *Dialog buttons*). There's no
@@ -581,7 +585,8 @@ its question box, and closes it again. It stays open while the user moves betwee
 - **The last conversation is there after a restart**, where the agent can reopen one.
 
 The library's [`AssistantPane`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Assistant/AssistantPane.cs)
-is the reference implementation. It talks to the agent, Claude Code by default, over the
+is the reference implementation, for an app where `Esc` doesn't mean "back to the work": there `Esc`
+stops the answer. It talks to the agent, Claude Code by default, over the
 [Agent Client Protocol](https://agentclientprotocol.com), takes its own keys so it works in an app
 without `AppShell`, and asks with
 [`AssistantPermission`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Assistant/AssistantPermission.cs).
