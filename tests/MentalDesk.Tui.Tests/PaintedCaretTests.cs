@@ -155,6 +155,73 @@ public class PaintedCaretTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void At_the_end_of_a_full_row_the_caret_sits_where_the_next_character_will_go()
+    {
+        var full = new string('x', 20);
+        Run(
+            () => _box.SetFocus(),
+            () => _box.HasFocus,
+            () => Type(full),
+            () => _box.Text == full,
+            () => CaretAt(_box, 0, 1, " ") && Carets(_box) == 1,
+            () => Type("y"),
+            () => CaretAt(_box, 1, 1, " ") && Carets(_box) == 1,
+            () => Press(Key.Backspace),
+            () => CaretAt(_box, 0, 1, " ") && Carets(_box) == 1);
+    }
+
+    [Fact]
+    public void A_caret_moving_between_the_ends_of_full_rows_follows_at_once()
+    {
+        var full = new string('x', 20);
+        Run(
+            () => _box.SetFocus(),
+            () => _box.HasFocus,
+            () => { _box.Text = full + "\n" + full; _box.CaretOffset = _box.Text.Length; },
+            () => CaretAt(_box, 0, 2, " ") && Carets(_box) == 1,
+            () => { _box.CaretOffset = full.Length; },
+            () => CaretAt(_box, 0, 1, "x") && Carets(_box) == 1);
+    }
+
+    [Fact]
+    public void Filling_the_last_row_scrolls_so_the_caret_stays_in_the_box()
+    {
+        Run(
+            () => _box.SetFocus(),
+            () => _box.HasFocus && _box.Viewport.Height == 3,
+            () => Type(new string('x', 60)),
+            () => _box.Text.Length == 60,
+            () => Carets(_box) == 1 && _box.Cursor.Position is null,
+            () => Type("y"),
+            () => Carets(_box) == 1 && _box.Text.Length == 61);
+    }
+
+    [Fact]
+    public void Text_long_enough_to_bring_the_scroll_bar_keeps_the_caret_in_the_box()
+    {
+        Run(
+            () => _box.SetFocus(),
+            () => _box.HasFocus,
+            () => { _box.Text = new string('x', 300); _box.CaretOffset = 300; },
+            () => _box.Viewport.Width == 19 && Carets(_box) == 1);
+    }
+
+    [Fact]
+    public void The_wheel_still_scrolls_away_from_the_caret()
+    {
+        var top = -1;
+        Run(
+            () => _box.SetFocus(),
+            () => _box.HasFocus,
+            () => { _box.Text = new string('x', 300); _box.CaretOffset = 300; },
+            () => Carets(_box) == 1,
+            () => { top = _box.Viewport.Y; _box.Viewport = _box.Viewport with { Y = 0 }; },
+            () => _box.Viewport.Y == 0 && Carets(_box) == 0);
+
+        Assert.True(top > 0);
+    }
+
+    [Fact]
     public void A_field_hanging_off_the_top_left_of_the_screen_draws_without_a_caret_there()
     {
         _line.X = -3;
