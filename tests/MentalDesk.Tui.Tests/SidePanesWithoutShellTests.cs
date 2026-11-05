@@ -106,6 +106,24 @@ public class SidePanesWithoutShellTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void SetWidth_chooses_a_width_kept_through_a_narrow_terminal_and_never_under_the_floor()
+    {
+        var panes = Panes();
+
+        panes.SetWidth(_history, 70);
+        Lay(100);
+        Assert.Equal(60, _history.Frame.Width);
+        Assert.Equal(70, (int)_file!["History"]!);
+
+        Lay(120);
+        Assert.Equal(70, _history.Frame.Width);
+
+        panes.SetWidth(_history, 3);
+        Lay(120);
+        Assert.Equal(SidePanes.MinimumWidth, _history.Frame.Width);
+    }
+
+    [Fact]
     public void It_can_resize_only_while_the_app_says_a_side_pane_has_focus()
     {
         var panes = Panes();

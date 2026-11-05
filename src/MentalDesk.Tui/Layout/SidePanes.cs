@@ -22,6 +22,9 @@ public sealed class SidePanes
     private readonly Action<JsonObject> _write;
     private readonly List<Pane> _panes = [];
     private Pane? _main;
+    private IMouse? _mouse;
+    private Pane? _dragging;
+    private bool _clickAfterDrag;
 
     // Widths are kept in the app's settings section.
     public SidePanes(AppShell shell, View row, string app)
@@ -48,6 +51,12 @@ public sealed class SidePanes
         _say = say;
         _read = read;
         _write = write;
+        // A view has no App until it's in a running one.
+        _row.SubViewsLaidOut += (_, _) => FollowMouse();
+        _row.Disposing += (_, _) =>
+        {
+            if (_mouse is not null) _mouse.MouseEvent -= OnMouse;
+        };
     }
 
     public bool CanResize => Focused() is not null;
@@ -58,7 +67,7 @@ public sealed class SidePanes
         set
         {
             _main = _panes.Single(pane => pane.View == value);
-            Arrange();
+            _row.SetNeedsLayout();
         }
     }
 
@@ -67,14 +76,14 @@ public sealed class SidePanes
     {
         Place(new Pane(view, null, 0));
         _main ??= _panes[^1];
-        Arrange();
+        _row.SetNeedsLayout();
         return this;
     }
 
     public SidePanes AddSide(View view, FocusRegion region, int defaultWidth)
     {
         Place(new Pane(view, region, defaultWidth) { Chosen = Saved(region) ?? defaultWidth });
-        Arrange();
+        _row.SetNeedsLayout();
         return this;
     }
 
@@ -83,8 +92,7 @@ public sealed class SidePanes
         _panes.Add(pane);
         pane.View.X = Pos.Func(_ => Widths()[pane].X);
         pane.View.Width = Dim.Func(_ => Widths()[pane].Width);
-        pane.View.SubViewsLaidOut += (_, _) => Dragged(pane);
-        pane.View.VisibleChanged += (_, _) => Arrange();
+        pane.View.VisibleChanged += (_, _) => _row.SetNeedsLayout();
     }
 
     private Dictionary<Pane, (int X, int Width)> Widths()
@@ -116,26 +124,70 @@ public sealed class SidePanes
             widths[widest]--;
     }
 
-    // A side pane's inner border is the one facing the main pane.
-    private void Arrange()
+    private void FollowMouse()
     {
-        var mainAt = _main is null ? _panes.Count : _panes.IndexOf(_main);
-        for (var i = 0; i < _panes.Count; i++)
-        {
-            _panes[i].View.Arrangement = i == mainAt || _panes[i].Region is null ? ViewArrangement.Fixed
-                : i < mainAt ? ViewArrangement.RightResizable : ViewArrangement.LeftResizable;
-        }
-        _row.SetNeedsLayout();
+        if (_mouse is not null || _row.App is not { } app) return;
+        _mouse = app.Mouse;
+        _mouse.MouseEvent += OnMouse;
     }
 
-    // Terminal.Gui's drag sets the frame, which replaces the pane's X and Width with absolute ones, then lays it out.
-    private void Dragged(Pane pane)
+    // Terminal.Gui's own drag takes focus and shows its arrange buttons, so the drag is handled before any view sees the mouse.
+    private void OnMouse(object? sender, Mouse mouse)
     {
-        if (pane.View.Width is not DimAbsolute) return;
-        var width = Math.Clamp(pane.View.Frame.Width, MinimumWidth, Math.Max(MinimumWidth, Widest(pane)));
-        pane.View.X = Pos.Func(_ => Widths()[pane].X);
-        pane.View.Width = Dim.Func(_ => Widths()[pane].Width);
-        Choose(pane, width);
+        // Terminal.Gui follows a release with a click where the pointer is, which would move focus there.
+        if (_clickAfterDrag && mouse.Flags.HasFlag(MouseFlags.LeftButtonClicked))
+        {
+            _clickAfterDrag = false;
+            mouse.Handled = true;
+            return;
+        }
+        _clickAfterDrag = false;
+
+        if (_dragging is { } pane)
+        {
+            if (mouse.Flags.HasFlag(MouseFlags.LeftButtonReleased))
+            {
+                _dragging = null;
+                _clickAfterDrag = true;
+                Choose(pane, DraggedWidth(pane, mouse.ScreenPosition.X));
+            }
+            else if (mouse.Flags.HasFlag(MouseFlags.LeftButtonPressed))
+            {
+                pane.Chosen = DraggedWidth(pane, mouse.ScreenPosition.X);
+                _row.SetNeedsLayout();
+            }
+            else
+            {
+                // The button went up out of sight, so the next press isn't part of this drag.
+                _dragging = null;
+                Choose(pane, pane.Chosen);
+                return;
+            }
+            mouse.Handled = true;
+            return;
+        }
+
+        if (!mouse.Flags.HasFlag(MouseFlags.LeftButtonPressed)) return;
+        _dragging = _panes.FirstOrDefault(side => OnInnerBorder(side, mouse));
+        mouse.Handled = _dragging is not null;
+    }
+
+    // Terminal.Gui reports the deepest view under the pointer, so a dialog over the border isn't the pane's own border.
+    private bool OnInnerBorder(Pane pane, Mouse mouse)
+    {
+        if (pane.Region is null || pane == _main || !pane.View.Visible) return false;
+        if (mouse.View is not AdornmentView { Adornment: { } adornment } || !ReferenceEquals(adornment.Parent, pane.View)) return false;
+        var frame = pane.View.FrameToScreen();
+        return mouse.ScreenPosition.X == (FacesRight(pane) ? frame.Right - 1 : frame.Left);
+    }
+
+    private bool FacesRight(Pane pane) => _main is null || _panes.IndexOf(pane) < _panes.IndexOf(_main);
+
+    private int DraggedWidth(Pane pane, int column)
+    {
+        var frame = pane.View.FrameToScreen();
+        var width = FacesRight(pane) ? column - frame.Left + 1 : frame.Right - column;
+        return Math.Clamp(width, MinimumWidth, Math.Max(MinimumWidth, Widest(pane)));
     }
 
     private int Widest(Pane pane)
@@ -154,6 +206,10 @@ public sealed class SidePanes
         if (Focused() is not { } pane) return;
         Choose(pane, pane.Default);
     }
+
+    // A width chosen outside the panes, such as on a settings page. A narrow terminal shrinks what's drawn, not this.
+    public void SetWidth(View view, int width) =>
+        Choose(_panes.Single(pane => pane.View == view && pane.Region is not null), Math.Max(MinimumWidth, width));
 
     private void Resize(int step)
     {
