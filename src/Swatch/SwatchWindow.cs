@@ -58,7 +58,7 @@ internal sealed class SwatchWindow : AppWindow
             .AddSide(_themesPane, ThemesRegion, ThemesWidth)
             .AddSide(_rolesPane, RolesRegion, RolesWidth)
             .AddMain(_previewPane)
-            .AddSide(Assistant, AssistantRegion, AssistantWidth);
+            .AddSide(Assistant, AssistantRegion, width => Math.Min(AssistantWidth, width / 2));
 
         foreach (var theme in Themes.Names)
         {

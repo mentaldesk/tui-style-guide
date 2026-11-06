@@ -548,11 +548,12 @@ panes are side panes; no other pane is resizable.
   so the main pane keeps 40 columns where it can.
 - **The width is remembered per pane** as the width the user chose. A narrow terminal shrinks what's
   drawn, not what's remembered, so widening the terminal brings it back, and so does the next start.
-- ***Reset pane width* puts the focused pane back to the app's default.**
+- ***Reset pane width* puts the focused pane back to the app's default.** The default can follow the
+  window, like two fifths of it, until the user chooses a width.
 
 The library's [`SidePanes`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Layout/SidePanes.cs)
 is the reference implementation. An app adds its panes in reading order, each side pane with its
-region and default width, and the main pane; it registers the three commands, makes each side pane's
+region and default width, or a function of the row's width for one that follows the window, and the main pane; it registers the three commands, makes each side pane's
 inner border `LeftResizable` or `RightResizable` for Terminal.Gui's own drag, and keeps the widths in
 the app's `MentalDeskSettings` section. An app without `AppShell` hands it the focused region, a way to
 show a message and a place to keep the widths, and registers `Widen`, `Narrow` and `Reset` itself, offered
