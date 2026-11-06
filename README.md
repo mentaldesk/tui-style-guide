@@ -568,10 +568,15 @@ its question box, and closes it again. It stays open while the user moves betwee
 - **A question carries what it's about**, so the user never has to name it. The line above the box says
   what the next question is about, the selection, and the question's heading repeats it:
   `You · Midnight › Base`.
-- **Answers stream in, with a `▸` line for each thing the agent looks at or does**, so a long answer
-  shows its progress.
-- **`Enter` sends, `Esc` stops the answer and keeps what arrived, `Ctrl+L` starts a new conversation.**
-  They're the pane's keys, listed under *Assistant* by `F1`.
+- **Answers stream in, with one `▸` row for each run of things the agent looks at or does**, so a long
+  answer shows its progress and still starts near the top. The row is the newest call, clipped with `…`
+  to fit, then `(+N)` for the earlier ones, and it updates in place as calls arrive. Text between calls
+  starts a new run, so the answer reads in order. A failed call keeps its own `▸ … (failed)` row and
+  isn't counted.
+- **`Enter` sends, `Esc` stops the answer and keeps what arrived, `Ctrl+L` starts a new conversation,
+  `Ctrl+T T` (*Show tool calls in full*) gives every call its own row and folds them again**, keeping
+  what you were reading in view. They're the pane's keys, listed under *Assistant* by `F1`. An app with
+  a setting for this says where a conversation starts; the key doesn't change it.
 - **In an app where `Esc` takes you back to the main work from anywhere, it does that from the pane
   too, and `Ctrl+H` (*halt*) stops the answer.** The answer keeps arriving while you're away, and the
   status bar says so. While no answer is coming, `Ctrl+H` in the pane does nothing, whatever it means
@@ -590,8 +595,8 @@ stops the answer. It talks to the agent, Claude Code by default, over the
 [Agent Client Protocol](https://agentclientprotocol.com), takes its own keys so it works in an app
 without `AppShell`, and asks with
 [`AssistantPermission`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Assistant/AssistantPermission.cs).
-In Swatch, *Help › Assistant* opens it beside the Roles pane, with a demo agent that streams a canned
-answer about the selected scheme and asks to run a command.
+In Swatch, *Help › Assistant* opens it beside the Roles pane, with a demo agent that makes a few tool
+calls, one of which fails, streams a canned answer about the selected scheme and asks to run a command.
 
 ### Finding keys
 

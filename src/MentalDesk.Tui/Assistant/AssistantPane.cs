@@ -15,6 +15,7 @@ public sealed class AssistantPane : View
     public const string SendId = "assistant.send";
     public const string StopId = "assistant.stop";
     public const string ClearId = "assistant.clear";
+    public const string ToolCallsId = "assistant.toolCalls";
 
     private const int InputHeight = 4;
     private static readonly Rune NoHotKey = (Rune)0xffff;
@@ -98,16 +99,20 @@ public sealed class AssistantPane : View
 
     public void Clear() => Controller.Clear();
 
+    public void ToggleToolCalls() => Chat.ShowToolCallsInFull(!Controller.Conversation.ToolCallsInFull);
+
     // For an AppShell app: the pane's commands under its region in the keymap, so F1 lists them.
     public void Register(CommandRegistry commands, Keymap keys, CommandScope scope)
     {
         commands
             .Register(SendId, "Send question", Send, scope)
             .Register(StopId, "Stop answering", Stop, scope, isEnabled: () => Controller.IsAnswering)
-            .Register(ClearId, "Start a new conversation", Clear, scope);
+            .Register(ClearId, "Start a new conversation", Clear, scope)
+            .Register(ToolCallsId, "Show tool calls in full", ToggleToolCalls, scope);
         keys.Bind("Enter", SendId, scope)
             .Bind("Esc", StopId, scope)
-            .Bind("Ctrl+L", ClearId, scope);
+            .Bind("Ctrl+L", ClearId, scope)
+            .Bind("Ctrl+T T", ToolCallsId, scope);
     }
 
     // Registers the pane's region and commands with the shell, and asks the user there before the agent acts.
