@@ -193,8 +193,92 @@ public class AssistantPaneTests : StaticConfigurationTest
         Assert.Equal("Assistant", sheet!.Here!.Heading);
         // Esc only stops an answer, so it's listed while one is coming.
         Assert.Equal(
-            [("Enter", "Send question"), ("Ctrl+L", "Start a new conversation")],
+            [("Enter", "Send question"), ("Ctrl+L", "Start a new conversation"), ("Ctrl+T T", "Show tool calls in full")],
             sheet.Here.Groups.SelectMany(g => g.Rows).Select(r => (r.Keys, r.Label)));
+    }
+
+    [Fact]
+    public void Ctrl_T_T_in_the_pane_shows_every_call_and_again_folds_them_where_elsewhere_it_tries_the_theme()
+    {
+        using var window = new SwatchWindow(_host.Shell, _agent);
+        string? inFull = null;
+        _agent.OnPrompt = async (agent, _) =>
+        {
+            agent.Tool("a", "Read a.cs", "completed");
+            agent.Tool("b", "Read b.cs", "completed");
+            agent.Say("Done.");
+            await Task.Yield();
+        };
+        void Chord()
+        {
+            _host.App.InjectKey(Key.T.WithCtrl);
+            _host.App.InjectKey(Key.T);
+        }
+
+        _host.Run(window,
+            Open,
+            () => window.Assistant.InputHasFocus,
+            () => Type("Why?"),
+            () => _host.App.InjectKey(Key.Enter),
+            () => Chat(window.Assistant).EndsWith("Done.") && !window.Assistant.Controller.IsAnswering,
+            Chord,
+            () => Chat(window.Assistant).Contains("▸ Read a.cs"),
+            () => { inFull = Chat(window.Assistant); },
+            Chord,
+            () => !Chat(window.Assistant).Contains("▸ Read a.cs"));
+
+        Assert.EndsWith("▸ Read a.cs\n▸ Read b.cs\nDone.", inFull);
+        Assert.EndsWith("Demo agent\n▸ Read b.cs (+1)\nDone.", Chat(window.Assistant));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Toggling_keeps_the_row_at_the_top_in_view(bool startInFull)
+    {
+        var conversation = new Conversation { AgentName = "Claude Code", StartsInFull = startInFull };
+        conversation.Clear();
+        conversation.Apply(new MessageChunk(ChatRole.Agent, string.Join('\n', Enumerable.Range(1, 10).Select(i => $"before {i}"))));
+        foreach (var call in Enumerable.Range(1, 5)) conversation.Apply(new ToolCallUpdate($"{call}", $"Read {call}.cs", "completed"));
+        conversation.Apply(new MessageChunk(ChatRole.Agent, string.Join('\n', Enumerable.Range(1, 40).Select(i => $"after {i}"))));
+        var chat = new ChatView(conversation) { Width = 40, Height = 10 };
+        chat.SetRelativeLayout(new System.Drawing.Size(40, 10));
+        var rows = chat.Lines.Select(l => l.Text).ToList();
+        chat.Viewport = chat.Viewport with { Y = rows.IndexOf("after 3") };
+
+        chat.ShowToolCallsInFull(!startInFull);
+
+        Assert.Equal("after 3", chat.Lines[chat.Viewport.Y].Text);
+    }
+
+    [Fact]
+    public void Toggling_at_the_end_stays_at_the_end()
+    {
+        var conversation = new Conversation { AgentName = "Claude Code" };
+        foreach (var call in Enumerable.Range(1, 5)) conversation.Apply(new ToolCallUpdate($"{call}", $"Read {call}.cs", "completed"));
+        conversation.Apply(new MessageChunk(ChatRole.Agent, string.Join('\n', Enumerable.Range(1, 40).Select(i => $"after {i}"))));
+        var chat = new ChatView(conversation) { Width = 40, Height = 10 };
+        chat.SetRelativeLayout(new System.Drawing.Size(40, 10));
+        chat.Viewport = chat.Viewport with { Y = chat.Lines.Count - 10 };
+
+        chat.ShowToolCallsInFull(true);
+
+        Assert.True(chat.AtBottom);
+    }
+
+    [Fact]
+    public void Folding_with_a_folded_away_call_at_the_top_lands_on_the_row_that_stands_for_it()
+    {
+        var conversation = new Conversation { AgentName = "Claude Code", ToolCallsInFull = true };
+        foreach (var call in Enumerable.Range(1, 5)) conversation.Apply(new ToolCallUpdate($"{call}", $"Read {call}.cs", "completed"));
+        conversation.Apply(new MessageChunk(ChatRole.Agent, string.Join('\n', Enumerable.Range(1, 40).Select(i => $"after {i}"))));
+        var chat = new ChatView(conversation) { Width = 40, Height = 10 };
+        chat.SetRelativeLayout(new System.Drawing.Size(40, 10));
+        chat.Viewport = chat.Viewport with { Y = 2 };
+
+        chat.ShowToolCallsInFull(false);
+
+        Assert.Equal("▸ Read 5.cs (+4)", chat.Lines[chat.Viewport.Y].Text);
     }
 
     [Fact]
