@@ -541,7 +541,8 @@ on `todo.md`. In Swatch, quit with focus in *Roles* and reopen: focus is in *Rol
 edits: a tree, a list, a history, the Assistant. The main pane takes what's left. The app says which
 panes are side panes; no other pane is resizable.
 
-- **Drag its inner border**, the one facing the main pane, with the mouse.
+- **Drag its inner border**, the one facing the main pane, with the mouse. Focus stays where it was,
+  and nothing else appears: a drag only changes the width.
 - ***Widen pane* and *Narrow pane* resize the focused side pane by 5 columns.** They're in the command
   palette, and only while focus is in a side pane (see *Only what works here*). They have no keys:
   anyone who wants one gives it one on *Settings › Keys* (see *Changing keys*), and `F1` lists it.
