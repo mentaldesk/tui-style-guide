@@ -463,6 +463,82 @@ public class MultiLineFieldTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void A_terminal_paste_puts_in_what_the_terminal_sent_not_the_clipboard()
+    {
+        var platform = new TestClipboard { Text = "from the clipboard" };
+        _host = new Host(platform);
+        Run(
+            () => Type("ab"),
+            () => Field.Text == "ab",
+            () => Press(Key.CursorLeft),
+            () => Assert.True(Host.App.RaisePasteEvent("one\r\ntwo")),
+            () => Field.Text == "aone\ntwob" && Field.CaretOffset == 8,
+            () => Assert.Equal("from the clipboard", platform.Text),
+            () => Press(Key.Z.WithCtrl),
+            () => Field.Text == "ab",
+            () => Press(Key.Esc));
+    }
+
+    [Fact]
+    public void A_terminal_paste_replaces_the_selection()
+    {
+        Run(
+            () => Type("old"),
+            () => Field.Text == "old",
+            () => Press(Key.A.WithCtrl),
+            () => Field.HasSelection,
+            () => { Host.App.RaisePasteEvent("new"); },
+            () => Field.Text == "new",
+            () => Press(Key.Esc));
+    }
+
+    [Fact]
+    public void A_terminal_paste_elsewhere_leaves_the_field_alone()
+    {
+        Run(
+            () => Type("ab"),
+            () => Field.Text == "ab",
+            () => Press(Key.Tab),
+            () => !Field.HasFocus,
+            () => { Host.App.RaisePasteEvent("no"); },
+            () => Assert.Equal("ab", Field.Text),
+            () => Press(Key.Esc));
+    }
+
+    [Fact]
+    public void Ctrl_K_deletes_to_the_end_of_the_line_then_the_line_break_and_undoes()
+    {
+        var platform = new TestClipboard();
+        _host = new Host(platform);
+        Run(
+            () => Type("hello"),
+            () => Field.Text == "hello",
+            () => Press(Key.Enter),
+            () => Type("you"),
+            () => Field.Text == "hello\nyou",
+            () => { Field.CaretOffset = 2; Press(Key.K.WithCtrl); },
+            () => Field.Text == "he\nyou" && Field.CaretOffset == 2,
+            () => Assert.Equal("llo", platform.Text),
+            () => Press(Key.K.WithCtrl),
+            () => Field.Text == "heyou",
+            () => Press(Key.Z.WithCtrl),
+            () => Field.Text == "he\nyou",
+            () => Press(Key.Esc));
+    }
+
+    [Fact]
+    public void Ctrl_K_deletes_even_when_the_clipboard_refuses_the_text()
+    {
+        _host = new Host(new TestClipboard { Transform = _ => null });
+        Run(
+            () => Type("hello"),
+            () => Field.Text == "hello",
+            () => { Field.CaretOffset = 2; Press(Key.K.WithCtrl); },
+            () => Field.Text == "he",
+            () => Press(Key.Esc));
+    }
+
+    [Fact]
     public void A_copy_that_lands_nowhere_says_so_in_the_dialog_and_keeps_the_selection()
     {
         Run(

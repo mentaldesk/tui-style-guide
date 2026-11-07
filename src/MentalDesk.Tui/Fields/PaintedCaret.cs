@@ -29,11 +29,13 @@ internal sealed class PaintedCaret
     }
 
     /// <summary>Call last in the field's draw, once the framework has placed its cursor.</summary>
-    public void Paint()
+    /// <param name="unplaced">Where the caret goes in the viewport when the framework found no cell for it.</param>
+    public void Paint(Point? unplaced = null)
     {
         Hide();
         _drawnAt = _field.Cursor.Position;
-        if (!_field.HasFocus || _drawnAt is not { } screen || _field.App?.Driver?.Contents is not { } contents) return;
+        var placed = _drawnAt ?? (unplaced is { } cell ? _field.ViewportToScreen(cell) : null);
+        if (!_field.HasFocus || placed is not { } screen || _field.App?.Driver?.Contents is not { } contents) return;
         var at = _field.ScreenToViewport(screen);
         if (at.X < 0 || at.Y < 0 || at.X >= _field.Viewport.Width || at.Y >= _field.Viewport.Height
             || screen.X < 0 || screen.Y < 0 || screen.Y >= contents.GetLength(0) || screen.X >= contents.GetLength(1)) return;

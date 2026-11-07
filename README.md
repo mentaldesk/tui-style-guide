@@ -55,7 +55,10 @@ Pick the control that matches the *shape of the input*, not the one that is easi
 
 `MultiLineField` is Terminal.Gui.Editor, which replaces the obsolete `TextView`, set to this guide's
 rules: it wraps, shows a dimmed `Placeholder` while empty, undoes and selects like an editor, and
-copies through the library's clipboard. In Swatch, *Help › Writing a comment…* has one.
+copies through the library's clipboard. `Ctrl+K` deletes to the end of the line, even when the clipboard
+refuses the text. The terminal's own paste puts in what the terminal sent, as one undo step, which over
+SSH is the laptop's clipboard rather than the remote one `Ctrl+V` reads. In Swatch, *Help › Writing a
+comment…* has one.
 
 It moves the caret with the keys a Mac user already knows:
 
@@ -1091,7 +1094,8 @@ or ignore it, and then the caret can vanish against the theme's background. A pa
 
 - **A caret is a solid block over the character at the insertion point,** in the theme's `Cursor`
   scheme: the block in its `Normal` foreground, the character under it in its `Normal` background, so
-  it stays readable. At the end of a line it covers the empty cell after the last character. A bar
+  it stays readable. At the end of a line it covers the empty cell after the last character, which at
+  the end of a full row is the first cell of the row below, where the next character will go. A bar
   can't share a cell with the character it's before, so a painted bar would hide it.
 - **It doesn't read as a selection.** A selection is a run of cells in the selection colour; the caret
   is one cell in its own.

@@ -3,6 +3,7 @@ using MentalDesk.Tui.Dialogs;
 using MentalDesk.Tui.Focus;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.Editor.Rendering;
+using Point = System.Drawing.Point;
 
 namespace MentalDesk.Tui.Fields;
 
@@ -30,6 +31,8 @@ public sealed class MultiLineField : Terminal.Gui.Editor.Editor
     private readonly FocusBorder _border;
     private readonly PaintedCaret _caret;
     private string? _copyFailure;
+    private IApplication? _pasteSource;
+    private (int Caret, int Width, int Length) _keptInView;
 
     public MultiLineField()
     {
@@ -41,6 +44,8 @@ public sealed class MultiLineField : Terminal.Gui.Editor.Editor
         foreach (var (key, command) in MacWordKeys)
             KeyBindings.ReplaceCommands(key, command);
         KeyBindings.Add(DeleteToLineStart, Command.CutToStartOfLine);
+        KeyBindings.Add(Key.K.WithCtrl, Command.CutToEndOfLine);
+        AddCommand(Command.CutToEndOfLine, CutToEndOfLine);
         AddCommand(Command.LeftStart, () => MoveTo(VisibleRow().Start, extend: false));
         AddCommand(Command.RightEnd, () => MoveTo(VisibleRow().End, extend: false));
         AddCommand(Command.LeftStartExtend, () => MoveTo(VisibleRow().Start, extend: true));
@@ -58,12 +63,15 @@ public sealed class MultiLineField : Terminal.Gui.Editor.Editor
         });
         _border = new FocusBorder(this);
         _caret = new PaintedCaret(this);
+        CaretChanged += (_, _) => SetNeedsDraw();
     }
 
     public string Placeholder { get; set; } = string.Empty;
 
     protected override bool OnDrawingContent(DrawContext? context)
     {
+        var caret = CaretRow();
+        KeepInView(caret);
         base.OnDrawingContent(context);
         if (Text.Length == 0 && Placeholder.Length > 0)
         {
@@ -72,7 +80,7 @@ public sealed class MultiLineField : Terminal.Gui.Editor.Editor
             AddStr(Placeholder.Length > Viewport.Width ? Placeholder[..Viewport.Width] : Placeholder);
             SetAttribute(GetAttributeForRole(VisualRole.Normal));
         }
-        _caret.Paint();
+        _caret.Paint(caret.PastRow ? new Point(0, caret.Row - Viewport.Y) : null);
         return true;
     }
 
@@ -80,6 +88,81 @@ public sealed class MultiLineField : Terminal.Gui.Editor.Editor
     {
         base.OnHasFocusChanged(newHasFocus, previousFocusedView, focusedView);
         _border.Show(newHasFocus);
+        if (!newHasFocus || App is not { } app || app == _pasteSource) return;
+        if (_pasteSource is not null) _pasteSource.Paste -= OnTerminalPaste;
+        _pasteSource = app;
+        app.Paste += OnTerminalPaste;
+    }
+
+    // Editor reads a bracketed paste from the clipboard rather than the terminal, so it's taken before Editor sees it.
+    private void OnTerminalPaste(object? sender, PasteEventArgs e)
+    {
+        if (e.Handled || App?.Navigation?.GetFocused() != this) return;
+        e.Handled = true;
+        if (ReadOnly) return;
+        var text = e.Text.ReplaceLineEndings("\n");
+        using (Document!.RunUpdate())
+        {
+            if (HasSelection) ReplaceSelection(text);
+            else Document.Insert(CaretOffset, text);
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing && _pasteSource is not null) _pasteSource.Paste -= OnTerminalPaste;
+        base.Dispose(disposing);
+    }
+
+    // Editor's deletes nothing when the clipboard refuses the text.
+    private bool? CutToEndOfLine()
+    {
+        if (ReadOnly) return true;
+        var line = Document!.GetLineByOffset(CaretOffset);
+        var end = line.Offset + line.Length;
+        var (start, length) = CaretOffset < end ? (CaretOffset, end - CaretOffset) : (end, line.DelimiterLength);
+        if (length == 0) return true;
+        App?.Clipboard?.TrySetClipboardData(Document.GetText(start, length));
+        Document.Remove(start, length);
+        return true;
+    }
+
+    private IReadOnlyList<WrapSegment> Segments(string text) =>
+        WordWrapStrategy.ComputeSegments(text, Viewport.Width > 0 ? Viewport.Width : 80, IndentationSize);
+
+    private static int SegmentAt(IReadOnlyList<WrapSegment> segments, int offset)
+    {
+        var index = segments.Count - 1;
+        while (index > 0 && segments[index].StartOffset > offset)
+            index--;
+        return index;
+    }
+
+    // Editor has no cell for a caret past the end of a full row, so it goes where the next character will: the start of the row below.
+    private (int Row, bool PastRow) CaretRow()
+    {
+        var line = Document!.GetLineByOffset(CaretOffset);
+        var text = Document.GetText(line);
+        var segments = Segments(text);
+        var inLine = CaretOffset - line.Offset;
+        var index = SegmentAt(segments, inLine);
+        var row = Document.Lines.TakeWhile(other => other != line).Sum(other => Segments(Document.GetText(other)).Count) + index;
+        var past = inLine > segments[index].StartOffset + segments[index].Length
+            || (inLine == text.Length && Segments(text + "x").Count > segments.Count);
+        return past ? (row + 1, true) : (row, false);
+    }
+
+    // Only when the caret, the text or the width changes, so the wheel can still scroll away from the caret.
+    private void KeepInView((int Row, bool PastRow) caret)
+    {
+        var state = (CaretOffset, Viewport.Width, Document!.TextLength);
+        if (!HasFocus || Viewport.Height == 0 || state == _keptInView) return;
+        _keptInView = state;
+        var top = Math.Clamp(Viewport.Y, Math.Max(0, caret.Row - Viewport.Height + 1), caret.Row);
+        // That row can be past Editor's content: a row below the last, or a scroll bar has just narrowed the text.
+        if (top + Viewport.Height > GetContentSize().Height) ViewportSettings |= ViewportSettingsFlags.AllowYPlusHeightGreaterThanContentHeight;
+        else ViewportSettings &= ~ViewportSettingsFlags.AllowYPlusHeightGreaterThanContentHeight;
+        if (top != Viewport.Y) Viewport = Viewport with { Y = top };
     }
 
     protected override bool OnKeyDownNotHandled(Key key) =>
@@ -93,10 +176,8 @@ public sealed class MultiLineField : Terminal.Gui.Editor.Editor
     {
         var line = Document!.GetLineByOffset(CaretOffset);
         var text = Document.GetText(line);
-        var segments = WordWrapStrategy.ComputeSegments(text, Viewport.Width > 0 ? Viewport.Width : 80, IndentationSize);
-        var index = segments.Count - 1;
-        while (index > 0 && segments[index].StartOffset > CaretOffset - line.Offset)
-            index--;
+        var segments = Segments(text);
+        var index = SegmentAt(segments, CaretOffset - line.Offset);
         var row = segments[index];
         var end = row.StartOffset + row.Length;
         if (index < segments.Count - 1)
