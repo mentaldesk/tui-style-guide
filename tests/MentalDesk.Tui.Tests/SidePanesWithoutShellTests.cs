@@ -62,6 +62,72 @@ public class SidePanesWithoutShellTests : StaticConfigurationTest
         Assert.Equal(43, _history.Frame.Width);
     }
 
+    private SidePanes TwoFifths(int columns)
+    {
+        var panes = new SidePanes(_row, () => _focused, _said.Add, () => _file, written => _file = written)
+            .AddMain(_body)
+            .AddSide(_history, History, width => width * 2 / 5);
+        _row.Add(_body, _history);
+        Lay(columns);
+        return panes;
+    }
+
+    [Fact]
+    public void A_default_that_follows_the_window_follows_it_until_a_width_is_chosen()
+    {
+        var panes = TwoFifths(200);
+        Assert.Equal(80, _history.Frame.Width);
+        Lay(150);
+        Assert.Equal(60, _history.Frame.Width);
+        Assert.Null(_file);
+
+        panes.Widen();
+        Lay(150);
+        Assert.Equal(65, _history.Frame.Width);
+        Lay(200);
+        Assert.Equal(65, _history.Frame.Width);
+        Assert.Equal(65, (int)_file!["History"]!);
+    }
+
+    [Fact]
+    public void Reset_goes_back_to_following_the_window()
+    {
+        var panes = TwoFifths(200);
+        panes.Widen();
+        Lay(200);
+        Assert.Equal(85, _history.Frame.Width);
+
+        panes.Reset();
+        Lay(150);
+
+        Assert.Equal(60, _history.Frame.Width);
+        Assert.Null(_file!["History"]);
+    }
+
+    [Fact]
+    public void A_width_chosen_equal_to_the_default_stays_when_the_window_changes()
+    {
+        var panes = TwoFifths(200);
+        panes.Widen();
+        panes.Narrow();
+        Lay(150);
+
+        Assert.Equal(80, _history.Frame.Width);
+    }
+
+    [Fact]
+    public void A_default_that_follows_the_window_still_leaves_the_main_pane_40_columns()
+    {
+        new SidePanes(_row, () => _focused, _said.Add, () => _file, written => _file = written)
+            .AddMain(_body)
+            .AddSide(_history, History, width => width / 2);
+        _row.Add(_body, _history);
+        Lay(70);
+
+        Assert.Equal(30, _history.Frame.Width);
+        Assert.Equal(40, _body.Frame.Width);
+    }
+
     [Fact]
     public void A_width_the_app_kept_is_used_and_one_too_narrow_is_ignored()
     {

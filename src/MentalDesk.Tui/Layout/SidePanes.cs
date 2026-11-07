@@ -65,15 +65,18 @@ public sealed class SidePanes
     // In reading order, left to right.
     public SidePanes AddMain(View view)
     {
-        Place(new Pane(view, null, 0));
+        Place(new Pane(view, null, _ => 0));
         _main ??= _panes[^1];
         Arrange();
         return this;
     }
 
-    public SidePanes AddSide(View view, FocusRegion region, int defaultWidth)
+    public SidePanes AddSide(View view, FocusRegion region, int defaultWidth) => AddSide(view, region, _ => defaultWidth);
+
+    // A default that follows the row's width, until the user chooses one.
+    public SidePanes AddSide(View view, FocusRegion region, Func<int, int> defaultWidth)
     {
-        Place(new Pane(view, region, defaultWidth) { Chosen = Saved(region) ?? defaultWidth });
+        Place(new Pane(view, region, defaultWidth) { Chosen = Saved(region) });
         Arrange();
         return this;
     }
@@ -91,8 +94,8 @@ public sealed class SidePanes
     {
         var shown = _panes.Where(pane => pane.View.Visible).ToList();
         var main = shown.Contains(_main!) ? _main : null;
-        var widths = shown.ToDictionary(pane => pane, pane => pane == main ? 0 : pane.Chosen);
         var room = _row.Viewport.Width;
+        var widths = shown.ToDictionary(pane => pane, pane => pane == main ? 0 : pane.Chosen ?? pane.Default(room));
         GiveWay(widths, main, room - (main is null ? 0 : MinimumMainWidth), MinimumWidth);
         GiveWay(widths, main, room, 0);
         if (main is not null)
@@ -152,7 +155,7 @@ public sealed class SidePanes
     public void Reset()
     {
         if (Focused() is not { } pane) return;
-        Choose(pane, pane.Default);
+        Choose(pane, null);
     }
 
     private void Resize(int step)
@@ -168,12 +171,12 @@ public sealed class SidePanes
         Choose(pane, width);
     }
 
-    private void Choose(Pane pane, int width)
+    private void Choose(Pane pane, int? width)
     {
         pane.Chosen = width;
         _row.SetNeedsLayout();
         var widths = _read()?.DeepClone() as JsonObject ?? [];
-        if (width == pane.Default)
+        if (width is null)
             widths.Remove(pane.Region!.Name);
         else
             widths[pane.Region!.Name] = width;
@@ -189,14 +192,14 @@ public sealed class SidePanes
     private Pane? Focused() =>
         _panes.FirstOrDefault(pane => pane.Region is not null && pane.Region == _focused() && pane != _main && pane.View.Visible);
 
-    private sealed class Pane(View view, FocusRegion? region, int defaultWidth)
+    private sealed class Pane(View view, FocusRegion? region, Func<int, int> defaultWidth)
     {
         public View View { get; } = view;
 
         public FocusRegion? Region { get; } = region;
 
-        public int Default { get; } = defaultWidth;
+        public Func<int, int> Default { get; } = defaultWidth;
 
-        public int Chosen { get; set; } = defaultWidth;
+        public int? Chosen { get; set; }
     }
 }
