@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Reflection;
 using MentalDesk.Tui.Fields;
 using MentalDesk.Tui.Shell;
 using MentalDesk.Tui.Theming;
@@ -123,6 +124,93 @@ public class PaintedCaretTests : StaticConfigurationTest
             () => CaretAt(_box, 1, 0, "n"),
             () => { _box.CaretOffset = 5; },
             () => CaretAt(_box, 5, 0, "w"));
+    }
+
+    private void RunFocusedBeforeTheAppRuns(View field, params Delegate[] steps)
+    {
+        using var window = new AppWindow(_host.Shell);
+        window.Add(_line, _box);
+        field.SetFocus();
+        _host.Run(window, [() => field.HasFocus, .. steps]);
+    }
+
+    [Fact]
+    public void A_one_line_field_focused_before_the_app_runs_follows_every_move_without_waiting_for_a_keystroke()
+    {
+        RunFocusedBeforeTheAppRuns(_line,
+            () => Type("one two"),
+            () => _line.Text == "one two",
+            () => Press(Key.CursorLeft),
+            () => CaretAt(_line, 6, 0, "o"),
+            () => Press(Key.Home),
+            () => CaretAt(_line, 0, 0, "o"),
+            () => Press(Key.CursorRight),
+            () => CaretAt(_line, 1, 0, "n"),
+            () => Press(Key.End),
+            () => CaretAt(_line, 7, 0, " "),
+            () => { _line.InsertionPoint = 1; },
+            () => CaretAt(_line, 1, 0, "n"));
+    }
+
+    [Fact]
+    public void A_multi_line_field_focused_before_the_app_runs_follows_every_move_without_waiting_for_a_keystroke()
+    {
+        RunFocusedBeforeTheAppRuns(_box,
+            () => Type("one two"),
+            () => _box.Text == "one two",
+            () => Press(Key.CursorLeft),
+            () => CaretAt(_box, 6, 0, "o"),
+            () => { _box.CaretOffset = 1; },
+            () => CaretAt(_box, 1, 0, "n"));
+    }
+
+    private static void MoveFrameworkCursor(View field) =>
+        field.Cursor = field.Cursor with { Position = new Point(1, 1) };
+
+    [Fact]
+    public void A_field_focused_before_the_app_runs_stops_following_once_it_loses_focus()
+    {
+        var draws = 0;
+        RunFocusedBeforeTheAppRuns(_line,
+            () => Type("ab"),
+            () => CaretAt(_line, 2, 0, " "),
+            () => _box.SetFocus(),
+            () => Carets(_line) == 0 && !_line.NeedsDraw,
+            () =>
+            {
+                _line.DrawComplete += (_, _) => draws++;
+                MoveFrameworkCursor(_line);
+            },
+            () => { },
+            () => { },
+            () => { });
+
+        Assert.Equal(0, draws);
+    }
+
+    [Fact]
+    public void A_field_focused_before_the_app_runs_stops_following_once_it_is_disposed()
+    {
+        var before = false;
+        RunFocusedBeforeTheAppRuns(_line,
+            () => Type("ab"),
+            () => CaretAt(_line, 2, 0, " "),
+            () =>
+            {
+                before = CaretListening();
+                _line.SuperView!.Remove(_line);
+                _line.Dispose();
+            });
+
+        Assert.True(before);
+        Assert.False(CaretListening());
+    }
+
+    private bool CaretListening()
+    {
+        var iteration = _host.App.GetType().GetField(nameof(IApplication.Iteration), BindingFlags.Instance | BindingFlags.NonPublic)!;
+        return iteration.GetValue(_host.App) is Delegate listeners
+            && listeners.GetInvocationList().Any(listener => listener.Target is PaintedCaret);
     }
 
     [Fact]
