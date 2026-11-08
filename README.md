@@ -246,8 +246,9 @@ until `Ctrl+Enter`. Not as you type, and not on leaving a field.
   and focus goes to the first. No error row under the field, no icon, no glyph.
 - **The message block speaks for the focused field, and names it**: `Title is needed  •  1 more to fix`.
   `Tab` to another marked field and the message follows.
-- **Marks clear as the user fixes them.** After a refusal, a marked field re-checks as it changes, and its
-  mark goes when it passes. The message clears with the last mark, and the dialog shrinks back.
+- **Marks clear as the user fixes them.** After a refusal, a marked field re-checks as it changes, or as a
+  choice its check depends on changes, and its mark goes when it passes. The message clears with the last
+  mark, and the dialog shrinks back.
 - **Empty never cancels.** Confirming an empty field says what's needed. Only `Esc` cancels.
 - **Mark the optional field, not the required one**: `Folder (optional)`. No asterisks.
 - **A refusal from disk or a server about one field works the same way.** `There's already a theme named
