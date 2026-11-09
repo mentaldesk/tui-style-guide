@@ -33,6 +33,8 @@ internal sealed class PaintedCaret
     public void Paint(Point? unplaced = null)
     {
         Hide();
+        // A field focused before the app runs had no App to listen to until now.
+        if (_field.HasFocus) Listen(_field.App);
         _drawnAt = _field.Cursor.Position;
         var placed = _drawnAt ?? (unplaced is { } cell ? _field.ViewportToScreen(cell) : null);
         if (!_field.HasFocus || placed is not { } screen || _field.App?.Driver?.Contents is not { } contents) return;
@@ -53,10 +55,16 @@ internal sealed class PaintedCaret
 
     private void Follow(bool focused)
     {
-        if (_app is not null) _app.Iteration -= OnIteration;
-        _app = focused ? _field.App : null;
-        if (_app is not null) _app.Iteration += OnIteration;
+        Listen(focused ? _field.App : null);
         _field.SetNeedsDraw();
+    }
+
+    private void Listen(IApplication? app)
+    {
+        if (app == _app) return;
+        if (_app is not null) _app.Iteration -= OnIteration;
+        _app = app;
+        if (_app is not null) _app.Iteration += OnIteration;
     }
 
     // The framework moves its own cursor without a redraw, so a painted one has to ask for one.
