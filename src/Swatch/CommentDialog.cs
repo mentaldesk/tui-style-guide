@@ -23,9 +23,14 @@ internal sealed class CommentDialog : AppDialog
         PostButton.Y = CancelButton.Y = 10;
         var titleLabel = new Label { Text = "Title", X = 1, Y = 0 };
         var bodyLabel = new Label { Text = "Comment", X = 1, Y = 2 };
-        Add(titleLabel, TitleField, bodyLabel, Body, PostButton, CancelButton);
+        BodyOptional.ValueChanged += (_, _) =>
+        {
+            bodyLabel.Text = IsBodyOptional ? "Comment (optional)" : "Comment";
+            Recheck();
+        };
+        Add(titleLabel, TitleField, bodyLabel, Body, BodyOptional, PostButton, CancelButton);
         Check(TitleField, titleLabel, () => string.IsNullOrWhiteSpace(TitleField.Text) ? "Title is needed" : null);
-        Check(Body, bodyLabel, () => string.IsNullOrWhiteSpace(Body.Text) ? "Comment is needed" : null);
+        Check(Body, bodyLabel, () => !IsBodyOptional && string.IsNullOrWhiteSpace(Body.Text) ? "Comment is needed" : null);
 
         Commands.Register(PostId, "Post", Post);
         Keys.Bind("Ctrl+Enter", PostId);
@@ -35,6 +40,10 @@ internal sealed class CommentDialog : AppDialog
     public TextField TitleField { get; } = new PlaceholderField { X = 1, Y = 1, Width = Dim.Fill(1) };
 
     public MultiLineField Body { get; }
+
+    public CheckBox BodyOptional { get; } = new() { Text = "Title _only", X = 1, Y = 9, CanFocus = false };
+
+    private bool IsBodyOptional => BodyOptional.Value == CheckState.Checked;
 
     public Button PostButton { get; }
 

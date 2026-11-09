@@ -121,6 +121,14 @@ public abstract class AppDialog : Dialog
         return false;
     }
 
+    // For a change outside the field that its check reads, such as a choice that makes it optional.
+    protected void Recheck()
+    {
+        foreach (var check in _checks.Where(check => check.Refusal is not null))
+            check.Mark(check.Refuses());
+        SayRefusals();
+    }
+
     // The key is on the label, so the button never takes focus from where the user is typing.
     protected Button CommandButton(ButtonKind kind, string commandId)
     {
