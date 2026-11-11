@@ -54,7 +54,7 @@ Pick the control that matches the *shape of the input*, not the one that is easi
 | Progress of a known-length job | `ProgressBar` |
 
 `MultiLineField` is Terminal.Gui.Editor, which replaces the obsolete `TextView`, set to this guide's
-rules: it wraps, shows a dimmed `Placeholder` while empty, undoes and selects like an editor, and
+rules: it wraps, shows a dimmed `Placeholder` while empty, wrapped as text is, undoes and selects like an editor, and
 copies through the library's clipboard. `Ctrl+K` deletes to the end of the line, even when the clipboard
 refuses the text. The terminal's own paste puts in what the terminal sent, as one undo step, which over
 SSH is the laptop's clipboard rather than the remote one `Ctrl+V` reads. In Swatch, *Help › Writing a

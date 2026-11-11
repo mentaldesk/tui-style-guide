@@ -107,6 +107,29 @@ public class MultiLineFieldTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void A_placeholder_wider_than_the_field_wraps_at_a_word()
+    {
+        var rows = new List<string>();
+        var placeholder = string.Join(' ', Enumerable.Range(1, 30).Select(n => $"w{n}"));
+        Run(
+            () =>
+            {
+                Field.Placeholder = placeholder;
+                Field.SetNeedsDraw();
+            },
+            () => Row(Field, 1).Length > 0,
+            () =>
+            {
+                rows.Add(Row(Field, 0));
+                rows.Add(Row(Field, 1));
+                Press(Key.Esc);
+            });
+
+        Assert.StartsWith("w1 w2", rows[0]);
+        Assert.StartsWith(rows[0] + " " + rows[1] + " ", placeholder);
+    }
+
+    [Fact]
     public void Enter_starts_a_new_line_and_Ctrl_Enter_posts()
     {
         string? text = null;
