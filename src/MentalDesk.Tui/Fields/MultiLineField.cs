@@ -76,8 +76,12 @@ public sealed class MultiLineField : Terminal.Gui.Editor.Editor
         if (Text.Length == 0 && Placeholder.Length > 0)
         {
             SetAttribute(GetAttributeForRole(VisualRole.ReadOnly));
-            Move(0, 0);
-            AddStr(Placeholder.Length > Viewport.Width ? Placeholder[..Viewport.Width] : Placeholder);
+            foreach (var (segment, row) in Segments(Placeholder).Take(Viewport.Height).Select((segment, row) => (segment, row)))
+            {
+                var line = Placeholder.Substring(segment.StartOffset, segment.Length).TrimEnd();
+                Move(0, row);
+                AddStr(line.Length > Viewport.Width ? line[..Viewport.Width] : line);
+            }
             SetAttribute(GetAttributeForRole(VisualRole.Normal));
         }
         _caret.Paint(caret.PastRow ? new Point(0, caret.Row - Viewport.Y) : null);
