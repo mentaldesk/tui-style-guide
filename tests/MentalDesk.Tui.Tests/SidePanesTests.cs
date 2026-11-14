@@ -143,6 +143,43 @@ public class SidePanesTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void A_drag_leaves_focus_where_it_is_and_shows_no_arrange_buttons()
+    {
+        using var window = new SwatchWindow(_host.Shell);
+        var focus = new List<string>();
+
+        Run(window, 140,
+            () => { window.PreviewPane.SetFocus(); },
+            () => FocusWord == "Preview",
+            () => Mouse(23, MouseFlags.LeftButtonPressed),
+            () => focus.Add(FocusWord),
+            () => Assert.Empty(window.ThemesPane.Border!.View!.SubViews),
+            () => Mouse(33, MouseFlags.LeftButtonPressed | MouseFlags.PositionReport),
+            () => window.ThemesPane.Frame.Width == 34,
+            () => focus.Add(FocusWord),
+            () => Mouse(33, MouseFlags.LeftButtonReleased),
+            () => Mouse(33, MouseFlags.LeftButtonClicked),
+            () => focus.Add(FocusWord));
+
+        Assert.Equal(["Preview", "Preview", "Preview"], focus);
+    }
+
+    [Fact]
+    public void A_drag_saves_when_it_ends_rather_than_at_each_column()
+    {
+        using var window = new SwatchWindow(_host.Shell);
+
+        Run(window, 140,
+            () => Mouse(23, MouseFlags.LeftButtonPressed),
+            () => Mouse(33, MouseFlags.LeftButtonPressed | MouseFlags.PositionReport),
+            () => window.ThemesPane.Frame.Width == 34,
+            () => Assert.Null(Saved("Themes")),
+            () => Mouse(33, MouseFlags.LeftButtonReleased));
+
+        Assert.Equal(34, (int)Saved("Themes")!);
+    }
+
+    [Fact]
     public void A_drag_stops_at_the_limit_rather_than_jumping()
     {
         using var window = new SwatchWindow(_host.Shell);
@@ -228,8 +265,10 @@ public class SidePanesTests : StaticConfigurationTest
             () => _host.Shell.Focus.Focus(SwatchWindow.RolesRegion),
             () => FocusWord == "Roles",
             () => Assert.False(_host.Shell.Commands.IsEnabled(SidePanes.WidenId)),
-            () => Assert.Equal(ViewArrangement.Fixed, window.RolesPane.Arrangement),
-            () => Assert.Equal(ViewArrangement.LeftResizable, window.Assistant.Arrangement));
+            () => Mouse(window.RolesPane.FrameToScreen().Right - 1, MouseFlags.LeftButtonPressed),
+            () => Mouse(40, MouseFlags.LeftButtonPressed | MouseFlags.PositionReport),
+            () => Mouse(40, MouseFlags.LeftButtonReleased),
+            () => Assert.Null(Saved("Roles")));
     }
 
     [Fact]

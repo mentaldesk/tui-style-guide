@@ -80,6 +80,34 @@ public class CheckingTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void A_choice_that_makes_a_marked_field_optional_clears_its_mark_and_the_message()
+    {
+        bool markedBefore = false, markedAfter = true;
+        string? after = "unset";
+        WriteComment(
+            () => { Comment!.TitleField.Text = "Hello"; },
+            () => Press(CtrlEnter.Key),
+            () => Comment!.Alert.Lines > 0,
+            () =>
+            {
+                markedBefore = Marked(Comment!, "Comment");
+                Press(Key.O.WithAlt);
+            },
+            () => Comment!.Alert.Lines == 0,
+            () =>
+            {
+                markedAfter = Marked(Comment!, "Comment (optional)");
+                after = Comment!.Alert.Message;
+                Press(CtrlEnter.Key);
+            },
+            () => Comment is null);
+
+        Assert.True(markedBefore);
+        Assert.False(markedAfter);
+        Assert.Equal("", after);
+    }
+
+    [Fact]
     public void The_message_follows_focus()
     {
         string? onBody = null, backOnTitle = null;

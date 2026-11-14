@@ -54,8 +54,11 @@ Pick the control that matches the *shape of the input*, not the one that is easi
 | Progress of a known-length job | `ProgressBar` |
 
 `MultiLineField` is Terminal.Gui.Editor, which replaces the obsolete `TextView`, set to this guide's
-rules: it wraps, shows a dimmed `Placeholder` while empty, undoes and selects like an editor, and
-copies through the library's clipboard. In Swatch, *Help › Writing a comment…* has one.
+rules: it wraps, shows a dimmed `Placeholder` while empty, wrapped as text is, undoes and selects like an editor, and
+copies through the library's clipboard. `Ctrl+K` deletes to the end of the line, even when the clipboard
+refuses the text. The terminal's own paste puts in what the terminal sent, as one undo step, which over
+SSH is the laptop's clipboard rather than the remote one `Ctrl+V` reads. In Swatch, *Help › Writing a
+comment…* has one.
 
 It moves the caret with the keys a Mac user already knows:
 
@@ -243,8 +246,9 @@ until `Ctrl+Enter`. Not as you type, and not on leaving a field.
   and focus goes to the first. No error row under the field, no icon, no glyph.
 - **The message block speaks for the focused field, and names it**: `Title is needed  •  1 more to fix`.
   `Tab` to another marked field and the message follows.
-- **Marks clear as the user fixes them.** After a refusal, a marked field re-checks as it changes, and its
-  mark goes when it passes. The message clears with the last mark, and the dialog shrinks back.
+- **Marks clear as the user fixes them.** After a refusal, a marked field re-checks as it changes, or as a
+  choice its check depends on changes, and its mark goes when it passes. The message clears with the last
+  mark, and the dialog shrinks back.
 - **Empty never cancels.** Confirming an empty field says what's needed. Only `Esc` cancels.
 - **Mark the optional field, not the required one**: `Folder (optional)`. No asterisks.
 - **A refusal from disk or a server about one field works the same way.** `There's already a theme named
@@ -538,7 +542,8 @@ on `todo.md`. In Swatch, quit with focus in *Roles* and reopen: focus is in *Rol
 edits: a tree, a list, a history, the Assistant. The main pane takes what's left. The app says which
 panes are side panes; no other pane is resizable.
 
-- **Drag its inner border**, the one facing the main pane, with the mouse.
+- **Drag its inner border**, the one facing the main pane, with the mouse. Focus stays where it was,
+  and nothing else appears: a drag only changes the width.
 - ***Widen pane* and *Narrow pane* resize the focused side pane by 5 columns.** They're in the command
   palette, and only while focus is in a side pane (see *Only what works here*). They have no keys:
   anyone who wants one gives it one on *Settings › Keys* (see *Changing keys*), and `F1` lists it.
@@ -569,10 +574,15 @@ its question box, and closes it again. It stays open while the user moves betwee
 - **A question carries what it's about**, so the user never has to name it. The line above the box says
   what the next question is about, the selection, and the question's heading repeats it:
   `You · Midnight › Base`.
-- **Answers stream in, with a `▸` line for each thing the agent looks at or does**, so a long answer
-  shows its progress.
-- **`Enter` sends, `Esc` stops the answer and keeps what arrived, `Ctrl+L` starts a new conversation.**
-  They're the pane's keys, listed under *Assistant* by `F1`.
+- **Answers stream in, with one `▸` row for each run of things the agent looks at or does**, so a long
+  answer shows its progress and still starts near the top. The row is the newest call, clipped with `…`
+  to fit, then `(+N)` for the earlier ones, and it updates in place as calls arrive. Text between calls
+  starts a new run, so the answer reads in order. A failed call keeps its own `▸ … (failed)` row and
+  isn't counted.
+- **`Enter` sends, `Esc` stops the answer and keeps what arrived, `Ctrl+L` starts a new conversation,
+  `Ctrl+T T` (*Show tool calls in full*) gives every call its own row and folds them again**, keeping
+  what you were reading in view. They're the pane's keys, listed under *Assistant* by `F1`. An app with
+  a setting for this says where a conversation starts; the key doesn't change it.
 - **In an app where `Esc` takes you back to the main work from anywhere, it does that from the pane
   too, and `Ctrl+H` (*halt*) stops the answer.** The answer keeps arriving while you're away, and the
   status bar says so. While no answer is coming, `Ctrl+H` in the pane does nothing, whatever it means
@@ -591,8 +601,8 @@ stops the answer. It talks to the agent, Claude Code by default, over the
 [Agent Client Protocol](https://agentclientprotocol.com), takes its own keys so it works in an app
 without `AppShell`, and asks with
 [`AssistantPermission`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Assistant/AssistantPermission.cs).
-In Swatch, *Help › Assistant* opens it beside the Roles pane, with a demo agent that streams a canned
-answer about the selected scheme and asks to run a command.
+In Swatch, *Help › Assistant* opens it beside the Roles pane, with a demo agent that makes a few tool
+calls, one of which fails, streams a canned answer about the selected scheme and asks to run a command.
 
 ### Finding keys
 
@@ -1092,7 +1102,8 @@ or ignore it, and then the caret can vanish against the theme's background. A pa
 
 - **A caret is a solid block over the character at the insertion point,** in the theme's `Cursor`
   scheme: the block in its `Normal` foreground, the character under it in its `Normal` background, so
-  it stays readable. At the end of a line it covers the empty cell after the last character. A bar
+  it stays readable. At the end of a line it covers the empty cell after the last character, which at
+  the end of a full row is the first cell of the row below, where the next character will go. A bar
   can't share a cell with the character it's before, so a painted bar would hide it.
 - **It doesn't read as a selection.** A selection is a run of cells in the selection colour; the caret
   is one cell in its own.

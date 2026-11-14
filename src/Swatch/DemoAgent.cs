@@ -3,8 +3,8 @@ using MentalDesk.Tui.Assistant;
 
 namespace Swatch;
 
-// Swatch has nothing for a real agent to look at, so its assistant is this: it streams a canned answer, shows a tool
-// call, and asks to run a command, which the user can allow or deny.
+// Swatch has nothing for a real agent to look at, so its assistant is this: it streams a canned answer, shows tool
+// calls folding, and asks to run a command, which the user can allow or deny.
 internal sealed class DemoAgent : IAgentLauncher
 {
     public static readonly AgentSpec Spec = new("demo", "Demo agent", "demo", [], null);
@@ -47,11 +47,10 @@ internal sealed class DemoAgent : IAgentLauncher
     // True when it was stopped.
     private async Task<bool> Answer(JsonRpcConnection connection, string? context, CancellationToken cancelled)
     {
-        Update(connection, new JsonObject
-        {
-            ["sessionUpdate"] = "tool_call", ["toolCallId"] = "look", ["title"] = $"Looked at {context ?? "the screen"}",
-            ["status"] = "completed",
-        });
+        Call(connection, "guide", "Read README.md", "completed");
+        Call(connection, "themes", "Read themes.json", "completed");
+        Call(connection, "search", "Searched for the agent", "failed");
+        Call(connection, "look", $"Looked at {context ?? "the screen"}", "completed");
         if (await Say(connection, "This is Swatch's demo agent, so it can't really answer. In TuiCode and a-team the pane runs " +
             "Claude Code, which reads what you asked about and answers here. Next it asks before it runs a command.", cancelled))
             return true;
@@ -66,6 +65,9 @@ internal sealed class DemoAgent : IAgentLauncher
         var allowed = answer?["outcome"]?["optionId"]?.GetValue<string>() == "allow";
         return await Say(connection, allowed ? "\n\nYou allowed it, but this is a demo, so nothing ran." : "\n\nYou denied it, so it didn't run.", cancelled);
     }
+
+    private static void Call(JsonRpcConnection connection, string id, string title, string status) =>
+        Update(connection, new JsonObject { ["sessionUpdate"] = "tool_call", ["toolCallId"] = id, ["title"] = title, ["status"] = status });
 
     private async Task<bool> Say(JsonRpcConnection connection, string text, CancellationToken cancelled)
     {
