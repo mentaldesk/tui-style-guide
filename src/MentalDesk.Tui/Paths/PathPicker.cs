@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using MentalDesk.Tui.Dialogs;
@@ -257,17 +258,25 @@ public sealed class PathPicker : PickerDialog<PathRow>
         var search = new Search(Folder, hidden);
         _search = search;
         _state.Text = Searching;
-        Action<Action> post = App is { } app ? app.Invoke : action => action();
         void Changed()
         {
             if (_search != search) return;
             _state.Text = search.Done ? search.Capped ? $"First {SearchCap.ToString("N0", CultureInfo.InvariantCulture)} entries" : string.Empty : Searching;
             Refresh();
         }
-        if (App is null)
-            search.Run(SearchCap, post, Changed);
-        else
-            _ = Task.Run(() => search.Run(SearchCap, post, Changed));
+        if (App is not { } app)
+        {
+            search.Run(SearchCap, action => action(), Changed);
+            return search;
+        }
+        var posted = new ConcurrentQueue<Action>();
+        // Polled, not Invoked: Invoke from another thread waits on the timer lock, which a picker opened from a timer holds.
+        app.AddTimeout(BatchEvery, () =>
+        {
+            while (posted.TryDequeue(out var action)) action();
+            return !search.Done && !search.Cancelled;
+        });
+        _ = Task.Run(() => search.Run(SearchCap, posted.Enqueue, Changed));
         return search;
     }
 
@@ -285,6 +294,8 @@ public sealed class PathPicker : PickerDialog<PathRow>
         public bool Done { get; private set; }
 
         public bool Capped { get; private set; }
+
+        public bool Cancelled => _cancel.IsCancellationRequested;
 
         public void Cancel() => _cancel.Cancel();
 
