@@ -59,6 +59,31 @@ public class PathPickerHostTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void The_search_finishes_in_a_picker_opened_from_a_timer()
+    {
+        using var window = new SwatchWindow(_host.Shell);
+        using var picker = new PathPicker("Open", PathKind.File, _root, _root);
+
+        _host.Run(window,
+            () =>
+            {
+                _host.App.AddTimeout(TimeSpan.Zero, () =>
+                {
+                    picker.Run(_host.Shell);
+                    return false;
+                });
+            },
+            () => Picker is not null,
+            () => Type("note"),
+            () => picker.FilterField.Text == "note",
+            () => !picker.IsSearching && picker.Labels.Count == 1,
+            () => Press(Key.Enter),
+            () => _host.App.TopRunnableView is SwatchWindow);
+
+        Assert.Equal("~/deep/deeper/deepest/notes.md", picker.PickedPath!.Replace('\\', '/'));
+    }
+
+    [Fact]
     public void Replacing_a_file_asks_through_a_confirm()
     {
         using var window = new SwatchWindow(_host.Shell);
