@@ -18,9 +18,9 @@ public class RowsWithColumnsTests : StaticConfigurationTest
 
     private CommandPalette? Palette => _host.App.TopRunnableView as CommandPalette;
 
-    private void Run(int columns, params Delegate[] steps)
+    // On Windows the driver polls the console and undoes SetScreenSize, so each test sizes its dialog instead.
+    private void Run(params Delegate[] steps)
     {
-        _host.App.Driver!.SetScreenSize(columns, 30);
         using var window = new SwatchWindow(_host.Shell);
         _host.Run(window, [() => _host.Shell.StatusBar.FocusWord == "Themes", .. steps]);
     }
@@ -28,7 +28,7 @@ public class RowsWithColumnsTests : StaticConfigurationTest
     [Fact]
     public void It_is_on_the_help_menu_beside_loading_states()
     {
-        Run(120, () =>
+        Run(() =>
         {
             var help = _host.Shell.Menu!.Layout.Single(menu => menu.Title == "_Help").Items.Select(item => item?.CommandId).ToList();
             Assert.Equal(help.IndexOf(SwatchCommands.ShowLoadingStates) + 1, help.IndexOf(SwatchCommands.ShowRowsWithColumns));
@@ -38,9 +38,11 @@ public class RowsWithColumnsTests : StaticConfigurationTest
     [Fact]
     public void Wide_the_table_and_the_picker_show_every_column_with_the_path_cut_at_its_start()
     {
-        Run(120,
+        Run(
             () => { _host.Shell.Commands.Execute(SwatchCommands.ShowRowsWithColumns); },
             () => Dialog is { List.Viewport.Width: > 0 } && Dialog.Rows.Count == 3,
+            () => { Dialog!.Width = RowsWithColumnsDialog.MaxWidth; },
+            () => Dialog!.Frame.Width == RowsWithColumnsDialog.MaxWidth,
             () =>
             {
                 Assert.Equal(["What", "Runs", "Minutes", "Cost"], Dialog!.Table.Fit.Placed.Select(placed => placed.Column.Header));
@@ -56,9 +58,11 @@ public class RowsWithColumnsTests : StaticConfigurationTest
     [Fact]
     public void Narrow_the_names_shrink_with_an_ellipsis_and_the_right_hand_columns_drop()
     {
-        Run(50,
+        Run(
             () => { _host.Shell.Commands.Execute(SwatchCommands.ShowRowsWithColumns); },
             () => Dialog is { List.Viewport.Width: > 0 },
+            () => { Dialog!.Width = 48; },
+            () => Dialog!.Frame.Width == 48,
             () =>
             {
                 Assert.Equal(["What", "Runs"], Dialog!.Table.Fit.Placed.Select(placed => placed.Column.Header));
@@ -73,9 +77,11 @@ public class RowsWithColumnsTests : StaticConfigurationTest
     [Fact]
     public void On_a_narrow_terminal_the_palette_cuts_a_command_with_an_ellipsis_and_keeps_its_keys_whole()
     {
-        Run(28,
+        Run(
             () => _host.App.InjectKey(Key.E.WithCtrl),
-            () => Palette is not null && Palette.Frame.Width == 28,
+            () => Palette is not null,
+            () => { Palette!.Width = 28; },
+            () => Palette!.Frame.Width == 28,
             () =>
             {
                 var row = Palette!.Labels[Palette.Shown.ToList().FindIndex(row => row.Label == "Delete this theme")];
