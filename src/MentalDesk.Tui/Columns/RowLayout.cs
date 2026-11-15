@@ -10,7 +10,7 @@ public sealed class RowLayout<T>(params IReadOnlyList<Column<T>> columns)
     // A list whose rows explain themselves leaves the header out, and its widths don't count it.
     public bool HasHeader { get; init; } = true;
 
-    // The name shrinks to its minimum, then paths, then the right-hand columns drop, last first.
+    // The name shrinks to its minimum, then paths; then columns drop, as Droppable says.
     public ColumnFit<T> Fit(IEnumerable<T> rows, int width)
     {
         var all = rows.ToList();
@@ -30,7 +30,13 @@ public sealed class RowLayout<T>(params IReadOnlyList<Column<T>> columns)
             }
             if (over <= 0 || kept.Count == 1)
                 return new ColumnFit<T>(this, Place(kept, widths, width), width);
-            kept.Remove(Droppable(kept));
+            if (Droppable(kept) is not { } drop)
+            {
+                var name = kept.First(i => Columns[i].Kind == ColumnKind.Name);
+                widths[name] = Math.Max(0, widths[name] - over);
+                return new ColumnFit<T>(this, Place(kept, widths, width), width);
+            }
+            kept.Remove(drop);
         }
     }
 
@@ -48,17 +54,22 @@ public sealed class RowLayout<T>(params IReadOnlyList<Column<T>> columns)
         kept.Where(i => Columns[i].Kind == ColumnKind.Name)
             .Concat(kept.Where(i => Columns[i].Kind == ColumnKind.Path).Reverse());
 
-    private int Droppable(List<int> kept) =>
-        kept.LastOrDefault(i => Columns[i].Kind != ColumnKind.Name, kept[^1]);
+    // Right of the name, last first, then left of it, furthest first, but never the name's left neighbour.
+    private int? Droppable(List<int> kept)
+    {
+        var name = kept.FindIndex(i => Columns[i].Kind == ColumnKind.Name);
+        if (name < 0 || name < kept.Count - 1) return kept[^1];
+        return name > 1 ? kept[0] : null;
+    }
 
-    // A lone column that still doesn't fit is cut to the width.
+    // Whatever still doesn't fit is cut to the width.
     private List<PlacedColumn<T>> Place(List<int> kept, Dictionary<int, int> widths, int width)
     {
         var placed = new List<PlacedColumn<T>>();
         var x = 0;
         foreach (var i in kept)
         {
-            var w = kept.Count == 1 ? Math.Max(0, Math.Min(widths[i], width)) : widths[i];
+            var w = Math.Max(0, Math.Min(widths[i], width - x));
             placed.Add(new PlacedColumn<T>(Columns[i], i, x, w));
             x += w + Gap;
         }

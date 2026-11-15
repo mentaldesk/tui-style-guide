@@ -89,7 +89,7 @@ public class PickerDialog<T> : AppDialog
         _width = width;
         _display = columns is null ? display ?? text : row => _fit!.Row(row);
         if (columns is not null)
-            Width = Dim.Func(_ => Math.Min(width, App?.Screen.Width ?? width));
+            FitToScreen(width);
 
         _listY = linesAbove + (header is null ? 2 : 3);
         _filter = new PlaceholderField { X = 1, Y = linesAbove, Width = Dim.Fill(1), Placeholder = "Type to filter" };
@@ -112,7 +112,7 @@ public class PickerDialog<T> : AppDialog
         }
         _list.FrameChanged += (_, _) =>
         {
-            if (_columns is not null && _list.Viewport.Width != _fit?.Width)
+            if (_columns is not null && _list.Viewport.Width - (_icon is null ? 0 : IconField.Width) != _fit?.Width)
                 Display(Selected);
         };
         if (loading is null)
@@ -280,8 +280,13 @@ public class PickerDialog<T> : AppDialog
     {
         if (_columns is not null)
         {
-            _fit = _columns.Fit(_all, _list.Viewport.Width > 0 ? _list.Viewport.Width : _width - 4);
-            if (_header is not null) _header.Text = _fit.Header ?? string.Empty;
+            var iconWidth = _icon is null ? 0 : IconField.Width;
+            _fit = _columns.Fit(_all, (_list.Viewport.Width > 0 ? _list.Viewport.Width : _width - 4) - iconWidth);
+            if (_header is not null)
+            {
+                _header.X = 1 + iconWidth;
+                _header.Text = _fit.Header ?? string.Empty;
+            }
         }
         _list.Source = _icon is { } icon
             ? new IconListSource([.. _shown.Select(_display)], [.. _shown.Select(icon)])

@@ -40,7 +40,7 @@ internal sealed class RowsWithColumnsDialog : AppDialog
     public RowsWithColumnsDialog()
         : base("Rows with columns", MaxWidth, contentRows: 8)
     {
-        Width = Dim.Func(_ => Math.Min(MaxWidth, (App?.Screen.Width ?? MaxWidth) - 2));
+        FitToScreen(MaxWidth);
         Table = new ColumnTable<Spend>(SpendColumns, Spending) { X = 1, Y = 0, Width = Dim.Percent(50), Height = 6 };
         var line = new Line { Orientation = Orientation.Vertical, X = Pos.Right(Table) + 1, Height = 6 };
         Header = new Label { X = Pos.Right(line) + 2, Y = 0, Width = Dim.Fill(1), Enabled = false };

@@ -1,3 +1,4 @@
+using MentalDesk.Tui.Columns;
 using MentalDesk.Tui.Dialogs;
 using MentalDesk.Tui.Icons;
 using Terminal.Gui.Drivers;
@@ -54,6 +55,21 @@ public class PickerIconsTests : StaticConfigurationTest
 
         Assert.Equal(["notes.md"], picker.Labels);
         Assert.IsType<IconListSource>(picker.SubViews.OfType<ListView>().Single().Source);
+    }
+
+    [Fact]
+    public void A_picker_with_icons_fits_its_columns_beside_them_so_a_cut_still_shows_its_ellipsis()
+    {
+        var columns = new RowLayout<string>(
+            Column<string>.Name("Name", row => row),
+            Column<string>.Text("Kind", row => System.IO.Path.GetExtension(row)));
+        using var picker = new PickerDialog<string>("Open", 24, 10, ["readme-notes.md"], row => row, "Open", columns);
+        Assert.Equal("readme-notes.…  .md", picker.Labels[0]);
+
+        picker.Icon = _ => Nerd;
+
+        Assert.Equal("readme-note…  .md", picker.Labels[0]);
+        Assert.Equal("Name          Kind", picker.Header);
     }
 
     private ListView List(string[] items, string?[] icons) =>

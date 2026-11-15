@@ -135,7 +135,9 @@ When the terminal is too narrow for them:
 - **Cut text says so with `…`**, never silently. Text is cut at its end; a path is cut at its start
   (`…/code/TuiCode/side-pane-resize`), so the last folder stays.
 - **The column that names the row gives way first** (Title, Command, Name). It shrinks to its minimum,
-  then a path does, then the columns at the right drop, last first.
+  then a path does, then the columns to its right drop, last first, then those to its left, furthest
+  first. The column just left of the name never drops: the name is cut further instead, so a key
+  stays beside what it does.
 - **A number, key or id is never cut.** If it doesn't fit, its column drops instead: a cut number reads
   as a different number.
 - **Widening the terminal brings them back** in the reverse order.

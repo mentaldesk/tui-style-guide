@@ -75,6 +75,9 @@ public abstract class AppDialog : Dialog
         RaiseClosed();
     }
 
+    // Never wider than the screen, so a narrow terminal fits its columns rather than clipping them.
+    protected void FitToScreen(int width) => Width = Dim.Func(_ => Math.Min(width, App?.Screen.Width ?? width));
+
     public KeySheet KeysHere() => KeySheet.ForDialog(Title, Commands, Keys);
 
     public void ShowAlert(string message, Severity severity)

@@ -146,4 +146,31 @@ public class RowLayoutTests
         Assert.Null(fit.Header);
         Assert.Equal("3   Pitching #42 Narrow terminals", fit.Row(Rows[0]));
     }
+
+    [Fact]
+    public void A_key_left_of_the_name_never_drops_and_the_name_is_cut_further_instead()
+    {
+        var layout = new RowLayout<Spend>(
+            Column<Spend>.Text("Keys", spend => spend.Cost),
+            Column<Spend>.Name("Does", spend => spend.What, minWidth: 12)) { HasHeader = false };
+
+        var fit = layout.Fit(Rows, 5 + 2 + 6);
+
+        Assert.Equal(["Keys", "Does"], Headers(fit));
+        Assert.Equal("$2.10  Pitch…", fit.Row(Rows[0]));
+    }
+
+    [Fact]
+    public void Columns_right_of_the_name_drop_first_then_those_left_of_it_furthest_first()
+    {
+        var layout = new RowLayout<Spend>(
+            Column<Spend>.Number("Cost", spend => spend.Cost),
+            Column<Spend>.Number("Runs", spend => spend.Runs),
+            Column<Spend>.Name("What", spend => spend.What, minWidth: 8),
+            Column<Spend>.Number("Again", spend => spend.Runs));
+
+        Assert.Equal(["Cost", "Runs", "What"], Headers(layout.Fit(Rows, 5 + 2 + 4 + 2 + 8)));
+        Assert.Equal(["Runs", "What"], Headers(layout.Fit(Rows, 4 + 2 + 8)));
+        Assert.Equal(["Runs", "What"], Headers(layout.Fit(Rows, 4 + 2 + 3)));
+    }
 }
