@@ -663,6 +663,27 @@ issue can't be opened.
 Filter a list to pick one thing by a name you half-remember; find in what you read (below) to look
 for words you've seen in text that stays as it is.
 
+### Filtering a board in place
+
+**A board of cards narrows where it stands**, under a filter bar, rather than in a picker over it,
+since you go on working with the cards you find. It matches as a list does, with these differences:
+
+- **`Ctrl+F` opens the bar docked above the board**, laid out as the find bar is: a `Filter` label,
+  then the field with focus, saying `Type to filter` while it's empty. Empty, the whole board shows.
+- **Every lane and column keeps its place and its own order**; only the cards that don't match go.
+  A lane with none left stays, as one dimmed `(no matches)` row, so the board's shape doesn't move.
+- **Nothing that matches is hidden**: while the bar has text, no lane folds its cards behind a `+N`.
+- **A card matches on its number and its whole title**, with a leading `#` ignored, even where the
+  card cuts its title short: the title is the card's own, shown in full when it's selected.
+- **The bar's right end counts the matches across the board**, dimmed: `7 cards`, or `No results`.
+- **`↓` or `Tab` goes from the bar to the first match**, where the board's own keys work on what's left.
+  `Ctrl+F` goes back to the bar with its text selected.
+- **`Esc` closes the bar and brings the whole board back**, on the card picked from the narrowed one,
+  or else the one selected before, scrolled into view.
+- **A board read again keeps the filter on**, and narrows the new cards.
+
+a-team's Overseer is the reference implementation; Swatch has no board of cards to filter.
+
 ### Picking a path
 
 **A file, a folder or a new file's name is picked in one browser**, which works as a picker does
