@@ -7,6 +7,9 @@ public sealed class RowLayout<T>(params IReadOnlyList<Column<T>> columns)
 
     public IReadOnlyList<Column<T>> Columns { get; } = columns;
 
+    // A list whose rows explain themselves leaves the header out, and its widths don't count it.
+    public bool HasHeader { get; init; } = true;
+
     // The name shrinks to its minimum, then paths, then the right-hand columns drop, last first.
     public ColumnFit<T> Fit(IEnumerable<T> rows, int width)
     {
@@ -34,8 +37,9 @@ public sealed class RowLayout<T>(params IReadOnlyList<Column<T>> columns)
     private int Natural(Column<T> column, List<T> rows)
     {
         if (column.Shrinks && column.Width is { } fixedWidth) return fixedWidth;
-        var widest = rows.Select(row => Truncate.Width(column.Value(row))).Append(Truncate.Width(column.Header)).Max();
-        return Math.Max(widest, column.Width ?? 0);
+        var widths = rows.Select(row => Truncate.Width(column.Value(row)));
+        if (HasHeader) widths = widths.Append(Truncate.Width(column.Header));
+        return Math.Max(widths.DefaultIfEmpty(0).Max(), column.Width ?? 0);
     }
 
     private static int Total(Dictionary<int, int> widths) => widths.Values.Sum() + Gap * (widths.Count - 1);
@@ -84,7 +88,7 @@ public sealed class ColumnFit<T>
     public IReadOnlyList<PlacedColumn<T>> Placed { get; }
 
     // A list of one column has no header.
-    public bool ShowsHeader => Placed.Count > 1;
+    public bool ShowsHeader => Layout.HasHeader && Placed.Count > 1;
 
     public string? Header => ShowsHeader ? Format([.. Layout.Columns.Select(column => column.Header)]) : null;
 

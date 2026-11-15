@@ -141,4 +141,23 @@ public class KeySheetTests : StaticConfigurationTest
         Assert.True(dialog.Body.ViewportSettings.HasFlag(ViewportSettingsFlags.HasVerticalScrollBar));
         Assert.True(dialog.Body.Height is DimAbsolute { Size: var rows } && dialog.Body.GetContentSize().Height > rows);
     }
+
+    [Fact]
+    public void Short_keys_sit_two_columns_from_what_they_do_and_a_narrow_sheet_cuts_what_they_do()
+    {
+        var commands = new CommandRegistry()
+            .Register("keys", "Show keys", () => { })
+            .Register("panes", "Move between the panes of this window", () => { });
+        var keys = new Keymap(commands).Bind("F1", "keys").Bind("F6", "panes");
+        var sheet = KeySheet.For(commands, keys, Roles.Name, Roles, [new("_Help", ["keys", "panes"])]);
+
+        using var wide = new KeysDialog(sheet, new Size(120, 30));
+        using var narrow = new KeysDialog(sheet, new Size(30, 30));
+
+        Assert.Contains("  F1  Show keys", Lines(wide));
+        Assert.Contains("  F6  Move between the …", Lines(narrow));
+    }
+
+    private static List<string> Lines(KeysDialog dialog) =>
+        [.. dialog.Body.SubViews.SelectMany(column => column.SubViews.OfType<Label>().Skip(1).Select(label => label.Text))];
 }

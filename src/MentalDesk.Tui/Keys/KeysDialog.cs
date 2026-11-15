@@ -77,7 +77,7 @@ public sealed class KeysDialog : AppDialog
 
         private static readonly RowLayout<KeyRow> Rows = new(
             Column<KeyRow>.Text("Keys", row => row.Keys),
-            Column<KeyRow>.Name("Does", row => row.Label));
+            Column<KeyRow>.Name("Does", row => row.Label)) { HasHeader = false };
 
         public static Column Of(KeyColumn column, int maxWidth = int.MaxValue)
         {

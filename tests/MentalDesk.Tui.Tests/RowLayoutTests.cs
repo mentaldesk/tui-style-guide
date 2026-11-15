@@ -133,4 +133,17 @@ public class RowLayoutTests
         Assert.Equal([0, 12], fit.Placed.Select(placed => placed.X));
         Assert.Equal("Pitching …  3", fit.Row(Rows[0]));
     }
+
+    [Fact]
+    public void A_layout_with_no_header_shows_none_and_does_not_widen_a_column_for_it()
+    {
+        var layout = new RowLayout<Spend>(
+            Column<Spend>.Text("A long header", spend => spend.Runs),
+            Column<Spend>.Name("What", spend => spend.What)) { HasHeader = false };
+
+        var fit = layout.Fit(Rows, 80);
+
+        Assert.Null(fit.Header);
+        Assert.Equal("3   Pitching #42 Narrow terminals", fit.Row(Rows[0]));
+    }
 }

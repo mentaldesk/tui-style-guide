@@ -334,7 +334,7 @@ public sealed class KeysPage : SettingsPage
     {
         var keep = select is null ? Selected : null;
         _all = [.. Build()];
-        _fit = Columns.Fit(_all, _list.Viewport.Width > 0 ? _list.Viewport.Width : int.MaxValue);
+        _fit = Columns.Fit(_all.Select(row => row with { Keys = KeysText(row) }), _list.Viewport.Width > 0 ? _list.Viewport.Width : int.MaxValue);
         _header.Text = _fit.Header ?? string.Empty;
         _rows = ListFilter.Apply(_filter.Text, _all, row => $"{row.Command.Label} {row.Keys} {row.Where}");
         var index = selectFirst ? 0
@@ -385,13 +385,16 @@ public sealed class KeysPage : SettingsPage
 
     private string RowText(Row row)
     {
-        if (_recording is { } recording && row.Command == recording.Command && row.Binding == recording.Binding)
-        {
-            var typed = _typed.Count > 0 ? $"{Recording} {KeyChord.Display(_typed)}" : Recording;
-            return Format(row.Command.Label, typed, row.Where) + NoteFor(row);
-        }
+        if (IsRecorded(row))
+            return Format(row.Command.Label, KeysText(row), row.Where) + NoteFor(row);
         return Format(row.Command.Label, row.Keys, row.Where) + (row.Note is null ? string.Empty : $"{Gap}{row.Note}") + NoteFor(row);
     }
+
+    private bool IsRecorded(Row row) => _recording is { } recording && row.Command == recording.Command && row.Binding == recording.Binding;
+
+    // The Keys column fits what's being typed, so the key just pressed is never cut.
+    private string KeysText(Row row) =>
+        !IsRecorded(row) ? row.Keys : _typed.Count > 0 ? $"{Recording} {KeyChord.Display(_typed)}" : Recording;
 
     private string NoteFor(Row row) => _note is { } note && note.Row.Command == row.Command && note.Row.Binding == row.Binding ? $"{Gap}{note.Text}" : string.Empty;
 
