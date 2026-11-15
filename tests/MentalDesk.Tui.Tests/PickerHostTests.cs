@@ -119,7 +119,7 @@ public class PickerHostTests : StaticConfigurationTest
             () => Press(Key.CursorUp),
             () => list!.SelectedItem == 1,
             () => Press(Key.PageDown),
-            () => list!.SelectedItem == 3,
+            () => list!.SelectedItem == Palette!.Shown.Count - 1,
             () => Press(Key.PageUp),
             () => list!.SelectedItem == 0,
             () => Palette!.SubViews.OfType<TextField>().Single().Text == "sho",

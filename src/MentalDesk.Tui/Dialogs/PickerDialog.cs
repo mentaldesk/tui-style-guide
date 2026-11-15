@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using MentalDesk.Tui.Chrome;
+using MentalDesk.Tui.Columns;
 using MentalDesk.Tui.Fields;
 using MentalDesk.Tui.Filtering;
 using MentalDesk.Tui.Icons;
@@ -21,17 +22,31 @@ public class PickerDialog<T> : AppDialog
     private readonly LoadStateView? _state;
     private readonly Func<T, string> _text;
     private readonly Func<T, string> _display;
+    private readonly RowLayout<T>? _columns;
+    private readonly Label? _header;
     private readonly int _listY;
+    private readonly int _width;
     private IReadOnlyList<T> _all;
     private IReadOnlyList<T> _shown;
     private string? _noteText;
     private Action? _retry;
     private Func<T, string?>? _icon;
+    private ColumnFit<T>? _fit;
 
     public PickerDialog(
         string title, int width, int contentRows, IReadOnlyList<T> rows, Func<T, string> text, string verb,
         Func<T, string>? display = null, string? header = null)
-        : this(title, width, contentRows, rows, loading: null, text, verb, display, header, linesAbove: 0, ButtonKind.Primary)
+        : this(title, width, contentRows, rows, loading: null, text, verb, display, header, columns: null, linesAbove: 0, ButtonKind.Primary)
+    {
+        AddButtonRow(contentRows - 1, PickButton, CancelButton);
+    }
+
+    // Rows laid out in columns, with their header unless showHeader is false; it narrows with the terminal.
+    public PickerDialog(
+        string title, int width, int contentRows, IReadOnlyList<T> rows, Func<T, string> text, string verb,
+        RowLayout<T> columns, bool showHeader = true)
+        : this(title, width, contentRows, rows, loading: null, text, verb, display: null, header: showHeader ? string.Empty : null,
+            columns, linesAbove: 0, ButtonKind.Primary)
     {
         AddButtonRow(contentRows - 1, PickButton, CancelButton);
     }
@@ -40,7 +55,16 @@ public class PickerDialog<T> : AppDialog
     public PickerDialog(
         string title, int width, int contentRows, string loading, Func<T, string> text, string verb,
         Func<T, string>? display = null, string? header = null)
-        : this(title, width, contentRows, [], loading, text, verb, display, header, linesAbove: 0, ButtonKind.Primary)
+        : this(title, width, contentRows, [], loading, text, verb, display, header, columns: null, linesAbove: 0, ButtonKind.Primary)
+    {
+        AddButtonRow(contentRows - 1, PickButton, CancelButton);
+    }
+
+    public PickerDialog(
+        string title, int width, int contentRows, string loading, Func<T, string> text, string verb,
+        RowLayout<T> columns, bool showHeader = true)
+        : this(title, width, contentRows, [], loading, text, verb, display: null, header: showHeader ? string.Empty : null,
+            columns, linesAbove: 0, ButtonKind.Primary)
     {
         AddButtonRow(contentRows - 1, PickButton, CancelButton);
     }
@@ -49,19 +73,23 @@ public class PickerDialog<T> : AppDialog
     protected PickerDialog(
         string title, int width, int contentRows, IReadOnlyList<T> rows, Func<T, string> text, string verb,
         Func<T, string>? display, int linesAbove, ButtonKind pickKind)
-        : this(title, width, contentRows, rows, loading: null, text, verb, display, header: null, linesAbove, pickKind)
+        : this(title, width, contentRows, rows, loading: null, text, verb, display, header: null, columns: null, linesAbove, pickKind)
     {
     }
 
     private PickerDialog(
         string title, int width, int contentRows, IReadOnlyList<T> rows, string? loading, Func<T, string> text,
-        string verb, Func<T, string>? display, string? header, int linesAbove, ButtonKind pickKind)
+        string verb, Func<T, string>? display, string? header, RowLayout<T>? columns, int linesAbove, ButtonKind pickKind)
         : base(title, width, contentRows)
     {
         _all = rows;
         _shown = rows;
         _text = text;
-        _display = display ?? text;
+        _columns = columns;
+        _width = width;
+        _display = columns is null ? display ?? text : row => _fit!.Row(row);
+        if (columns is not null)
+            Width = Dim.Func(_ => Math.Min(width, App?.Screen.Width ?? width));
 
         _listY = linesAbove + (header is null ? 2 : 3);
         _filter = new PlaceholderField { X = 1, Y = linesAbove, Width = Dim.Fill(1), Placeholder = "Type to filter" };
@@ -78,7 +106,15 @@ public class PickerDialog<T> : AppDialog
         _note = new Label { X = 1, Y = _listY, Width = Dim.Fill(1), Text = NoMatchesText, Enabled = false, Visible = false };
         Add(_filter);
         if (header is not null)
-            Add(new Label { X = 1, Y = linesAbove + 2, Width = Dim.Fill(1), Text = header, Enabled = false });
+        {
+            _header = new Label { X = 1, Y = linesAbove + 2, Width = Dim.Fill(1), Text = header, Enabled = false };
+            Add(_header);
+        }
+        _list.FrameChanged += (_, _) =>
+        {
+            if (_columns is not null && _list.Viewport.Width != _fit?.Width)
+                Display(Selected);
+        };
         if (loading is null)
         {
             Add(_list);
@@ -136,6 +172,8 @@ public class PickerDialog<T> : AppDialog
     public Button PickButton { get; }
 
     public Button CancelButton { get; }
+
+    public string? Header => _header?.Text;
 
     public IReadOnlyList<string> Labels => [.. _shown.Select(_display)];
 
@@ -230,15 +268,26 @@ public class PickerDialog<T> : AppDialog
         }
         var loaded = State == LoadState.Loaded;
         _shown = loaded ? Match(_filter.Text ?? string.Empty, _all) : [];
+        Display(select);
+        _note.Text = _noteText ?? NoMatchesText;
+        _note.Y = _listY + _shown.Count;
+        _note.Visible = loaded && (_noteText is not null || _shown.Count == 0);
+        PickButton.Enabled = CanPick();
+    }
+
+    // Columns are fitted to every row, not just the matches, so they keep still while filtering.
+    private void Display(T? select)
+    {
+        if (_columns is not null)
+        {
+            _fit = _columns.Fit(_all, _list.Viewport.Width > 0 ? _list.Viewport.Width : _width - 4);
+            if (_header is not null) _header.Text = _fit.Header ?? string.Empty;
+        }
         _list.Source = _icon is { } icon
             ? new IconListSource([.. _shown.Select(_display)], [.. _shown.Select(icon)])
             : new ListWrapper<string>(new ObservableCollection<string>(_shown.Select(_display)));
         var at = select is null ? -1 : _shown.ToList().IndexOf(select);
         _list.SelectedItem = _shown.Count > 0 ? Math.Max(at, 0) : null;
-        _note.Text = _noteText ?? NoMatchesText;
-        _note.Y = _listY + _shown.Count;
-        _note.Visible = loaded && (_noteText is not null || _shown.Count == 0);
-        PickButton.Enabled = CanPick();
     }
 
     private void Move(int by)

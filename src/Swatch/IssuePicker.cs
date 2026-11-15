@@ -1,4 +1,5 @@
 using MentalDesk.Tui;
+using MentalDesk.Tui.Columns;
 using MentalDesk.Tui.Dialogs;
 
 namespace Swatch;
@@ -22,7 +23,7 @@ internal sealed class IssuePicker : PickerDialog<IssuePicker.Issue>
 
     public IssuePicker(TimeSpan? loadTime = null)
         : base("Open issue", DialogWidth, contentRows: 14, "Loading issues…", issue => $"#{issue.Number} {issue.Title}", verb: "Open",
-            display: issue => issue.Format(), header: Issue.Header)
+            Issue.Columns)
     {
         LoadTime = loadTime ?? TimeSpan.FromSeconds(1.5);
         Picking += (_, e) =>
@@ -57,10 +58,9 @@ internal sealed class IssuePicker : PickerDialog<IssuePicker.Issue>
 
     public sealed record Issue(int Number, string Title, bool Open)
     {
-        private const int TitleWidth = 50;
-
-        public static string Header => $"{"#",-5}{"Title",-TitleWidth}State";
-
-        public string Format() => $"{$"#{Number}",-5}{Title,-TitleWidth}{(Open ? "open" : "closed")}";
+        public static readonly RowLayout<Issue> Columns = new(
+            Column<Issue>.Text("#", issue => $"#{issue.Number}") with { Width = 3 },
+            Column<Issue>.Name("Title", issue => issue.Title) with { Width = 48 },
+            Column<Issue>.Text("State", issue => issue.Open ? "open" : "closed"));
     }
 }

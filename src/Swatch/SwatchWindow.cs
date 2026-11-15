@@ -140,6 +140,7 @@ internal sealed class SwatchWindow : AppWindow
             .Register(SwatchCommands.CloseTheme, "Close this theme", () => CloseTheme(shell), ThemesRegion.Scope)
             .Register(SwatchCommands.CopyColours, "Copy colours", () => CopyColours(shell), RolesRegion.Scope)
             .Register(SwatchCommands.ShowLoadingStates, "Show loading states", () => ShowLoadingStates(shell))
+            .Register(SwatchCommands.ShowRowsWithColumns, "Show rows with columns", () => ShowRowsWithColumns(shell))
             .Register(SwatchCommands.PickIssue, "Pick an issue", () => PickIssue(shell))
             .Register(SwatchCommands.WriteComment, "Write a comment", () => WriteComment(shell))
             .Register(SwatchCommands.ReadLog, "Read a log", () => ReadLog(shell))
@@ -173,6 +174,7 @@ internal sealed class SwatchWindow : AppWindow
                 new MenuEntry(ShellCommands.ShowMessages, "Messages…"),
                 null,
                 new MenuEntry(SwatchCommands.ShowLoadingStates, "_Loading states…"),
+                new MenuEntry(SwatchCommands.ShowRowsWithColumns, "Rows with c_olumns…"),
                 new MenuEntry(SwatchCommands.ToggleAssistant, "_Assistant"),
                 new MenuEntry(SwatchCommands.PickIssue, "_Picking an issue…"),
                 new MenuEntry(SwatchCommands.WriteComment, "_Writing a comment…"),
@@ -252,6 +254,12 @@ internal sealed class SwatchWindow : AppWindow
     private static void ShowLoadingStates(AppShell shell)
     {
         using var dialog = new LoadingStatesDialog(shell);
+        dialog.Run(shell);
+    }
+
+    private static void ShowRowsWithColumns(AppShell shell)
+    {
+        using var dialog = new RowsWithColumnsDialog();
         dialog.Run(shell);
     }
 

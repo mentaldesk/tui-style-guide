@@ -1,4 +1,5 @@
 using System.Drawing;
+using MentalDesk.Tui.Columns;
 using MentalDesk.Tui.Commands;
 using MentalDesk.Tui.Dialogs;
 
@@ -72,20 +73,27 @@ public sealed class KeysDialog : AppDialog
 
     private sealed record Column(View View, int Width, int Height)
     {
-        public static Column Of(KeyColumn column)
+        private const string Indent = "  ";
+
+        private static readonly RowLayout<KeyRow> Rows = new(
+            Column<KeyRow>.Text("Keys", row => row.Keys),
+            Column<KeyRow>.Name("Does", row => row.Label));
+
+        public static Column Of(KeyColumn column, int maxWidth = int.MaxValue)
         {
-            var keyWidth = column.Groups.SelectMany(group => group.Rows).Select(row => row.Keys.Length).DefaultIfEmpty(0).Max();
+            var indented = column.Groups.Any(group => group.Heading is not null);
+            var fit = Rows.Fit(column.Groups.SelectMany(group => group.Rows), indented ? maxWidth - Indent.Length : maxWidth);
             var lines = new List<string>();
             foreach (var group in column.Groups)
             {
-                var indent = group.Heading is null ? string.Empty : "  ";
                 if (group.Heading is not null)
-                    lines.Add(group.Heading);
-                lines.AddRange(group.Rows.Select(row => $"{indent}{row.Keys.PadRight(keyWidth)}{new string(' ', Gutter)}{row.Label}"));
+                    lines.Add(Truncate.End(group.Heading, maxWidth));
+                lines.AddRange(group.Rows.Select(row => (group.Heading is null ? string.Empty : Indent) + fit.Row(row)));
             }
-            var width = lines.Append(column.Heading).Max(line => line.Length);
+            var heading = Truncate.End(column.Heading, maxWidth);
+            var width = lines.Append(heading).Max(Truncate.Width);
             var view = new View { Width = width, Height = lines.Count + 2, CanFocus = false };
-            view.Add(new Label { Text = column.Heading }, new Line { Y = 1, Width = Dim.Fill() });
+            view.Add(new Label { Text = heading }, new Line { Y = 1, Width = Dim.Fill() });
             for (var i = 0; i < lines.Count; i++)
                 view.Add(new Label { Y = i + 2, Text = lines[i] });
             return new Column(view, width, lines.Count + 2);
@@ -110,11 +118,12 @@ public sealed class KeysDialog : AppDialog
 
         public static Plan Of(KeySheet sheet, Size screen)
         {
+            var fits = screen.Width - Chrome;
             if (sheet.Here is null || sheet.Everywhere is null)
-                return new Plan(null, Column.Of(sheet.Here ?? sheet.Everywhere!), Stacked: false);
-            Column here = Column.Of(sheet.Here), everywhere = Column.Of(sheet.Everywhere);
-            var sideBySide = new Plan(everywhere, here, Stacked: false);
-            return sideBySide.Width <= screen.Width ? sideBySide : new Plan(here, everywhere, Stacked: true);
+                return new Plan(null, Column.Of(sheet.Here ?? sheet.Everywhere!, fits), Stacked: false);
+            var sideBySide = new Plan(Column.Of(sheet.Everywhere), Column.Of(sheet.Here), Stacked: false);
+            return sideBySide.Width <= screen.Width ? sideBySide
+                : new Plan(Column.Of(sheet.Here, fits), Column.Of(sheet.Everywhere, fits), Stacked: true);
         }
     }
 

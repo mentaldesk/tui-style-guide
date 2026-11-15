@@ -111,6 +111,49 @@ own, tinted from `Error`'s background and kept readable against the editor's. *T
 switch themes from its *Theme* menu, and they change with it; Swatch's Themes pane lists them under
 each theme, in *Sample app's own*.
 
+### Rows with columns
+
+**Pick the control by what the rows are for.**
+
+- **Data you read or compare** (spending, trends, decisions, language servers): a `TableView`, made
+  with the library's [`ColumnTable<T>`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Columns/ColumnTable.cs).
+- **A list you pick one row from** (pickers, the palette, recent folders, keybindings): a `ListView`
+  whose rows are laid out by [`RowLayout<T>`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Columns/RowLayout.cs),
+  so it keeps `ListFilter` and `PickerDialog` (see [Filtering a list](#filtering-a-list)).
+
+Both take the same description of the columns: each is a `Column<T>` that names the row, holds a path,
+text or a number. They look the same:
+
+- **A header row, dimmed, with no underline and no grid lines.** It sits in the rows' own columns, so it
+  can't drift from them. A list of one column has no header.
+- **Two spaces between columns.** Content starts one column in from the border, as every dialog's does.
+- **Text aligns left, numbers right**, header included, so the digits line up.
+- **The last column doesn't stretch** to fill the width.
+
+When the terminal is too narrow for them:
+
+- **Cut text says so with `…`**, never silently. Text is cut at its end; a path is cut at its start
+  (`…/code/TuiCode/side-pane-resize`), so the last folder stays.
+- **The column that names the row gives way first** (Title, Command, Name). It shrinks to its minimum,
+  then a path does, then the columns at the right drop, last first.
+- **A number, key or id is never cut.** If it doesn't fit, its column drops instead: a cut number reads
+  as a different number.
+- **Widening the terminal brings them back** in the reverse order.
+
+```csharp
+var columns = new RowLayout<Spend>(
+    Column<Spend>.Name("What", spend => spend.What, minWidth: 14),
+    Column<Spend>.Number("Runs", spend => spend.Runs.ToString()),
+    Column<Spend>.Number("Cost", spend => $"${spend.Cost:0.00}"));
+var table = new ColumnTable<Spend>(columns, spending) { Width = Dim.Fill(), Height = Dim.Fill() };
+```
+
+`ColumnTable` needs no `AppShell`. A picker passes its `RowLayout` to `PickerDialog`, which fits the
+rows and the header to its width as the terminal changes. In Swatch, *Help › Rows with columns…* has a
+table of made-up figures beside a picker-style list: narrow the terminal and the name shrinks with `…`,
+then the right-hand columns drop. The *Keys* page, the keys dialog, the command palette and *Help ›
+Picking an issue…* are laid out the same way.
+
 ## 2. One affordance per action
 
 **Never give the same action two affordances in the same view.** A dialog with a `Submit` button
@@ -649,7 +692,8 @@ all but *Try it*, belong to the Themes pane.
 - **A picker whose rows are fetched opens at once and loads in its list**, as any region does (see
   [Loading and empty](#loading-and-empty)): `Loading pull requests…`, then the rows, or the failure
   with `R retry` under it. Until the rows are in, the pick button is dimmed and `Enter` does nothing.
-- **Rows with columns get a dimmed header** above the list, in the rows' columns.
+- **Rows with columns get a dimmed header** above the list, in the rows' columns: see
+  [Rows with columns](#rows-with-columns).
 - **A pick that can't be done says why and stays open**, in the dialog's message block, so another
   row can be picked. Typing clears it.
 
