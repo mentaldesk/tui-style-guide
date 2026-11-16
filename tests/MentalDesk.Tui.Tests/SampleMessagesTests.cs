@@ -197,6 +197,6 @@ public class SampleMessagesTests : StaticConfigurationTest
             },
         ]);
 
-        Assert.Contains(palette, label => label.StartsWith("Messages "));
+        Assert.Contains(palette, label => label == "Messages" || label.StartsWith("Messages ", StringComparison.Ordinal));
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using MentalDesk.Tui.Columns;
 using MentalDesk.Tui.Commands;
 using MentalDesk.Tui.Dialogs;
 using MentalDesk.Tui.Fields;
@@ -35,6 +36,11 @@ public sealed class KeysPage : SettingsPage
         (Key.F6.WithShift, "moves between panes"),
     ];
 
+    private static readonly RowLayout<Row> Columns = new(
+        Column<Row>.Name("Command", row => row.Command.Label, minWidth: 12),
+        Column<Row>.Text("Keys", row => row.Keys) with { Width = RecordingWidth },
+        Column<Row>.Text("Where", row => row.Where));
+
     private readonly CommandRegistry _commands;
     private readonly InputScopes _scopes;
     private readonly Func<CommandScope, string?> _regionName;
@@ -51,7 +57,7 @@ public sealed class KeysPage : SettingsPage
     private List<KeyBinding> _staged;
     private List<Row> _all = [];
     private IReadOnlyList<Row> _rows = [];
-    private (int Command, int Keys) _widths;
+    private ColumnFit<Row>? _fit;
     private Row? _recording;
     private readonly List<Key> _typed = [];
     private (Row Row, string Text)? _note;
@@ -83,6 +89,10 @@ public sealed class KeysPage : SettingsPage
         _header = Dimmed(new Label { Y = 1 });
         _list = new ListView { Y = 2, Width = Dim.Fill(), Height = Dim.Fill(3), CanFocus = false };
         _list.SetSource(_shown);
+        _list.FrameChanged += (_, _) =>
+        {
+            if (_list.Viewport.Width != _fit?.Width) Show();
+        };
         _noMatches = new Label { Y = 2, Text = "(no matches)", Enabled = false, Visible = false };
         _hint = Dimmed(new Label { Y = Pos.AnchorEnd(2), Text = BrowsingHint });
         ResetButton = ActionButton(ResetId, "Reset to defaults…", Key.R.WithCtrl, ConfirmReset);
@@ -324,8 +334,8 @@ public sealed class KeysPage : SettingsPage
     {
         var keep = select is null ? Selected : null;
         _all = [.. Build()];
-        _widths = (_all.Max(row => row.Command.Label.Length), _all.Select(row => row.Keys.Length).Append(RecordingWidth).Max());
-        _header.Text = Format("Command", "Keys", "Where");
+        _fit = Columns.Fit(_all.Select(row => row with { Keys = KeysText(row) }), _list.Viewport.Width > 0 ? _list.Viewport.Width : int.MaxValue);
+        _header.Text = _fit.Header ?? string.Empty;
         _rows = ListFilter.Apply(_filter.Text, _all, row => $"{row.Command.Label} {row.Keys} {row.Where}");
         var index = selectFirst ? 0
             : select is not null ? Find(row => row.Binding is { } binding && KeyOverrides.SameKey.Instance.Equals(binding, select))
@@ -375,18 +385,20 @@ public sealed class KeysPage : SettingsPage
 
     private string RowText(Row row)
     {
-        if (_recording is { } recording && row.Command == recording.Command && row.Binding == recording.Binding)
-        {
-            var typed = _typed.Count > 0 ? $"{Recording} {KeyChord.Display(_typed)}" : Recording;
-            return Format(row.Command.Label, typed, row.Where) + NoteFor(row);
-        }
+        if (IsRecorded(row))
+            return Format(row.Command.Label, KeysText(row), row.Where) + NoteFor(row);
         return Format(row.Command.Label, row.Keys, row.Where) + (row.Note is null ? string.Empty : $"{Gap}{row.Note}") + NoteFor(row);
     }
 
+    private bool IsRecorded(Row row) => _recording is { } recording && row.Command == recording.Command && row.Binding == recording.Binding;
+
+    // The Keys column fits what's being typed, so the key just pressed is never cut.
+    private string KeysText(Row row) =>
+        !IsRecorded(row) ? row.Keys : _typed.Count > 0 ? $"{Recording} {KeyChord.Display(_typed)}" : Recording;
+
     private string NoteFor(Row row) => _note is { } note && note.Row.Command == row.Command && note.Row.Binding == row.Binding ? $"{Gap}{note.Text}" : string.Empty;
 
-    private string Format(string command, string keys, string where) =>
-        $"{command.PadRight(_widths.Command)}{Gap}{keys.PadRight(Math.Max(_widths.Keys, keys.Length))}{Gap}{where}";
+    private string Format(string command, string keys, string where) => _fit!.Format([command, keys, where]);
 
     private sealed record Row(AppCommand Command, KeyBinding? Binding, string Keys, string Where, string? Note);
 }

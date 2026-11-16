@@ -1,3 +1,4 @@
+using MentalDesk.Tui.Columns;
 using MentalDesk.Tui.Commands;
 using MentalDesk.Tui.Dialogs;
 using MentalDesk.Tui.Keys;
@@ -6,10 +7,8 @@ namespace MentalDesk.Tui.Palette;
 
 public sealed class CommandPalette(CommandRegistry commands, Keymap keys, CommandScope scope)
     : PickerDialog<CommandPalette.Row>("Commands", width: 76, contentRows: 18, Rows(commands, keys, scope),
-        row => $"{row.Label} {row.Keys}", verb: "Run", display: row => row.Format())
+        row => $"{row.Label} {row.Keys}", verb: "Run", Row.Columns, showHeader: false)
 {
-    private const int LabelWidth = 48;
-
     private static Row[] Rows(CommandRegistry commands, Keymap keys, CommandScope scope) =>
         [.. commands.All
             .Where(command => commands.IsAvailable(command.Id, scope))
@@ -18,7 +17,8 @@ public sealed class CommandPalette(CommandRegistry commands, Keymap keys, Comman
 
     public sealed record Row(string Id, string Label, string Keys)
     {
-        public string Format() =>
-            $"{(Label.Length <= LabelWidth ? Label : Label[..(LabelWidth - 1)] + "…"),-50}{Keys}";
+        public static readonly RowLayout<Row> Columns = new(
+            Column<Row>.Name("Command", row => row.Label) with { Width = 48 },
+            Column<Row>.Text("Keys", row => row.Keys));
     }
 }

@@ -99,11 +99,13 @@ public class PickerLoadingTests : StaticConfigurationTest
             () => _picker!.State == LoadState.Loaded,
             () =>
             {
-                var header = _picker!.SubViews.OfType<Label>().Single(label => label.Text == IssuePicker.Issue.Header);
+                var header = _picker!.SubViews.OfType<Label>().Single(label => label.Text == _picker.Header);
                 var list = _picker.SubViews.OfType<LoadStateView>().Single();
                 Assert.Equal(header.Frame.Y + 1, list.Frame.Y);
                 Assert.Equal(header.Frame.X, list.Frame.X);
-                Assert.Equal(IssuePicker.Issue.Header.IndexOf("State"), _picker.Labels[0].IndexOf("open"));
+                Assert.Equal(55, _picker.Header!.IndexOf("State"));
+                Assert.Equal(_picker.Header.IndexOf("State"), _picker.Labels[0].IndexOf("open"));
+                Assert.StartsWith("#27  Typing to narrow the command palette  ", _picker.Labels[0], StringComparison.Ordinal);
                 Press(Key.Esc);
             });
     }

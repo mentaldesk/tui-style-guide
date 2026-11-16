@@ -143,6 +143,20 @@ public class KeysPageTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void A_chord_longer_than_the_keys_column_shows_whole_while_it_is_recorded()
+    {
+        const string typed = $"{KeysPage.Recording} Ctrl+Shift+F6 Ctrl+Shift+F7";
+        Run([
+            .. RecordFor("comment"),
+            () => Press(Key.F6.WithCtrl.WithShift, Key.F7.WithCtrl.WithShift),
+            () => Row(0).Contains(typed, StringComparison.Ordinal),
+            () => Press(Key.Esc),
+            () => !Page.IsRecording,
+            () => Press(Key.Esc),
+        ]);
+    }
+
+    [Fact]
     public void A_kept_key_shows_in_the_menu_the_palette_and_Help_and_is_back_after_a_restart()
     {
         KeySheet? sheet = null;
