@@ -297,7 +297,8 @@ public class StatusMessagesTests : StaticConfigurationTest
         _clock.Advance(TimeSpan.FromMinutes(1));
         _bar.ShowNews("Couldn't list files", Severity.Error);
 
-        Assert.Equal(["14:02  Saved", "14:03  Couldn't list files"], _bar.History.Select(message => message.ToString()));
+        Assert.Equal(["Saved", "Couldn't list files"], _bar.History.Select(message => message.Text));
+        Assert.Equal(TimeSpan.FromMinutes(1), _bar.History[1].At - _bar.History[0].At);
     }
 
     [Fact]
@@ -321,6 +322,19 @@ public class StatusMessagesTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void Messages_shows_an_older_message_with_its_date_in_local_time()
+    {
+        _clock.Zone = TimeZoneInfo.CreateCustomTimeZone("Plus 13", TimeSpan.FromHours(13), "Plus 13", "Plus 13");
+        _bar.ShowMessage("Opened https://example.com");
+        _clock.Advance(TimeSpan.FromDays(1));
+        _bar.ShowMessage("Saved notes.md");
+
+        using var dialog = new MessagesDialog(_bar);
+
+        Assert.Equal(["03:02  Saved notes.md", "18 Oct 03:02  Opened https://example.com"], dialog.Lines);
+    }
+
+    [Fact]
     public void Messages_with_nothing_yet_says_so_dimmed()
     {
         using var dialog = new MessagesDialog(_bar);
@@ -339,4 +353,8 @@ public class StatusMessagesTests : StaticConfigurationTest
         else
             _bar.ShowNews(text, severity);
     }
+
+    [Fact]
+    public void A_message_reads_as_its_text() =>
+        Assert.Equal("Saved", $"{new StatusMessage("Saved", Severity.Info, MessageKind.Reply, DateTimeOffset.UnixEpoch)}");
 }

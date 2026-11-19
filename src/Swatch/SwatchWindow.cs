@@ -1,3 +1,4 @@
+using MentalDesk.Tui;
 using MentalDesk.Tui.Assistant;
 using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Commands;
@@ -259,7 +260,7 @@ internal sealed class SwatchWindow : AppWindow
 
     private static void ShowRowsWithColumns(AppShell shell)
     {
-        using var dialog = new RowsWithColumnsDialog();
+        using var dialog = new RowsWithColumnsDialog(new Times(shell.StatusBar.Clock));
         dialog.Run(shell);
     }
 

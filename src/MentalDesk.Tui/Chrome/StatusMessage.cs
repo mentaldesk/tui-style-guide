@@ -21,5 +21,5 @@ public sealed class StatusMessage(string text, Severity severity, MessageKind ki
 
     public bool CountsAsUnread => Kind == MessageKind.News && Severity == Severity.Error;
 
-    public override string ToString() => $"{At:HH:mm}  {Text}";
+    public override string ToString() => Text;
 }

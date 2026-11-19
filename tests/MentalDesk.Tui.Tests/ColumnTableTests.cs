@@ -14,16 +14,20 @@ public class ColumnTableTests : StaticConfigurationTest
         base.Dispose();
     }
 
+    private static readonly Times Times = new(new FakeClock());
+
+    private static readonly RowLayout<RowsWithColumnsDialog.Spend> SpendColumns = RowsWithColumnsDialog.SpendColumns(Times);
+
     private static IReadOnlyList<RowsWithColumnsDialog.Spend> Spending =>
     [
-        new("Pitching #42 Narrow terminals", 3, 41, 2.10m),
-        new("Building #43 Settings screen", 11, 187, 9.85m),
+        new("Pitching #42 Narrow terminals", 3, 41, 2.10m, Times.Clock.GetUtcNow()),
+        new("Building #43 Settings screen", 11, 187, 9.85m, Times.Clock.GetUtcNow().AddDays(-10)),
     ];
 
     private ColumnTable<RowsWithColumnsDialog.Spend> Table(int width)
     {
         _app.Driver!.SetScreenSize(width, 5);
-        var table = new ColumnTable<RowsWithColumnsDialog.Spend>(RowsWithColumnsDialog.SpendColumns, Spending)
+        var table = new ColumnTable<RowsWithColumnsDialog.Spend>(SpendColumns, Spending)
         {
             App = _app, Width = width, Height = 5,
         };
@@ -49,7 +53,7 @@ public class ColumnTableTests : StaticConfigurationTest
     public void It_draws_the_same_columns_as_a_list_laid_out_from_the_same_description(int width)
     {
         using var table = Table(width);
-        var fit = RowsWithColumnsDialog.SpendColumns.Fit(Spending, width);
+        var fit = SpendColumns.Fit(Spending, width);
 
         var lines = fit.ShowsHeader ? [fit.Header!, .. Spending.Select(fit.Row)] : Spending.Select(fit.Row).ToArray();
         for (var i = 0; i < lines.Length; i++)
@@ -63,6 +67,14 @@ public class ColumnTableTests : StaticConfigurationTest
 
         Assert.Equal("What                 Runs  Minutes", Line(0, 34));
         Assert.Equal("Pitching #42 Narro…     3       41", Line(1, 34));
+    }
+
+    [Fact]
+    public void Narrowing_drops_last_run_before_cost_and_never_cuts_an_age()
+    {
+        Assert.Equal(["What", "Runs", "Minutes", "Cost", "Last run"], SpendColumns.Fit(Spending, 46).Placed.Select(placed => placed.Column.Header));
+        Assert.EndsWith("   7 Oct", SpendColumns.Fit(Spending, 46).Row(Spending[1]), StringComparison.Ordinal);
+        Assert.Equal(["What", "Runs", "Minutes", "Cost"], SpendColumns.Fit(Spending, 45).Placed.Select(placed => placed.Column.Header));
     }
 
     [Fact]

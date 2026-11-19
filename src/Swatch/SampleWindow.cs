@@ -40,6 +40,7 @@ internal sealed class SampleWindow : AppWindow
     public const string LeaveUnsaved = "sample.leaveUnsaved";
     public const string LeaveFailing = "sample.leaveFailing";
     public const string LeaveUntitled = "sample.leaveUntitled";
+    public const string ShowLastLoaded = "sample.lastLoaded";
     public const string Warning = "Couldn't watch src for changes";
 
     public static readonly FocusRegion FilesRegion = new("Files", new CommandScope("Files"));
@@ -59,10 +60,12 @@ internal sealed class SampleWindow : AppWindow
     private readonly TreeNode _src;
     private object? _load;
     private StatusMessage? _failure;
+    private ITimer? _tick;
 
     public SampleWindow(AppShell shell, string theme, TimeSpan? loadTime = null) : base(Register(shell))
     {
         Shell = shell;
+        Times = new Times(shell.StatusBar.Clock);
         LoadTime = loadTime ?? TimeSpan.FromSeconds(1.5);
         Files = new LoadStateView(_files, "Loading files…");
         Files.ReloadFailed += (_, message) =>
@@ -78,8 +81,7 @@ internal sealed class SampleWindow : AppWindow
 
         var todo = new TreeNode { Text = "todo.md" };
         _src = new TreeNode { Text = "src", Children = [new TreeNode { Text = "notes.md" }, todo] };
-        _files.SelectionChanged += (_, e) =>
-            shell.StatusBar.RestingText = e.NewValue is { } node && node != _src ? $"src/{node.Text}" : string.Empty;
+        _files.SelectionChanged += (_, _) => ShowResting();
         _files.DrawLine += (_, e) => IconField.Prepend(e, shell.Icons.Glyph(e.Model == _src ? SwatchIcons.Folder : SwatchIcons.File));
         shell.Icons.Changed += OnIconsChanged;
         _files.ColorGetter = node => node == todo && _files.GetScheme() is { } scheme
@@ -105,6 +107,7 @@ internal sealed class SampleWindow : AppWindow
             .Register(LeaveUnsaved, "Leave two files unsaved", () => Leave("notes.md", "plan.md"))
             .Register(LeaveFailing, "Leave a file that won't save", () => Leave("todo.md"))
             .Register(LeaveUntitled, "Leave an untitled file", () => Leave($"Untitled-{_unsaved.Count(item => item.Save is null) + 1}"))
+            .Register(ShowLastLoaded, "Show when files last loaded", ShowWhenLoaded, isEnabled: () => LastLoaded is not null)
             .Register(CollapseFolders, "Collapse folders", () => _files.Collapse(_src), isEnabled: () => Listed && _files.IsExpanded(_src))
             .Register(ExpandFolders, "Expand folders", () => _files.Expand(_src), isEnabled: () => Listed && !_files.IsExpanded(_src));
         shell.Keys.Bind("Ctrl+R", ReloadFiles);
@@ -136,6 +139,13 @@ internal sealed class SampleWindow : AppWindow
 
     public TimeSpan LoadTime { get; }
 
+    public Times Times { get; }
+
+    // The last load that worked.
+    public DateTimeOffset? LastLoaded { get; private set; }
+
+    public static readonly TimeSpan TickEvery = TimeSpan.FromSeconds(10);
+
     private bool Listed => _files.Objects?.Contains(_src) == true;
 
     protected override void Dispose(bool disposing)
@@ -143,6 +153,8 @@ internal sealed class SampleWindow : AppWindow
         if (disposing)
         {
             if (_load is not null) App?.RemoveTimeout(_load);
+            _tick?.Dispose();
+            _tick = null;
             Shell.Icons.Changed -= OnIconsChanged;
         }
         base.Dispose(disposing);
@@ -166,6 +178,35 @@ internal sealed class SampleWindow : AppWindow
         var screen = new View { Width = Dim.Fill(), Height = Dim.Fill(), CanFocus = true };
         screen.Add(panes);
         return screen;
+    }
+
+    private void ShowResting() =>
+        Shell.StatusBar.RestingText = _files.SelectedObject is { } node && node != _src ? $"src/{node.Text}"
+            : LastLoaded is { } loaded ? $"Synced {Times.Ago(loaded)}"
+            : string.Empty;
+
+    private void Synced()
+    {
+        LastLoaded = Times.Clock.GetUtcNow();
+        ShowResting();
+        _tick?.Dispose();
+        _tick = Tick();
+    }
+
+    // The clock's timers fire off the UI thread, so each tick hands back to it and sets the next.
+    private ITimer Tick() => Times.Clock.CreateTimer(_ => App?.Invoke(() =>
+    {
+        if (_tick is null) return;
+        _tick.Dispose();
+        ShowResting();
+        _tick = Tick();
+    }), null, TickEvery, System.Threading.Timeout.InfiniteTimeSpan);
+
+    private void ShowWhenLoaded()
+    {
+        if (LastLoaded is not { } loaded) return;
+        using var dialog = new LastLoadedDialog(Times.At(loaded));
+        dialog.Run(Shell);
     }
 
     private void OnIconsChanged(object? sender, EventArgs e) => _files.SetNeedsDraw();
@@ -192,12 +233,14 @@ internal sealed class SampleWindow : AppWindow
                 _files.Expand(_src);
                 _files.SelectedObject ??= _src.Children[0];
                 Files.ShowContent();
+                Synced();
                 if (_failure is not null) Shell.StatusBar.Withdraw(_failure);
                 _failure = null;
                 break;
             case Outcome.Empty:
                 _files.ClearObjects();
                 Files.ShowEmpty("No files", Step(ReloadFiles, "reload"));
+                Synced();
                 break;
             case Outcome.Failure:
                 Files.ShowFailed("Couldn't list files", Step(ReloadFiles, "retry")!.Value);
@@ -249,6 +292,7 @@ internal sealed class SampleWindow : AppWindow
                 new MenuEntry(ReloadFiles, "_Reload files"),
                 new MenuEntry(LoadNoFiles, "Load _no files"),
                 new MenuEntry(LoadFailing, "Load files, _failing"),
+                new MenuEntry(ShowLastLoaded, "When files _last loaded…"),
                 new MenuEntry(LogWarning, "Log a _warning"),
                 new MenuEntry(ThreeWaiting, "T_hree things waiting"),
                 null,

@@ -18,9 +18,11 @@ public sealed class MessagesDialog : AppDialog
     {
         Rows = [.. bar.History.Reverse()];
         bar.MarkRead();
+        var times = new Times(bar.Clock);
+        Lines = [.. Rows.Select(row => $"{times.At(row.At)}  {row.Text}")];
 
         _list = new ListView { X = 1, Y = 0, Width = Dim.Fill(1), Height = ContentRows - 2, Visible = Rows.Count > 0 };
-        _list.Source = new ListWrapper<string>(new ObservableCollection<string>(Rows.Select(row => row.ToString())));
+        _list.Source = new ListWrapper<string>(new ObservableCollection<string>(Lines));
         _list.RowRender += (_, e) => e.RowAttribute = RowAttribute(e.Row) ?? e.RowAttribute;
         if (Rows.Count > 0)
             _list.SelectedItem = 0;
@@ -41,6 +43,8 @@ public sealed class MessagesDialog : AppDialog
     // Newest first.
     public IReadOnlyList<StatusMessage> Rows { get; }
 
+    public IReadOnlyList<string> Lines { get; }
+
     public ListView List => _list;
 
     public Label Empty { get; }
@@ -59,9 +63,10 @@ public sealed class MessagesDialog : AppDialog
 
     private void CopySelected()
     {
-        if (Selected is not { } row) return;
+        if (_list.SelectedItem is not { } index || index >= Lines.Count) return;
+        var line = Lines[index];
         var terminal = App?.Clipboard as TerminalClipboard;
-        var outcome = terminal?.Write(row.ToString()) ?? VerifiedClipboard.Write(App?.Clipboard, row.ToString());
+        var outcome = terminal?.Write(line) ?? VerifiedClipboard.Write(App?.Clipboard, line);
         if (outcome is CopyOutcome.Failed)
         {
             ShowAlert(outcome.Message, outcome.Severity);

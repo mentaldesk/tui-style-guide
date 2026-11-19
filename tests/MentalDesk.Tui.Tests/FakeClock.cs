@@ -8,7 +8,9 @@ internal sealed class FakeClock : TimeProvider
 
     public override DateTimeOffset GetUtcNow() => _now;
 
-    public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
+    public TimeZoneInfo Zone { get; set; } = TimeZoneInfo.Utc;
+
+    public override TimeZoneInfo LocalTimeZone => Zone;
 
     public void Advance(TimeSpan by)
     {
