@@ -22,6 +22,7 @@ public class ColumnTable<T> : TableView
         Style.ShowVerticalCellLineForLastColumn = false;
         Style.ExpandLastColumn = false;
         Style.InvertSelectedCellFirstCharacter = false;
+        Style.RowColorGetter = _ => CanFocus ? null : Unselected();
         for (var i = 0; i < layout.Columns.Count; i++)
         {
             var column = layout.Columns[i];
@@ -98,6 +99,13 @@ public class ColumnTable<T> : TableView
         var normal = GetAttributeForRole(VisualRole.Normal);
         var header = new Attribute(dim.Foreground, normal.Background);
         return new Scheme(GetScheme()) { Normal = header, Focus = header };
+    }
+
+    // TableView always selects a cell, so one that can't take focus would show a row you can't act on.
+    private Scheme Unselected()
+    {
+        var scheme = GetScheme();
+        return new Scheme(scheme) { Focus = scheme.Normal, Active = scheme.Normal, Highlight = scheme.Normal };
     }
 
     private sealed class Source(ColumnTable<T> table) : ITableSource

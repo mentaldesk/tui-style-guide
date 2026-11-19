@@ -129,6 +129,8 @@ text or a number. They look the same:
 - **Two spaces between columns.** Content starts one column in from the border, as every dialog's does.
 - **Text aligns left, numbers right**, header included, so the digits line up.
 - **The last column doesn't stretch** to fill the width.
+- **A table you can't focus shows no selected row.** It's there to read, and a highlighted row would
+  look like one you could act on.
 
 When the terminal is too narrow for them:
 

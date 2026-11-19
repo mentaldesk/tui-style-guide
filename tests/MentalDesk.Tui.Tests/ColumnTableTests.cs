@@ -20,12 +20,12 @@ public class ColumnTableTests : StaticConfigurationTest
         new("Building #43 Settings screen", 11, 187, 9.85m),
     ];
 
-    private ColumnTable<RowsWithColumnsDialog.Spend> Table(int width)
+    private ColumnTable<RowsWithColumnsDialog.Spend> Table(int width, bool canFocus = true)
     {
         _app.Driver!.SetScreenSize(width, 5);
         var table = new ColumnTable<RowsWithColumnsDialog.Spend>(RowsWithColumnsDialog.SpendColumns, Spending)
         {
-            App = _app, Width = width, Height = 5,
+            App = _app, Width = width, Height = 5, CanFocus = canFocus,
         };
         table.BeginInit();
         table.EndInit();
@@ -91,5 +91,15 @@ public class ColumnTableTests : StaticConfigurationTest
         Assert.Equal(14, what.MinAcceptableWidth);
         Assert.Equal("…", what.TruncationIndicator);
         Assert.Equal("…", cost.TruncationIndicator);
+    }
+
+    [Fact]
+    public void A_table_that_cant_take_focus_shows_no_selected_row()
+    {
+        using var table = Table(80, canFocus: false);
+
+        var normal = table.GetAttributeForRole(VisualRole.Normal);
+        Assert.Equal(normal, _app.Driver!.Contents![1, 0].Attribute);
+        Assert.Equal(normal, _app.Driver.Contents[2, 0].Attribute);
     }
 }
