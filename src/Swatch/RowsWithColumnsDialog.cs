@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using MentalDesk.Tui;
 using MentalDesk.Tui.Columns;
 using MentalDesk.Tui.Dialogs;
 
@@ -9,22 +10,23 @@ internal sealed class RowsWithColumnsDialog : AppDialog
 {
     public const int MaxWidth = 112;
 
-    public static readonly RowLayout<Spend> SpendColumns = new(
+    public static RowLayout<Spend> SpendColumns(Times times) => new(
         Column<Spend>.Name("What", spend => spend.What, minWidth: 14),
         Column<Spend>.Number("Runs", spend => spend.Runs.ToString()),
         Column<Spend>.Number("Minutes", spend => spend.Minutes.ToString()),
-        Column<Spend>.Number("Cost", spend => $"${spend.Cost:0.00}"));
+        Column<Spend>.Number("Cost", spend => $"${spend.Cost:0.00}"),
+        Column<Spend>.Number("Last run", spend => times.Age(spend.LastRun)));
 
     public static readonly RowLayout<Folder> FolderColumns = new(
         Column<Folder>.Name("Name", folder => folder.Name, minWidth: 8),
         Column<Folder>.Path("Where", folder => folder.Where, minWidth: 16) with { Width = 31 });
 
-    private static readonly Spend[] Spending =
+    private static Spend[] Spending(DateTimeOffset now) =>
     [
-        new("Pitching #42 Narrow terminals", 3, 41, 2.10m),
-        new("Building #43 Settings screen", 11, 187, 9.85m),
-        new("Reviewing #44 Empty states", 2, 18, 0.92m),
-        new("Building #45 Rows with columns", 7, 96, 5.40m),
+        new("Pitching #42 Narrow terminals", 3, 41, 2.10m, now),
+        new("Building #43 Settings screen", 11, 187, 9.85m, now.AddHours(-3)),
+        new("Reviewing #44 Empty states", 2, 18, 0.92m, now.AddDays(-2)),
+        new("Building #45 Rows with columns", 7, 96, 5.40m, now.AddDays(-10)),
     ];
 
     private static readonly Folder[] Folders =
@@ -37,11 +39,11 @@ internal sealed class RowsWithColumnsDialog : AppDialog
     private readonly ObservableCollection<string> _shown = [];
     private ColumnFit<Folder>? _fit;
 
-    public RowsWithColumnsDialog()
+    public RowsWithColumnsDialog(Times times)
         : base("Rows with columns", MaxWidth, contentRows: 8)
     {
         FitToScreen(MaxWidth);
-        Table = new ColumnTable<Spend>(SpendColumns, Spending) { X = 1, Y = 0, Width = Dim.Percent(50), Height = 6 };
+        Table = new ColumnTable<Spend>(SpendColumns(times), Spending(times.Clock.GetUtcNow())) { X = 1, Y = 0, Width = Dim.Percent(50), Height = 6 };
         var line = new Line { Orientation = Orientation.Vertical, X = Pos.Right(Table) + 1, Height = 6 };
         Header = new Label { X = Pos.Right(line) + 2, Y = 0, Width = Dim.Fill(1), Enabled = false };
         List = new ListView { X = Pos.Left(Header), Y = 1, Width = Dim.Fill(1), Height = 5 };
@@ -76,7 +78,7 @@ internal sealed class RowsWithColumnsDialog : AppDialog
         List.SelectedItem = selected;
     }
 
-    public sealed record Spend(string What, int Runs, int Minutes, decimal Cost);
+    public sealed record Spend(string What, int Runs, int Minutes, decimal Cost, DateTimeOffset LastRun);
 
     public sealed record Folder(string Name, string Where);
 }

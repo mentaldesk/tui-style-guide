@@ -370,6 +370,52 @@ In Swatch's sample, type in the Editor while *View › Load files, failing* runs
 `⚠ 1` appears. *View › Log a warning* adds to `⚠ n` without a message, the selected file rests on the
 bar, *File › Save* shows a reply, and *Help › Messages…* lists them all.
 
+### Times and durations
+
+**When something happened: relative while it's recent, then the date.**
+
+| Age | Shown | |
+|---|---|---|
+| Under a minute | `now` | A time a little in the future is `now` too. |
+| Under 90 minutes | `5m ago` | |
+| Under 36 hours | `3h ago` | |
+| Under 7 days | `2d ago` | |
+| 7 days or more | `9 Nov` | `9 Nov 2025` outside this year. |
+
+Each rounds to the nearest unit, as `git log --date=relative` does, and the unit only changes at 90
+minutes and 36 hours. **In a column of ages, `ago` is dropped** (`5m`, `3h`, `2d`): the column's header
+(`Waited`, `Last run`) says what it measures. An age is right-aligned and never cut, as a number is
+(see [Rows with columns](#rows-with-columns)).
+
+**The exact time is always local, and always one look away.** Wherever an exact time is shown, like a
+comment heading, a detail line or *Messages*, it's in the user's local time zone:
+
+- `09:30` for today
+- `14 Nov 09:30` for this year
+- `14 Nov 2025 09:30` for another year
+
+The day has no leading zero, and month names are English, whatever the locale. A screen that shows
+only a relative time, like a card, shows the exact time in its detail line or a dialog. A live log that
+ticks every second keeps `HH:mm:ss`. Files and logs written for machines keep ISO 8601 in UTC: that
+format isn't for the screen.
+
+**How long: the two largest units, or a clock while it's still going.**
+
+- A finished or waiting length is `45s`, `5m`, `4h 5m` or `2d 4h`: the two largest units, with a space
+  between. A zero second unit is left out: `2h`, not `2h 0m`.
+- A length still counting up or down, like a run in progress or the next pass, is a clock: `1:02`, or
+  `1:02:03` from an hour.
+
+The library's [`Times`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Times.cs)
+writes all of them: `Ago(at)`, `Age(at)` for a column, `At(at)`, and `Took(span)` and `Running(span)`
+for lengths. It reads *now* from the `TimeProvider` it's given, so a test can fix it, needs no
+`AppShell`, and only returns strings.
+
+In Swatch, *Help › Messages…* gives each message's time with `At`, and *Help › Rows with columns…* has
+a `Last run` column of ages, which drops before `Cost` as the terminal narrows. In the sample, move off a
+file and the status bar rests on `Synced now`, counting up; *View › When files last loaded…* shows the
+exact time.
+
 ### Loading and empty
 
 **A region that waits for data says so in itself**, where its content goes: not on the status bar,

@@ -7,6 +7,7 @@ namespace MentalDesk.Tui.Tests;
 public class RowsWithColumnsTests : StaticConfigurationTest
 {
     private readonly Host _host = new();
+    private readonly FakeClock _clock = new();
 
     public override void Dispose()
     {
@@ -21,6 +22,7 @@ public class RowsWithColumnsTests : StaticConfigurationTest
     // On Windows the driver polls the console and undoes SetScreenSize, so each test sizes its dialog instead.
     private void Run(params Delegate[] steps)
     {
+        _host.Shell.StatusBar.Clock = _clock;
         using var window = new SwatchWindow(_host.Shell);
         _host.Run(window, [() => _host.Shell.StatusBar.FocusWord == "Themes", .. steps]);
     }
@@ -45,7 +47,10 @@ public class RowsWithColumnsTests : StaticConfigurationTest
             () => Dialog!.Frame.Width == RowsWithColumnsDialog.MaxWidth,
             () =>
             {
-                Assert.Equal(["What", "Runs", "Minutes", "Cost"], Dialog!.Table.Fit.Placed.Select(placed => placed.Column.Header));
+                Assert.Equal(["What", "Runs", "Minutes", "Cost", "Last run"], Dialog!.Table.Fit.Placed.Select(placed => placed.Column.Header));
+                Assert.Equal(
+                    ["     now", "      3h", "      2d", "   7 Oct"],
+                    Dialog.Table.Rows.Select(row => Dialog.Table.Fit.Row(row)[^8..]));
                 Assert.Equal("Name             Where", Dialog.Header.Text);
                 Assert.Equal("tui-style-guide  ~/code/tui-style-guide/main", Dialog.Rows[0]);
                 Assert.Equal("TuiCode          …/code/TuiCode/side-pane-resize", Dialog.Rows[2]);
@@ -66,7 +71,7 @@ public class RowsWithColumnsTests : StaticConfigurationTest
             () =>
             {
                 Assert.Equal(["What", "Runs"], Dialog!.Table.Fit.Placed.Select(placed => placed.Column.Header));
-                Assert.EndsWith("…", Dialog.Table.Fit.Row(new("Building #45 Rows with columns", 7, 96, 5.40m)).Split("  ")[0], StringComparison.Ordinal);
+                Assert.EndsWith("…", Dialog.Table.Fit.Row(Dialog.Table.Rows[3]).Split("  ")[0], StringComparison.Ordinal);
                 Assert.Equal(string.Empty, Dialog.Header.Text);
                 Assert.Equal(["tui-style-guide", "a-team", "TuiCode"], Dialog.Rows);
                 _host.App.InjectKey(Key.Esc);
