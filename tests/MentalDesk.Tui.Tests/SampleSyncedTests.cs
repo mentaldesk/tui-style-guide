@@ -88,6 +88,23 @@ public class SampleSyncedTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void Reloading_restarts_the_count_from_the_reload()
+    {
+        var half = SampleWindow.TickEvery / 2;
+        Run(sample =>
+        [
+            () => sample.Files.State == LoadState.Loaded,
+            () => _clock.Advance(half),
+            () => sample.Shell.Commands.Execute(SampleWindow.ReloadFiles),
+            () => sample.Files.State == LoadState.Loaded && sample.LastLoaded == _clock.GetUtcNow(),
+            () => OnFolder(sample),
+            .. Enumerable.Repeat<Action>(() => _clock.Advance(half), 12),
+            () => Resting(sample) == "Synced 1m ago",
+            () => _host.App.InjectKey(Key.Esc),
+        ]);
+    }
+
+    [Fact]
     public void The_view_menu_shows_the_exact_time_of_the_last_load()
     {
         Run(sample =>

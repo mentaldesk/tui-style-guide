@@ -81,6 +81,7 @@ public class TimesTests
     [InlineData(2 * 3600 + 30, "2h")]
     [InlineData(4 * 3600 + 5 * 60 + 9, "4h 5m")]
     [InlineData(2 * 86400 + 4 * 3600 + 5 * 60, "2d 4h")]
+    [InlineData(86400 + 30 * 60, "1d")]
     [InlineData(0, "0s")]
     public void Took_is_the_two_largest_units(int seconds, string expected) =>
         Assert.Equal(expected, Times.Took(TimeSpan.FromSeconds(seconds)));

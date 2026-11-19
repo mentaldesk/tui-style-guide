@@ -402,7 +402,8 @@ format isn't for the screen.
 **How long: the two largest units, or a clock while it's still going.**
 
 - A finished or waiting length is `45s`, `5m`, `4h 5m` or `2d 4h`: the two largest units, with a space
-  between. A zero second unit is left out: `2h`, not `2h 0m`.
+  between. The second unit is always the next one down, and is left out when it's zero: `2h`, not
+  `2h 0m`, and `1d`, not `1d 30m`.
 - A length still counting up or down, like a run in progress or the next pass, is a clock: `1:02`, or
   `1:02:03` from an hour.
 

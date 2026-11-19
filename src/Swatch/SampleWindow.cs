@@ -189,7 +189,8 @@ internal sealed class SampleWindow : AppWindow
     {
         LastLoaded = Times.Clock.GetUtcNow();
         ShowResting();
-        _tick ??= Tick();
+        _tick?.Dispose();
+        _tick = Tick();
     }
 
     // The clock's timers fire off the UI thread, so each tick hands back to it and sets the next.

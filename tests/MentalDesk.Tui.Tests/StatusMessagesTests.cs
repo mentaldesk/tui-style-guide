@@ -353,4 +353,8 @@ public class StatusMessagesTests : StaticConfigurationTest
         else
             _bar.ShowNews(text, severity);
     }
+
+    [Fact]
+    public void A_message_reads_as_its_text() =>
+        Assert.Equal("Saved", $"{new StatusMessage("Saved", Severity.Info, MessageKind.Reply, DateTimeOffset.UnixEpoch)}");
 }

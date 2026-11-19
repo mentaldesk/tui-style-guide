@@ -20,4 +20,6 @@ public sealed class StatusMessage(string text, Severity severity, MessageKind ki
     public DateTimeOffset At { get; } = at;
 
     public bool CountsAsUnread => Kind == MessageKind.News && Severity == Severity.Error;
+
+    public override string ToString() => Text;
 }
