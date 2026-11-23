@@ -277,7 +277,7 @@ Rules that matter more than the widget:
   exception type; a stack trace belongs in the log, never on screen.
 - **Put focus where the fix is.** A missing summary focuses the summary field.
 - **Show busy, and refuse a second go.** `Submitting…` in the message block, with the confirm
-  disabled until it resolves.
+  disabled until it resolves. Outside a dialog, see [Work you started](#work-you-started).
 - **Outside a dialog, errors go to the status bar** — same wording rules, one line. Don't open a
   modal to report something the user did not just ask for. A pane that failed to load is the
   exception: see [Loading and empty](#loading-and-empty).
@@ -437,6 +437,8 @@ or in a header. A message away from the pane outlives the load.
   status bar.
 - **The content keeps focus** in every state, so `Tab` order doesn't change as a pane loads.
 
+Work the user started, rather than data a pane waits for, is [Work you started](#work-you-started).
+
 ```
 ┌┤Pull requests├────────────────────────────┐   ┌┤Pull requests├─────────────────────────⠙──┐
 │                                           │   │ #27 Typing to narrow the command palette  │
@@ -451,6 +453,56 @@ is the reference implementation: it wraps any content view, and the app tells it
 `SpinnerView` and the theme's `ReadOnly` role and `Error` scheme, and switches the terminal's own
 progress indicator on while loading. In Swatch, *Try it* opens a sample whose Files pane loads, and
 its *View* menu reloads it, empty or failing; *Help › Loading states…* shows the same states in a dialog.
+
+### Work you started
+
+**Work the user started that takes more than a moment, like a search, an approve or a merge, shows
+where its result will land.** Work that fills a pane says so in that pane's own status row, at its
+foot. Work with no pane of its own says so on the status bar. A dialog keeps `Submitting…` in its
+message block (see above).
+
+- **A spinner and what it's doing, with how far once it can tell**: `Finding… 1,234 files`, in the
+  theme's `ReadOnly` role. Shown only once it has taken longer than a moment, as a load is (see
+  [Loading and empty](#loading-and-empty)). A job whose length is known uses `ProgressBar`.
+- **It stays until it's done.** Running work on the status bar is the exception to the 5-second rule
+  in [Status messages](#status-messages): it doesn't time out, or go at the next key. Its outcome
+  replaces it: a reply (`#12 approved`), or an `Error` as news, which counts in `⚠ n`. A newer message
+  still shows over it, since the latest wins, and the running work comes back when that message goes.
+- **`Esc` stops it, where stopping means something**, and the line says so: `  •  Esc stop`. `Esc`
+  stops the work in the focused pane, since [`Esc` cancels](#5-keys-and-focus). Work on the
+  status bar has no pane, so it's stopped from its own command, whose key the line shows. Work that
+  can't be taken back once it's sent, like a merge, shows no stop key, and `Esc` leaves it running.
+- **Stopping keeps what's done**, and says so: `Stopped  •  1,234 files searched`, with the results so
+  far still in the pane.
+- **A second go doesn't start it twice.** It says the work is under way instead: `Already publishing`,
+  `#12 is already being approved`.
+
+```
+┌┤Files├──────────────────────────────┐   ┌┤Files├──────────────────────────────┐
+│ App.cs                              │   │ App.cs                              │
+│ Pane.cs                             │   │ Pane.cs                             │
+│                                     │   │                                     │
+│ ⠙ Finding… 1,234 files  •  Esc stop │   │ Stopped  •  1,234 files searched    │
+└─────────────────────────────────────┘   └─────────────────────────────────────┘
+```
+
+```
+ Editor  •  ⠹ Approving #12…                                       ⚠ 1  •  Daylight  •  Press F1 for help
+ Editor  •  #12 approved                                           ⚠ 1  •  Daylight  •  Press F1 for help
+```
+
+The library's [`AppStatusBar`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Chrome/AppStatusBar.cs)
+puts work on the status bar with `ShowWork(text, stop, already)`, which returns a
+[`Work`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Working/Work.cs)
+the app updates with `Report(…)` and finishes with `Done(reply)`, `Failed(error)` or `Stopped(text)`.
+Given `already`, it returns null and says `already` while work started with it still runs. For a pane,
+[`WorkLine`](https://github.com/mentaldesk/tui-style-guide/blob/main/src/MentalDesk.Tui/Working/WorkLine.cs)
+is the same in the pane's status row: `Start(text, stop)` returns a `Work`, and `Stop()` is what the
+pane's `Esc` calls. Both wait the moment on the bar's `Clock`, and neither needs `AppShell`.
+
+In Swatch's sample, *View › Find in files* fills the Files pane with a count that climbs; `Esc` there
+stops it. *File › Publish* runs on the status bar for 8 seconds and ends in `Published`; press it
+again while it runs, or *File › Save* over it. *File › Publish, failing* ends in an error.
 
 ### Copying
 

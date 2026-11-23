@@ -10,6 +10,7 @@ using MentalDesk.Tui.Paths;
 using MentalDesk.Tui.Shell;
 using MentalDesk.Tui;
 using MentalDesk.Tui.Theming;
+using MentalDesk.Tui.Working;
 using System.Collections.ObjectModel;
 using Terminal.Gui.Configuration;
 
@@ -41,6 +42,10 @@ internal sealed class SampleWindow : AppWindow
     public const string LeaveFailing = "sample.leaveFailing";
     public const string LeaveUntitled = "sample.leaveUntitled";
     public const string ShowLastLoaded = "sample.lastLoaded";
+    public const string FindInFiles = "sample.findInFiles";
+    public const string StopFinding = "sample.stopFinding";
+    public const string Publish = "sample.publish";
+    public const string PublishFailing = "sample.publishFailing";
     public const string Warning = "Couldn't watch src for changes";
 
     public static readonly FocusRegion FilesRegion = new("Files", new CommandScope("Files"));
@@ -61,6 +66,10 @@ internal sealed class SampleWindow : AppWindow
     private object? _load;
     private StatusMessage? _failure;
     private ITimer? _tick;
+    private ITimer? _findStep;
+    private ITimer? _publishing;
+    private Work? _find;
+    private int _searched;
 
     public SampleWindow(AppShell shell, string theme, TimeSpan? loadTime = null) : base(Register(shell))
     {
@@ -70,7 +79,10 @@ internal sealed class SampleWindow : AppWindow
         Files = new LoadStateView(_files, "Loading files…");
         Files.ReloadFailed += (_, message) =>
             _failure = shell.ShowNews($"{message}, so these are the files from the last load", Severity.Error);
-        var filesPane = Panes.Create("Files", Files, x: 0, width: 24);
+        FilesLine = new WorkLine { Clock = shell.StatusBar.Clock };
+        Files.Height = Dim.Fill(Dim.Func(_ => FilesLine.Visible ? 1 : 0));
+        var filesPane = Panes.Create("Files", Files, x: 0, width: 38);
+        filesPane.Add(FilesLine);
         filesPane.SchemeName = SchemeNames.Sidebar;
         var editorPane = Panes.Create("Editor", _editor, x: Pos.Right(filesPane), width: Dim.Fill());
         var logPane = Panes.Create("Log", _log, x: 0, width: Dim.Fill());
@@ -107,10 +119,14 @@ internal sealed class SampleWindow : AppWindow
             .Register(LeaveUnsaved, "Leave two files unsaved", () => Leave("notes.md", "plan.md"))
             .Register(LeaveFailing, "Leave a file that won't save", () => Leave("todo.md"))
             .Register(LeaveUntitled, "Leave an untitled file", () => Leave($"Untitled-{_unsaved.Count(item => item.Save is null) + 1}"))
+            .Register(FindInFiles, "Find in files", StartFind)
+            .Register(StopFinding, "Stop finding", StopFind, FilesRegion.Scope, isEnabled: () => _find?.Running == true)
+            .Register(Publish, "Publish", () => StartPublish(fails: false))
+            .Register(PublishFailing, "Publish, failing", () => StartPublish(fails: true))
             .Register(ShowLastLoaded, "Show when files last loaded", ShowWhenLoaded, isEnabled: () => LastLoaded is not null)
             .Register(CollapseFolders, "Collapse folders", () => _files.Collapse(_src), isEnabled: () => Listed && _files.IsExpanded(_src))
             .Register(ExpandFolders, "Expand folders", () => _files.Expand(_src), isEnabled: () => Listed && !_files.IsExpanded(_src));
-        shell.Keys.Bind("Ctrl+R", ReloadFiles);
+        shell.Keys.Bind("Ctrl+R", ReloadFiles).Bind("Esc", StopFinding, FilesRegion.Scope);
         shell.Title.App = "Swatch sample";
         shell.Title.Place = _src.Text;
         shell.ReportUnsaved(() => _unsaved);
@@ -135,6 +151,20 @@ internal sealed class SampleWindow : AppWindow
 
     public LoadStateView Files { get; }
 
+    public WorkLine FilesLine { get; }
+
+    public int Searched => _searched;
+
+    public static readonly TimeSpan FindStep = TimeSpan.FromMilliseconds(100);
+
+    public const int FindSteps = 60;
+
+    public const int FilesPerStep = 37;
+
+    public static readonly TimeSpan PublishTime = TimeSpan.FromSeconds(8);
+
+    private static readonly string[] Found = ["App.cs", "Pane.cs", "Theme.cs", "Keys.cs", "Menu.cs", "Status.cs", "Find.cs"];
+
     public TreeView Tree => _files;
 
     public TimeSpan LoadTime { get; }
@@ -155,6 +185,8 @@ internal sealed class SampleWindow : AppWindow
             if (_load is not null) App?.RemoveTimeout(_load);
             _tick?.Dispose();
             _tick = null;
+            _findStep?.Dispose();
+            _publishing?.Dispose();
             Shell.Icons.Changed -= OnIconsChanged;
         }
         base.Dispose(disposing);
@@ -211,8 +243,71 @@ internal sealed class SampleWindow : AppWindow
 
     private void OnIconsChanged(object? sender, EventArgs e) => _files.SetNeedsDraw();
 
+    private static string Finding(int searched) => $"Finding… {searched:N0} files";
+
+    private void StartFind()
+    {
+        if (_load is not null) App?.RemoveTimeout(_load);
+        _load = null;
+        _findStep?.Dispose();
+        _files.ClearObjects();
+        Files.ShowContent();
+        _searched = 0;
+        _find = FilesLine.Start(Finding(0), ("Esc stop", StopFind));
+        Shell.Focus.Focus(FilesRegion);
+        _findStep = FindNext(1);
+    }
+
+    private ITimer FindNext(int step) => Times.Clock.CreateTimer(_ => App?.Invoke(() =>
+    {
+        if (_find is not { Running: true } find) return;
+        _searched += FilesPerStep;
+        if (step % 8 == 0 && step / 8 <= Found.Length)
+        {
+            _files.AddObject(new TreeNode { Text = Found[step / 8 - 1] });
+            _files.SelectedObject ??= _files.Objects!.First();
+        }
+        if (step == FindSteps)
+        {
+            _findStep?.Dispose();
+            _findStep = null;
+            find.Done();
+            return;
+        }
+        find.Report(Finding(_searched));
+        _findStep?.Dispose();
+        _findStep = FindNext(step + 1);
+    }), null, FindStep, System.Threading.Timeout.InfiniteTimeSpan);
+
+    private void StopFind()
+    {
+        if (_find is not { Running: true } find) return;
+        _findStep?.Dispose();
+        _findStep = null;
+        find.Stopped($"Stopped{HintRow.Separator}{_searched:N0} files searched");
+    }
+
+    // Nothing to stop: a publish can't be taken back once it's sent.
+    private void StartPublish(bool fails)
+    {
+        if (Shell.StatusBar.ShowWork("Publishing…", already: "Already publishing") is not { } work) return;
+        _publishing = Times.Clock.CreateTimer(_ => App?.Invoke(() =>
+        {
+            if (fails)
+                work.Failed("Couldn't publish: the server refused the upload");
+            else
+                work.Done("Published");
+        }), null, PublishTime, System.Threading.Timeout.InfiniteTimeSpan);
+    }
+
     private void Load(Outcome outcome)
     {
+        if (_find is { Running: true } find)
+        {
+            _findStep?.Dispose();
+            _findStep = null;
+            find.Done();
+        }
         if (_load is not null) App?.RemoveTimeout(_load);
         Files.ShowLoading();
         _load = App?.AddTimeout(LoadTime, () =>
@@ -278,6 +373,8 @@ internal sealed class SampleWindow : AppWindow
                 new MenuEntry(SaveFile, "Save"),
                 new MenuEntry(SaveTheme, "Save as…"),
                 new MenuEntry(SaveCopy, "Save copy as…"),
+                new MenuEntry(Publish, "Publish"),
+                new MenuEntry(PublishFailing, "Publish, failing"),
                 new MenuEntry(Settings, "Settings…"),
                 new MenuEntry(DeleteTheme, "Delete…"),
                 null,
@@ -293,6 +390,7 @@ internal sealed class SampleWindow : AppWindow
                 new MenuEntry(LoadNoFiles, "Load _no files"),
                 new MenuEntry(LoadFailing, "Load files, _failing"),
                 new MenuEntry(ShowLastLoaded, "When files _last loaded…"),
+                new MenuEntry(FindInFiles, "F_ind in files"),
                 new MenuEntry(LogWarning, "Log a _warning"),
                 new MenuEntry(ThreeWaiting, "T_hree things waiting"),
                 null,
