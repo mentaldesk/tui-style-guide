@@ -471,7 +471,7 @@ message block (see above).
 - **`Esc` stops it, where stopping means something**, and the line says so: `  •  Esc stop`. `Esc`
   stops the work in the focused pane, since [`Esc` cancels](#5-keys-and-focus). Work on the
   status bar has no pane, so it's stopped from its own command, whose key the line shows. Work that
-  can't be taken back once it's sent, like a merge, shows no stop key, and `Esc` leaves it running.
+  can't be taken back once it's sent, like a merge, shows no stop key, and `Esc` leaves it running. Work that's only queued, not yet sent, can be dropped.
 - **Stopping keeps what's done**, and says so: `Stopped  •  1,234 files searched`, with the results so
   far still in the pane.
 - **A second go doesn't start it twice.** It says the work is under way instead: `Already publishing`,

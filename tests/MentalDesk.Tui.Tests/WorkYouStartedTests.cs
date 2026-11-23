@@ -55,6 +55,31 @@ public class WorkYouStartedTests : StaticConfigurationTest
     }
 
     [Fact]
+    public void Work_finished_within_a_moment_leaves_the_showing_error_alone()
+    {
+        _bar.ShowNews("Couldn't load files", Severity.Error);
+
+        var work = _bar.ShowWork("Approving #12…")!;
+        work.Done();
+        _clock.Advance(Work.Moment);
+
+        Assert.Equal(("Couldn't load files", Severity.Error), (_bar.Message, _bar.MessageSeverity));
+    }
+
+    [Fact]
+    public void Work_replaces_the_older_message_once_it_shows()
+    {
+        _bar.ShowNews("Couldn't load files", Severity.Error);
+
+        _bar.ShowWork("Approving #12…");
+        var before = _bar.Says;
+        _clock.Advance(Work.Moment);
+
+        Assert.Equal("Couldn't load files", before);
+        Assert.Equal(("Approving #12…", true), (_bar.Says, _bar.Spinning));
+    }
+
+    [Fact]
     public void Work_on_the_bar_outlives_the_lifetime_and_keys_then_its_reply_replaces_it()
     {
         var work = Approving();

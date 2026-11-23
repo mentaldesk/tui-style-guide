@@ -16,6 +16,7 @@ public sealed class AppStatusBar : View
     private readonly View _right = new() { X = Pos.AnchorEnd() - 1, Y = 0, Width = Dim.Auto(), Height = 1, CanFocus = false };
     private readonly List<StatusMessage> _history = [];
     private readonly List<Work> _work = [];
+    private readonly Dictionary<Work, StatusMessage?> _covering = [];
     private readonly SpinnerView _spinner = new()
     {
         Y = 0, Style = new SpinnerStyle.Dots(), SyncWithTerminal = true, Visible = false, CanFocus = false,
@@ -119,7 +120,7 @@ public sealed class AppStatusBar : View
         var work = new Work(text, stop, already);
         work.Changed += OnWorkChanged;
         _work.Add(work);
-        ClearMessage();
+        _covering[work] = _shown;
         work.ShowAfterMoment(Clock, Post);
         return work;
     }
@@ -207,11 +208,14 @@ public sealed class AppStatusBar : View
         var work = (Work)sender!;
         if (work.Running)
         {
+            if (work.Showing && _covering.Remove(work, out var older) && older is not null && _shown == older)
+                ClearMessage();
             Refresh();
             return;
         }
         work.Changed -= OnWorkChanged;
         _work.Remove(work);
+        _covering.Remove(work);
         switch (work.State)
         {
             case WorkState.Failed:
