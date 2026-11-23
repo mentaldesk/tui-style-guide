@@ -1,4 +1,5 @@
 using MentalDesk.Tui.Theming;
+using MentalDesk.Tui.Working;
 
 namespace MentalDesk.Tui.Chrome;
 
@@ -14,6 +15,12 @@ public sealed class AppStatusBar : View
     private readonly HintRow _hints;
     private readonly View _right = new() { X = Pos.AnchorEnd() - 1, Y = 0, Width = Dim.Auto(), Height = 1, CanFocus = false };
     private readonly List<StatusMessage> _history = [];
+    private readonly List<Work> _work = [];
+    private readonly Dictionary<Work, StatusMessage?> _covering = [];
+    private readonly SpinnerView _spinner = new()
+    {
+        Y = 0, Style = new SpinnerStyle.Dots(), SyncWithTerminal = true, Visible = false, CanFocus = false,
+    };
     private string _stateText = string.Empty;
     private string _restingText = string.Empty;
     private readonly Label _message;
@@ -34,8 +41,9 @@ public sealed class AppStatusBar : View
         _unreadGap.X = Pos.Right(_unread);
         _hints = new HintRow { X = Pos.Right(_state), Width = Dim.Auto() };
         _right.Add(_unread, _unreadGap, _state, _hints);
+        _spinner.X = Pos.Right(_focus);
         _message = new Label { X = Pos.Right(_focus), Width = Dim.Fill(2, _right), Visible = false };
-        Add(_focus, _message, _right);
+        Add(_focus, _spinner, _message, _right);
     }
 
     // Clicking ⚠ n.
@@ -54,6 +62,10 @@ public sealed class AppStatusBar : View
     public Severity? MessageSeverity => _shown?.Severity;
 
     public IReadOnlyList<StatusMessage> History => _history;
+
+    public Work? Working => _work.LastOrDefault(work => work.Showing);
+
+    public bool Spinning => _spinner.Visible;
 
     public int UnreadErrors { get; private set; }
 
@@ -96,6 +108,22 @@ public sealed class AppStatusBar : View
     public StatusMessage ShowMessage(string text, Severity severity = Severity.Info) => Show(text, severity, MessageKind.Reply);
 
     public StatusMessage ShowNews(string text, Severity severity = Severity.Info) => Show(text, severity, MessageKind.News);
+
+    // Null, saying `already`, while work started with the same `already` still runs.
+    public Work? ShowWork(string text, (string Text, Action Run)? stop = null, string? already = null)
+    {
+        if (already is not null && _work.Exists(work => work.Already == already))
+        {
+            ShowMessage(already);
+            return null;
+        }
+        var work = new Work(text, stop, already);
+        work.Changed += OnWorkChanged;
+        _work.Add(work);
+        _covering[work] = _shown;
+        work.ShowAfterMoment(Clock, Post);
+        return work;
+    }
 
     // For what the app logs rather than shows: it goes in Messages, and an Error counts in ⚠ n.
     public StatusMessage Record(string text, Severity severity = Severity.Info)
@@ -165,18 +193,56 @@ public sealed class AppStatusBar : View
         ShowUnread();
     }
 
-    private void Expire(StatusMessage message)
+    private void Expire(StatusMessage message) => Post(() => Withdraw(message));
+
+    private void Post(Action action)
     {
         if (App is { } app)
-            app.Invoke(() => Withdraw(message));
+            app.Invoke(action);
         else
-            Withdraw(message);
+            action();
+    }
+
+    private void OnWorkChanged(object? sender, EventArgs e)
+    {
+        var work = (Work)sender!;
+        if (work.Running)
+        {
+            if (work.Showing && _covering.Remove(work, out var older) && older is not null && _shown == older)
+                ClearMessage();
+            Refresh();
+            return;
+        }
+        work.Changed -= OnWorkChanged;
+        _work.Remove(work);
+        _covering.Remove(work);
+        switch (work.State)
+        {
+            case WorkState.Failed:
+                ShowNews(work.Outcome!, Severity.Error);
+                break;
+            case WorkState.Done or WorkState.Stopped when work.Outcome is { } outcome:
+                ShowMessage(outcome);
+                break;
+            default:
+                Refresh();
+                break;
+        }
     }
 
     private void StopTimer()
     {
         _timer?.Dispose();
         _timer = null;
+    }
+
+    private void Spin(bool on)
+    {
+        if (_spinner.Visible == on) return;
+        _spinner.Visible = on;
+        if (App is not null) _spinner.AutoSpin = on;
+        _message.X = on ? Pos.Right(_spinner) + 1 : Pos.Right(_focus);
+        SetNeedsLayout();
     }
 
     private void ShowUnread()
@@ -193,6 +259,7 @@ public sealed class AppStatusBar : View
 
     private void Refresh()
     {
+        var working = _chord is null && _shown is null ? Working : null;
         if (_chord is not null)
         {
             _message.Text = $"{_chord}…";
@@ -203,12 +270,18 @@ public sealed class AppStatusBar : View
             _message.Text = shown.Text;
             _message.SchemeName = shown.Severity == Severity.Error ? SchemeNames.Error : null;
         }
+        else if (working is not null)
+        {
+            _message.Text = working.Line;
+            _message.SchemeName = null;
+        }
         else
         {
             _message.Text = _restingText;
             _message.SchemeName = null;
         }
-        _message.Visible = _chord is not null || _shown is not null || _restingText.Length > 0;
+        Spin(working is not null);
+        _message.Visible = _chord is not null || _shown is not null || working is not null || _restingText.Length > 0;
         ShowFocusWord();
         SetNeedsDraw();
     }
