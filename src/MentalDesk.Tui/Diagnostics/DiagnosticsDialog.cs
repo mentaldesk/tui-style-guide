@@ -58,7 +58,7 @@ public sealed class DiagnosticsDialog : AppDialog
         Label Row(string heading, string value)
         {
             Add(new Label { X = 1, Y = y, Text = heading });
-            var field = new Label { X = FieldX, Y = y++, Width = Dim.Fill(1), Text = value };
+            var field = new VerbatimLabel { X = FieldX, Y = y++, Width = Dim.Fill(1), Text = value };
             Add(field);
             return field;
         }

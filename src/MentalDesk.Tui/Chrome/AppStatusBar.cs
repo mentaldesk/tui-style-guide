@@ -8,8 +8,8 @@ public sealed class AppStatusBar : View
 {
     public static readonly TimeSpan Lifetime = TimeSpan.FromSeconds(5);
 
-    private readonly Label _focus = new() { X = 1, Y = 0 };
-    private readonly Label _state = new() { X = 0, Y = 0 };
+    private readonly VerbatimLabel _focus = new() { X = 1, Y = 0 };
+    private readonly VerbatimLabel _state = new() { X = 0, Y = 0 };
     private readonly Button _unread;
     private readonly Label _unreadGap = new() { Y = 0, Text = HintRow.Separator, Visible = false };
     private readonly HintRow _hints;
@@ -23,7 +23,7 @@ public sealed class AppStatusBar : View
     };
     private string _stateText = string.Empty;
     private string _restingText = string.Empty;
-    private readonly Label _message;
+    private readonly VerbatimLabel _message;
     private string? _chord;
     private StatusMessage? _shown;
     private ITimer? _timer;
@@ -42,7 +42,7 @@ public sealed class AppStatusBar : View
         _hints = new HintRow { X = Pos.Right(_state), Width = Dim.Auto() };
         _right.Add(_unread, _unreadGap, _state, _hints);
         _spinner.X = Pos.Right(_focus);
-        _message = new Label { X = Pos.Right(_focus), Width = Dim.Fill(2, _right), Visible = false };
+        _message = new VerbatimLabel { X = Pos.Right(_focus), Width = Dim.Fill(2, _right), Visible = false };
         Add(_focus, _spinner, _message, _right);
     }
 
