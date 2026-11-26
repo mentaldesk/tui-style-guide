@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
+using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Dialogs;
 using MentalDesk.Tui.Filtering;
 using MentalDesk.Tui.Keys;
@@ -41,7 +42,7 @@ public sealed class PathPicker : PickerDialog<PathRow>
     private static readonly TimeSpan BatchEvery = TimeSpan.FromMilliseconds(100);
 
     private readonly PathKind _kind;
-    private readonly Label _where;
+    private readonly VerbatimLabel _where;
     private readonly Label _state;
     private readonly bool _ready;
     private Search? _search;
@@ -57,7 +58,7 @@ public sealed class PathPicker : PickerDialog<PathRow>
         _kind = kind;
         Home = Path.TrimEndingDirectorySeparator(home ?? HomePath.Default);
         SearchCap = searchCap;
-        _where = new Label { X = 1, Y = 0, Width = Dim.Fill(1), Enabled = false };
+        _where = new VerbatimLabel { X = 1, Y = 0, Width = Dim.Fill(1), Enabled = false };
         _state = new Label { X = 1, Y = 2, Width = Dim.Fill(1), Enabled = false };
         Add(_where, _state);
 

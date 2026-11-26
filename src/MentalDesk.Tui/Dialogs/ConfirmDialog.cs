@@ -1,3 +1,4 @@
+using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Keys;
 
 namespace MentalDesk.Tui.Dialogs;
@@ -38,7 +39,7 @@ public sealed class ConfirmDialog : AppDialog
             throw new ArgumentException("Focus never starts on a Danger button.", nameof(focus));
 
         Lines = lines;
-        var labels = lines.Select((line, i) => new Label { X = 1, Y = i, Text = line }).ToArray();
+        var labels = lines.Select((line, i) => new VerbatimLabel { X = 1, Y = i, Text = line }).ToArray();
         Add(labels);
         Field = field;
         if (field is not null)

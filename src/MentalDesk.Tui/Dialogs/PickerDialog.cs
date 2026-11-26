@@ -107,7 +107,7 @@ public class PickerDialog<T> : AppDialog
         Add(_filter);
         if (header is not null)
         {
-            _header = new Label { X = 1, Y = linesAbove + 2, Width = Dim.Fill(1), Text = header, Enabled = false };
+            _header = new VerbatimLabel { X = 1, Y = linesAbove + 2, Width = Dim.Fill(1), Text = header, Enabled = false };
             Add(_header);
         }
         _list.FrameChanged += (_, _) =>

@@ -1,4 +1,5 @@
 using System.Drawing;
+using MentalDesk.Tui.Chrome;
 using MentalDesk.Tui.Dialogs;
 using MentalDesk.Tui.Keys;
 using MentalDesk.Tui.Theming;
@@ -108,7 +109,7 @@ public class HostedDialogTests : StaticConfigurationTest
 
         Assert.Equal("Save changes to 'Program.cs' before closing?", rows[0].Trim());
         Assert.Equal("Ctrl+Enter Save     Don't save     Esc Cancel", rows[2].Trim());
-        Assert.IsType<Label>(_dialog.SubViews.First(view => view.Text == _dialog.Lines[0]));
+        Assert.IsType<VerbatimLabel>(_dialog.SubViews.First(view => view.Text == _dialog.Lines[0]));
         Assert.Equal([SchemeNames.ButtonPrimary, SchemeNames.ButtonDanger, SchemeNames.ButtonSecondary], _dialog.ButtonRow.Select(button => button.SchemeName));
     }
 
